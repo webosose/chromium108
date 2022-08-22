@@ -1305,7 +1305,7 @@ void WebView::DispatchNetError(const GURL& url, int error_code) {
   if (error_code == net::ERR_ABORTED)
     webview_delegate_->LoadAborted(url_string);
   else
-    webview_delegate_->LoadFailed(url_string, error_code, std::string());
+    webview_delegate_->LoadFailed(url_string, error_code);
 }
 
 void WebView::DidFailLoad(content::RenderFrameHost* render_frame_host,

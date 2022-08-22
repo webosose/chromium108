@@ -40,9 +40,7 @@ class WebViewDelegate {
   virtual bool AcceptsAudioCapture() = 0;
   virtual void LoadStarted() = 0;
   virtual void LoadFinished(const std::string& url) = 0;
-  virtual void LoadFailed(const std::string& url,
-                          int error_code,
-                          const std::string& error_description) = 0;
+  virtual void LoadFailed(const std::string& url, int error_code) = 0;
   virtual void LoadAborted(const std::string& url) = 0;
   virtual void LoadStopped() = 0;
   virtual void RenderProcessCreated(int pid) = 0;

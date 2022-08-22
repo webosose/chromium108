@@ -167,9 +167,7 @@ void WamDemoWebView::LoadFinished(const std::string& url) {
             << " for url [" << url << "]";
 }
 
-void WamDemoWebView::LoadFailed(const std::string& url,
-                           int error_code,
-                           const std::string& error_description) {
+void WamDemoWebView::LoadFailed(const std::string& url, int error_code) {
   LOG(INFO) << __func__
             << "(): Load failed notification is delivered"
             << " for url [" << url << "]";

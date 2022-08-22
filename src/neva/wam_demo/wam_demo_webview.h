@@ -67,9 +67,7 @@ class WamDemoWebView : public neva_app_runtime::WebViewBase {
   bool AcceptsAudioCapture() override;
   void LoadStarted() override;
   void LoadFinished(const std::string& url) override;
-  void LoadFailed(const std::string& url,
-                  int error_code,
-                  const std::string& error_description) override;
+  void LoadFailed(const std::string& url, int error_code) override;
   void LoadAborted(const std::string& url) override;
   void LoadStopped() override;
   void RenderProcessCreated(int pid) override;
