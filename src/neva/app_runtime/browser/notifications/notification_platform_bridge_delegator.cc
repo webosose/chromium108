@@ -7,12 +7,24 @@
 
 #include "neva/app_runtime/browser/notifications/notification_platform_bridge_delegator.h"
 
+#include "base/notreached.h"
+#include "neva/app_runtime/browser/notifications/notification_platform_bridge_webos.h"
+#include "neva/app_runtime/browser/notifications/notification_wrapper.h"
+#include "neva/app_runtime/public/platform_factory.h"
+
 namespace neva_app_runtime {
 
 NotificationPlatformBridgeDelegator::NotificationPlatformBridgeDelegator(
     content::BrowserContext* context,
     base::OnceClosure ready_callback)
-    : context_(context), bridge_(NotificationPlatformBridge::Create()) {
+    : context_(context) {
+  if (GetPlatformFactory()) {
+    bridge_ = GetPlatformFactory()->CreateNotificationPlatformBridge();
+  }
+
+  if (!bridge_) {
+    bridge_.reset(new NotificationPlatformBridgeWebos());
+  }
   std::move(ready_callback).Run();
 }
 
@@ -23,23 +35,23 @@ void NotificationPlatformBridgeDelegator::Display(
     NotificationHandler::Type notification_type,
     const message_center::Notification& notification,
     std::unique_ptr<NotificationCommon::Metadata> metadata) {
-  bridge_->Display(notification_type, context_, notification,
-                   std::move(metadata));
+  NotificationWrapper wrapped(notification, std::move(metadata));
+  bridge_->Display(wrapped);
 }
 
 void NotificationPlatformBridgeDelegator::Close(
     NotificationHandler::Type notification_type,
     const std::string& notification_id) {
-  bridge_->Close(context_, notification_id);
+  bridge_->Close(notification_id);
 }
 
 void NotificationPlatformBridgeDelegator::GetDisplayed(
     GetDisplayedNotificationsCallback callback) const {
-  bridge_->GetDisplayed(context_, std::move(callback));
+  bridge_->GetDisplayed(std::move(callback));
 }
 
 void NotificationPlatformBridgeDelegator::DisplayServiceShutDown() {
-  bridge_->DisplayServiceShutDown(context_);
+  NOTIMPLEMENTED();
 }
 
 }  // namespace neva_app_runtime

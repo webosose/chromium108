@@ -13,6 +13,8 @@
 #include "neva/app_runtime/browser/permissions/permission_manager_factory.h"
 #include "neva/app_runtime/browser/permissions/permission_prompt.h"
 #include "neva/app_runtime/browser/permissions/permission_prompt_webos.h"
+#include "neva/app_runtime/browser/permissions/permission_prompt_wrapper.h"
+#include "neva/app_runtime/public/platform_factory.h"
 
 namespace neva_app_runtime {
 
@@ -77,9 +79,22 @@ std::unique_ptr<permissions::PermissionPrompt>
 NevaPermissionsClient::CreatePrompt(
     content::WebContents* web_contents,
     permissions::PermissionPrompt::Delegate* delegate) {
+  if (neva_app_runtime::GetPlatformFactory()) {
+    std::unique_ptr<neva_app_runtime::PermissionPromptWrapper> wrapper =
+        std::make_unique<neva_app_runtime::PermissionPromptWrapper>(
+            web_contents, delegate);
+    auto prompt =
+        neva_app_runtime::GetPlatformFactory()->CreatePermissionPrompt(
+            wrapper.get());
+    if (prompt) {
+      wrapper->Init(std::move(prompt));
+      return wrapper;
+    }
+  }
+
   if (delegate_)
     return delegate_->CreatePrompt(web_contents, delegate);
+
   return CreatePermissionPrompt(web_contents, delegate);
 }
-
 }  // namespace neva_app_runtime

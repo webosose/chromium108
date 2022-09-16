@@ -17,8 +17,10 @@
 #ifndef WEBOS_PUBLIC_RUNTIME_H_
 #define WEBOS_PUBLIC_RUNTIME_H_
 
+#include <memory>
 #include <string>
 
+#include "neva/app_runtime/public/platform_factory.h"
 #include "webos/common/webos_constants.h"
 #include "webos/common/webos_export.h"
 
@@ -69,6 +71,12 @@ class WEBOS_EXPORT Runtime {
   void SetForegroundAppId(std::string appid) { foreground_appid_ = appid; }
   void SetLocale(std::string locale);
 
+  void SetPlatformFactory(
+      std::unique_ptr<neva_app_runtime::PlatformFactory> platform_factory);
+  neva_app_runtime::PlatformFactory* get_platform_factory() {
+    return platform_factory_.get();
+  }
+
  private:
   friend struct base::DefaultSingletonTraits<Runtime>;
 
@@ -89,6 +97,8 @@ class WEBOS_EXPORT Runtime {
   std::string board_type_;
   std::string foreground_appid_;
   std::string current_locale_;
+
+  std::unique_ptr<neva_app_runtime::PlatformFactory> platform_factory_;
 };
 
 }  // namespace webos

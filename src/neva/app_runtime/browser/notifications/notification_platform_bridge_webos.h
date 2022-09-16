@@ -20,7 +20,7 @@
 #include <string>
 
 #include "mojo/public/cpp/bindings/remote.h"
-#include "neva/app_runtime/browser/notifications/notification_platform_bridge.h"
+#include "neva/app_runtime/public/notification_platform_bridge.h"
 #include "neva/pal_service/public/mojom/system_servicebridge.mojom.h"
 
 namespace neva_app_runtime {
@@ -35,16 +35,12 @@ class NotificationPlatformBridgeWebos : public NotificationPlatformBridge {
   ~NotificationPlatformBridgeWebos() override = default;
 
   // NotificationPlatformBridge:
-  void Display(NotificationHandler::Type notification_type,
-               content::BrowserContext* profile,
-               const message_center::Notification& notification,
-               std::unique_ptr<NotificationCommon::Metadata> metadata) override;
-  void Close(content::BrowserContext* profile,
-             const std::string& notification_id) override;
-  void GetDisplayed(content::BrowserContext* profile,
-                    GetDisplayedNotificationsCallback callback) const override;
+  void Display(const Notification& notification) override;
+
+  void Close(const std::string& notification_id) override;
+
+  void GetDisplayed(GetDisplayedNotificationsCallback callback) const override;
   void SetReadyCallback(NotificationBridgeReadyCallback callback) override;
-  void DisplayServiceShutDown(content::BrowserContext* profile) override;
 
  private:
   void DisplayInternal(const std::string& params);

@@ -21,38 +21,23 @@
 #include "base/values.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
+#include "neva/app_runtime/public/notification.h"
 #include "neva/pal_service/pal_service.h"
-#include "ui/message_center/public/cpp/notification.h"
 
 namespace neva_app_runtime {
 
-// static
-std::unique_ptr<NotificationPlatformBridge>
-NotificationPlatformBridge::Create() {
-  return std::make_unique<NotificationPlatformBridgeWebos>();
-}
-
-// static
-bool NotificationPlatformBridge::CanHandleType(
-    NotificationHandler::Type notification_type) {
-  return notification_type != NotificationHandler::Type::TRANSIENT;
-}
-
 void NotificationPlatformBridgeWebos::Display(
-    NotificationHandler::Type notification_type,
-    content::BrowserContext* profile,
-    const message_center::Notification& notification,
-    std::unique_ptr<NotificationCommon::Metadata> metadata) {
-  if (metadata->web_app_id.empty()) {
+    const Notification& notification) {
+  if (notification.AppId().empty()) {
     LOG(INFO) << __func__ << " is called with the empty app_id";
     return;
   }
 
   base::Value dict(base::Value::Type::DICTIONARY);
-  dict.SetStringKey("sourceId", metadata->web_app_id);
-  std::string message = "[" + base::UTF16ToUTF8(notification.title()) + "]";
-  if (!notification.message().empty()) {
-    message += " " + base::UTF16ToUTF8(notification.message());
+  dict.SetStringKey("sourceId", notification.AppId());
+  std::string message = "[" + base::UTF16ToUTF8(notification.Title()) + "]";
+  if (!notification.Message().empty()) {
+    message += " " + base::UTF16ToUTF8(notification.Message());
   }
   dict.SetStringKey("message", message);
   dict.SetStringKey("type", "advanced");
@@ -70,7 +55,7 @@ void NotificationPlatformBridgeWebos::Display(
 
     auto params = pal::mojom::ConnectionParams::New(
         absl::make_optional<std::string>(),
-        absl::make_optional<std::string>(metadata->web_app_id), -1);
+        absl::make_optional<std::string>(notification.AppId()), -1);
 
     remote_system_bridge_->Connect(
         std::move(params),
@@ -101,13 +86,11 @@ void NotificationPlatformBridgeWebos::DisplayInternal(
 }
 
 void NotificationPlatformBridgeWebos::Close(
-    content::BrowserContext* profile,
     const std::string& notification_id) {
   NOTIMPLEMENTED();
 }
 
 void NotificationPlatformBridgeWebos::GetDisplayed(
-    content::BrowserContext* profile,
     GetDisplayedNotificationsCallback callback) const {
   NOTIMPLEMENTED();
 }
@@ -117,9 +100,5 @@ void NotificationPlatformBridgeWebos::SetReadyCallback(
   NOTIMPLEMENTED();
 }
 
-void NotificationPlatformBridgeWebos::DisplayServiceShutDown(
-    content::BrowserContext* profile) {
-  NOTIMPLEMENTED();
-}
 
 }  // namespace neva_app_runtime

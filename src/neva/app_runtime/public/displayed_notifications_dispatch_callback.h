@@ -5,13 +5,13 @@
 // Based on
 // //chrome/browser/notifications/displayed_notifications_dispatch_callback.h.
 
-#ifndef NEVA_APP_RUNTIME_BROWSER_NOTIFICATIONS_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_
-#define NEVA_APP_RUNTIME_BROWSER_NOTIFICATIONS_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_
+#ifndef NEVA_APP_RUNTIME_PUBLIC_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_
+#define NEVA_APP_RUNTIME_PUBLIC_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_
 
 #include <set>
 #include <string>
 
-#include "base/callback.h"
+#include "neva/app_runtime/public/callback_helper.h"
 
 namespace neva_app_runtime {
 
@@ -25,9 +25,9 @@ namespace neva_app_runtime {
 // the ids of the currently displayed notifications, otherwise the value of
 // |notification_ids| should be ignored.
 using GetDisplayedNotificationsCallback =
-    base::OnceCallback<void(std::set<std::string> notification_ids,
-                            bool supports_synchronization)>;
+    CallbackHelper<void(std::set<std::string> notification_ids,
+                        bool supports_synchronization)>;
 
 }  // namespace neva_app_runtime
 
-#endif  // NEVA_APP_RUNTIME_BROWSER_NOTIFICATIONS_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_
+#endif  // NEVA_APP_RUNTIME_PUBLIC_DISPLAYED_NOTIFICATIONS_DISPATCH_CALLBACK_H_

@@ -82,4 +82,10 @@ void Runtime::SetLocale(std::string locale) {
     platform_delegate_->OnLocaleInfoChanged(locale);
 }
 
+void Runtime::SetPlatformFactory(
+    std::unique_ptr<neva_app_runtime::PlatformFactory> platform_factory) {
+  platform_factory_ = std::move(platform_factory);
+  neva_app_runtime::SetPlatformFactory(platform_factory_.get());
+}
+
 }  // namespace webos

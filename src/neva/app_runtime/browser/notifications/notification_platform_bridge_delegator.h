@@ -12,10 +12,10 @@
 #include <string>
 
 #include "base/callback_forward.h"
-#include "neva/app_runtime/browser/notifications/displayed_notifications_dispatch_callback.h"
 #include "neva/app_runtime/browser/notifications/notification_common.h"
 #include "neva/app_runtime/browser/notifications/notification_handler.h"
-#include "neva/app_runtime/browser/notifications/notification_platform_bridge.h"
+#include "neva/app_runtime/public/displayed_notifications_dispatch_callback.h"
+#include "neva/app_runtime/public/notification_platform_bridge.h"
 #include "ui/message_center/public/cpp/notification.h"
 
 namespace content {
