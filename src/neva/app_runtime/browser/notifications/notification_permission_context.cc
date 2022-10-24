@@ -14,15 +14,69 @@
 #include "components/permissions/permission_request_manager.h"
 #include "components/permissions/permission_util.h"
 #include "components/permissions/permissions_client.h"
+#include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
+#include "neva/app_runtime/browser/host_content_settings_map_factory.h"
 #include "third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom.h"
 #include "url/gurl.h"
+
+namespace {
+content_settings::PatternPair GetContentSettingPatternsForNonLocalType(
+    const GURL& primary_url,
+    const GURL& secondary_url) {
+  DCHECK(!primary_url.is_empty());
+  content_settings::PatternPair patterns;
+
+  std::unique_ptr<ContentSettingsPattern::BuilderInterface> builder =
+      ContentSettingsPattern::CreateBuilder();
+  builder->WithScheme(primary_url.scheme())->WithHost(primary_url.host());
+
+  patterns.first = builder->Build();
+  patterns.second = ContentSettingsPattern::Wildcard();
+  return patterns;
+}
+
+void SetContentSettingDefaultScope(
+    const GURL& primary_url,
+    const GURL& secondary_url,
+    ContentSettingsType content_type,
+    ContentSetting setting,
+    const content_settings::ContentSettingConstraints& constraint,
+    HostContentSettingsMap* host_content_settings_map) {
+  content_settings::PatternPair patterns =
+      GetContentSettingPatternsForNonLocalType(primary_url, secondary_url);
+
+  ContentSettingsPattern primary_pattern = patterns.first;
+  ContentSettingsPattern secondary_pattern = patterns.second;
+
+  if (!primary_pattern.IsValid() || !secondary_pattern.IsValid())
+    return;
+
+  host_content_settings_map->SetContentSettingCustomScope(
+      primary_pattern, secondary_pattern, content_type, setting, constraint);
+}
+}  // namespace
 
 // static
 void NotificationPermissionContext::UpdatePermission(
     content::BrowserContext* browser_context,
     const GURL& origin,
-    ContentSetting setting) {}
+    ContentSetting setting) {
+  switch (setting) {
+    case CONTENT_SETTING_ALLOW:
+    case CONTENT_SETTING_BLOCK:
+    case CONTENT_SETTING_DEFAULT:
+      SetContentSettingDefaultScope(
+          origin, GURL(), ContentSettingsType::NOTIFICATIONS, setting,
+          content_settings::ContentSettingConstraints(),
+          neva_app_runtime::HostContentSettingsMapFactory::GetForBrowserContext(
+              browser_context));
+      break;
+
+    default:
+      NOTREACHED();
+  }
+}
 
 NotificationPermissionContext::NotificationPermissionContext(
     content::BrowserContext* browser_context)
@@ -73,25 +127,15 @@ void NotificationPermissionContext::UpdateContentSetting(
 
   // non-local file format (e.g. file://com.webos.app.test)
   if (requesting_origin.SchemeIsFile() && !requesting_origin.host().empty()) {
-    content_settings::PatternPair patterns =
-        GetContentSettingPatternsForNonLocalType(requesting_origin,
-                                                 embedding_origin);
-
-    ContentSettingsPattern primary_pattern = patterns.first;
-    ContentSettingsPattern secondary_pattern = patterns.second;
-
-    if (!primary_pattern.IsValid() || !secondary_pattern.IsValid())
-      return;
-
     using Constraints = content_settings::ContentSettingConstraints;
-    permissions::PermissionsClient::Get()
-        ->GetSettingsMap(browser_context())
-        ->SetContentSettingCustomScope(
-            primary_pattern, secondary_pattern, content_settings_type(),
-            content_setting,
-            is_one_time ? Constraints{base::Time(),
-                                      content_settings::SessionModel::OneTime}
-                        : Constraints());
+    SetContentSettingDefaultScope(
+        requesting_origin, embedding_origin, content_settings_type(),
+        content_setting,
+        is_one_time
+            ? Constraints{base::Time(), content_settings::SessionModel::OneTime}
+            : Constraints(),
+        permissions::PermissionsClient::Get()->GetSettingsMap(
+            browser_context()));
     return;
   }
 
@@ -101,20 +145,4 @@ void NotificationPermissionContext::UpdateContentSetting(
 
 bool NotificationPermissionContext::IsRestrictedToSecureOrigins() const {
   return false;
-}
-
-content_settings::PatternPair
-NotificationPermissionContext::GetContentSettingPatternsForNonLocalType(
-    const GURL& primary_url,
-    const GURL& secondary_url) {
-  DCHECK(!primary_url.is_empty());
-  content_settings::PatternPair patterns;
-
-  std::unique_ptr<ContentSettingsPattern::BuilderInterface> builder =
-      ContentSettingsPattern::CreateBuilder();
-  builder->WithScheme(primary_url.scheme())->WithHost(primary_url.host());
-
-  patterns.first = builder->Build();
-  patterns.second = ContentSettingsPattern::Wildcard();
-  return patterns;
 }

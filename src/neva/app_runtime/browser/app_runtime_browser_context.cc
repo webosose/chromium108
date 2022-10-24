@@ -50,11 +50,13 @@
 #include "neva/app_runtime/browser/browsing_data/browsing_data_remover.h"
 #include "neva/app_runtime/browser/media/webrtc/device_media_stream_access_handler.h"
 #include "neva/app_runtime/browser/media/webrtc/media_capture_devices_dispatcher.h"
+#include "neva/app_runtime/browser/notifications/notifier_client.h"
 #include "neva/app_runtime/browser/notifications/platform_notification_service_impl.h"
 #include "neva/app_runtime/browser/permissions/permission_manager_factory.h"
 #include "neva/app_runtime/browser/push_messaging/push_messaging_app_identifier.h"
 #include "neva/app_runtime/browser/push_messaging/push_messaging_service_factory.h"
 #include "neva/app_runtime/browser/push_messaging/push_messaging_service_impl.h"
+#include "neva/app_runtime/public/notifier_settings_controller.h"
 #include "neva/user_agent/browser/client_hints.h"
 #include "services/network/public/mojom/cookie_manager.mojom.h"
 
@@ -197,11 +199,17 @@ AppRuntimeBrowserContext::GetClientHintsControllerDelegate() {
   return new neva_user_agent::ClientHints();
 }
 
+NotifierSettingsController*
+AppRuntimeBrowserContext::GetNotifierSettingsController() {
+  return NotifierSettingsController::Get();
+}
+
 AppRuntimeBrowserContext::AppRuntimeBrowserContext(const std::string& partition,
                                                    bool off_the_record)
     : off_the_record_(off_the_record),
       resource_context_(new content::ResourceContext()),
-      path_(InitPath(partition)) {
+      path_(InitPath(partition)),
+      notifier_client_(std::make_unique<NotifierClient>(this)) {
 #if defined(USE_LOCAL_STORAGE_TRACKER)
   local_storage_tracker_ = content::LocalStorageTracker::Create().release();
   local_storage_tracker_->Initialize(GetPath());

@@ -25,6 +25,8 @@ class PrefService;
 namespace neva_app_runtime {
 
 class AppRuntimeDownloadManagerDelegate;
+class NotifierClient;
+class NotifierSettingsController;
 
 class AppRuntimeBrowserContext : public content::BrowserContext {
  public:
@@ -60,6 +62,7 @@ class AppRuntimeBrowserContext : public content::BrowserContext {
       override;
 
   content::LocalStorageTracker* GetLocalStorageTracker();
+  NotifierSettingsController* GetNotifierSettingsController();
 
   void FlushCookieStore();
 
@@ -81,6 +84,7 @@ class AppRuntimeBrowserContext : public content::BrowserContext {
   scoped_refptr<content::LocalStorageTracker> local_storage_tracker_;
 #endif
   std::unique_ptr<PrefService> pref_service_;
+  std::unique_ptr<NotifierClient> notifier_client_;
 };
 
 }  // namespace neva_app_runtime

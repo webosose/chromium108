@@ -24,6 +24,7 @@
 #include "content/public/browser/browser_context.h"
 #include "neva/app_runtime/app/app_runtime_main_delegate.h"
 #include "neva/app_runtime/browser/app_runtime_browser_context.h"
+#include "neva/app_runtime/public/notifier_settings_controller.h"
 #include "neva/app_runtime/public/proxy_settings.h"
 
 namespace neva_app_runtime {
@@ -74,6 +75,14 @@ void WebViewProfile::RemoveBrowsingData(int remove_browsing_data_mask) {
 
 void WebViewProfile::FlushCookieStore() {
   browser_context_->FlushCookieStore();
+}
+
+void WebViewProfile::SetNotifierEnabled(const GURL& origin, bool enabled) {
+  NotifierSettingsController* controller =
+      browser_context_adapter_->GetBrowserContext()
+          ->GetNotifierSettingsController();
+  if (controller)
+    controller->SetNotifierEnabled(origin, enabled);
 }
 
 WebViewProfile::WebViewProfile(AppRuntimeBrowserContext* browser_context)

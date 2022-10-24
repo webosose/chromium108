@@ -55,10 +55,6 @@ class NotificationPermissionContext
                             bool is_one_time) override;
   bool IsRestrictedToSecureOrigins() const override;
 
-  content_settings::PatternPair GetContentSettingPatternsForNonLocalType(
-      const GURL& primary_url,
-      const GURL& secondary_url);
-
   base::WeakPtrFactory<NotificationPermissionContext> weak_factory_ui_thread_{
       this};
 };

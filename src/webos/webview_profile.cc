@@ -18,6 +18,7 @@
 
 #include "base/time/time.h"
 #include "neva/app_runtime/webview_profile.h"
+#include "url/gurl.h"
 
 namespace webos {
 
@@ -56,6 +57,13 @@ void WebViewProfile::FlushCookieStore() {
 
 void WebViewProfile::RemoveBrowsingData(int remove_browsing_data_mask) {
   profile_->RemoveBrowsingData(remove_browsing_data_mask);
+}
+
+void WebViewProfile::SetNotifierEnabled(const std::string& app_id,
+                                        bool enabled) {
+  GURL origin = GURL("file:///");
+  origin.set_webapp_id(app_id);
+  profile_->SetNotifierEnabled(origin, enabled);
 }
 
 }  // namespace webos

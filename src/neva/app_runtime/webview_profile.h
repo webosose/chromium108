@@ -21,7 +21,8 @@
 
 #include "base/callback.h"
 #include "neva/app_runtime/public/app_runtime_export.h"
-#include "url/gurl.h"
+
+class GURL;
 
 namespace neva_app_runtime {
 
@@ -47,6 +48,7 @@ class APP_RUNTIME_EXPORT WebViewProfile {
   void RemoveBrowsingData(int remove_browsing_data_mask);
 
   void FlushCookieStore();
+  void SetNotifierEnabled(const GURL& origin, bool enabled);
 
  private:
   WebViewProfile(AppRuntimeBrowserContext* browser_context);

@@ -99,6 +99,8 @@ class WEBOS_EXPORT WebViewProfile {
 
   void FlushCookieStore();
 
+  void SetNotifierEnabled(const std::string& app_id, bool enabled);
+
  private:
   friend class WebView;
 
