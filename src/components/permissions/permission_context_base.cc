@@ -90,7 +90,6 @@ void LogPermissionBlockedMessage(content::RenderFrameHost* rfh,
       base::StringPrintf(message,
                          PermissionUtil::GetPermissionString(type).c_str()));
 }
-
 }  // namespace
 
 // static
@@ -99,6 +98,33 @@ const char PermissionContextBase::kPermissionsKillSwitchFieldStudy[] =
 // static
 const char PermissionContextBase::kPermissionsKillSwitchBlockedValue[] =
     "blocked";
+
+#if defined(USE_NEVA_APPRUNTIME)
+GURL PermissionContextBase::convertToApplicationURL(const GURL& origin) {
+  GURL converted_origin = origin;
+  // To use per app based permission control we add app-id to postfix of origin
+  // so that always requesting domain becomes sub domain of the app-id.
+  // e.i. file://[app-id]-[file_security_origin]
+  if (origin.get_webapp_id()) {
+    std::string host = origin.host();
+    std::string file_security_origin =
+        neva_app_runtime::FileSchemeHostForApp(*origin.get_webapp_id());
+    if (host.empty())
+      host = file_security_origin;
+    else if (host != file_security_origin)
+      host = host + "." + file_security_origin;
+
+    GURL::Replacements repl;
+    repl.SetHostStr(host.c_str());
+
+    converted_origin = converted_origin.ReplaceComponents(repl);
+  } else {
+    LOG(ERROR) << __func__ << " origin(" << origin.spec()
+               << ") doesn't have a webapp id.";
+  }
+  return converted_origin;
+}
+#endif
 
 PermissionContextBase::PermissionContextBase(
     content::BrowserContext* browser_context,
@@ -349,26 +375,15 @@ ContentSetting PermissionContextBase::GetPermissionStatusInternal(
     content::RenderFrameHost* render_frame_host,
     const GURL& requesting_origin,
     const GURL& embedding_origin) const {
-  GURL origin = requesting_origin;
-
+  GURL converted_requesting_origin = requesting_origin;
 #if defined(USE_NEVA_APPRUNTIME)
-  // To use per app based permission control we replace to app-id based origin
-  // with file scheme. When we are ready to control based on a pair of app-id
-  // and domain this workaround needs to be removed.
-  if (requesting_origin.get_webapp_id()) {
-    origin = GURL(
-        std::string("file://") +
-        neva_app_runtime::GetAppRuntimeContentClient()->GetFileSecurityOrigin(
-            *requesting_origin.get_webapp_id()));
-  } else {
-    LOG(ERROR) << __func__ << " requesting_origin(" << requesting_origin
-               << ") doesn't have a webapp id.";
-  }
+  converted_requesting_origin =
+      PermissionContextBase::convertToApplicationURL(requesting_origin);
 #endif
-
   return PermissionsClient::Get()
       ->GetSettingsMap(browser_context_)
-      ->GetContentSetting(origin, embedding_origin, content_settings_type_);
+      ->GetContentSetting(converted_requesting_origin, embedding_origin,
+                          content_settings_type_);
 }
 
 void PermissionContextBase::DecidePermission(
@@ -515,6 +530,11 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
   DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
          content_setting == CONTENT_SETTING_BLOCK);
 
+  GURL converted_requesting_origin = requesting_origin;
+#if defined(USE_NEVA_APPRUNTIME)
+  converted_requesting_origin = convertToApplicationURL(requesting_origin);
+#endif
+
   content_settings::ContentSettingConstraints constraints = {
       base::Time(), is_one_time ? content_settings::SessionModel::OneTime
                                 : content_settings::SessionModel::Durable};
@@ -541,9 +561,9 @@ void PermissionContextBase::UpdateContentSetting(const GURL& requesting_origin,
 
   PermissionsClient::Get()
       ->GetSettingsMap(browser_context_)
-      ->SetContentSettingDefaultScope(requesting_origin, embedding_origin,
-                                      content_settings_type_, content_setting,
-                                      constraints);
+      ->SetContentSettingDefaultScope(converted_requesting_origin,
+                                      embedding_origin, content_settings_type_,
+                                      content_setting, constraints);
 }
 
 bool PermissionContextBase::PermissionAllowedByPermissionsPolicy(

@@ -49,10 +49,6 @@ class NotificationPermissionContext
       const GURL& embedding_origin,
       bool user_gesture,
       permissions::BrowserPermissionCallback callback) override;
-  void UpdateContentSetting(const GURL& requesting_origin,
-                            const GURL& embedding_origin,
-                            ContentSetting content_setting,
-                            bool is_one_time) override;
   bool IsRestrictedToSecureOrigins() const override;
 
   base::WeakPtrFactory<NotificationPermissionContext> weak_factory_ui_thread_{

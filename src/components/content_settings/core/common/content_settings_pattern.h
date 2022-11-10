@@ -164,6 +164,12 @@ class ContentSettingsPattern {
   // Returns a pattern that matches exactly this URL.
   static ContentSettingsPattern FromURLNoWildcard(const GURL& url);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // Returns a pattern of application that matches host as a file security
+  // origin as well as all subdomains.
+  static ContentSettingsPattern FromURLForApplication(const GURL& url);
+#endif
+
   // Returns a pattern that matches the given pattern specification.
   // Valid patterns specifications are:
   //   - [*.]domain.tld (matches domain.tld and all sub-domains)

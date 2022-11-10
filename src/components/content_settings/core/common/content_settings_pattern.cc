@@ -303,13 +303,12 @@ bool ContentSettingsPattern::Builder::Validate(const PatternParts& parts) {
   }
 
   // file:// URL patterns have an empty host and port.
-  if (parts.scheme == url::kFileScheme) {
+  if (parts.scheme == url::kFileScheme
 #if defined(USE_NEVA_APPRUNTIME)
-    // If file scheme has an app-id as a hostname, path would be empty.
-    if (!parts.host.empty() && parts.path.empty())
-      return true;
+      && parts.host.empty()
 #endif
-    if (parts.has_domain_wildcard || !parts.port.empty() || !parts.host.empty())
+  ) {
+    if (parts.has_domain_wildcard || !parts.host.empty() || !parts.port.empty())
       return false;
     if (parts.is_path_wildcard)
       return parts.path.empty();
@@ -338,6 +337,9 @@ bool ContentSettingsPattern::Builder::Validate(const PatternParts& parts) {
 
   // Test if the scheme is supported or a wildcard.
   if (!parts.is_scheme_wildcard && parts.scheme != url::kHttpScheme &&
+#if defined(USE_NEVA_APPRUNTIME)
+      parts.scheme != url::kFileScheme &&
+#endif
       parts.scheme != url::kHttpsScheme) {
     return false;
   }
@@ -451,6 +453,24 @@ ContentSettingsPattern ContentSettingsPattern::FromURLNoWildcard(
   return builder.Build();
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+// static
+ContentSettingsPattern ContentSettingsPattern::FromURLForApplication(
+    const GURL& url) {
+  ContentSettingsPattern::Builder builder;
+  const GURL* local_url = &url;
+  if (local_url->SchemeIsFile()) {
+    builder.WithSchemeWildcard()
+        ->WithHost(local_url->host())
+        ->WithDomainWildcard()
+        ->WithPortWildcard();
+    return builder.Build();
+  } else {
+    return FromURLNoWildcard(url);
+  }
+}
+#endif
+
 // static
 ContentSettingsPattern ContentSettingsPattern::FromString(
     base::StringPiece pattern_spec) {
@@ -549,16 +569,6 @@ bool ContentSettingsPattern::Matches(
     return false;
   }
 
-#if defined(USE_NEVA_APPRUNTIME)
-  // Match the host part for File shceme.
-  // This identifies non-local file URI like file://[host]. This format is used
-  // for sending application id for web-push and notification in specific case.
-  if (local_url->scheme_piece() == url::kFileScheme &&
-      parts_.scheme == local_url->scheme_piece())
-    return !parts_.has_domain_wildcard &&
-           parts_.host == local_url->host_piece();
-#endif
-
   // File URLs have no host. Matches if the pattern has the path wildcard set,
   // or if the path in the URL is identical to the one in the pattern.
   // For filesystem:file URLs, the path used is the filesystem type, so all
@@ -566,6 +576,9 @@ bool ContentSettingsPattern::Matches(
   // TODO(msramek): The file scheme should not behave differently when nested
   // inside the filesystem scheme. Investigate and fix.
   if (!parts_.is_scheme_wildcard &&
+#if defined(USE_NEVA_APPRUNTIME)
+      parts_.host.empty() &&
+#endif
       local_url->scheme_piece() == url::kFileScheme)
     return parts_.is_path_wildcard || parts_.path == local_url->path_piece();
 

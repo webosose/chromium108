@@ -16,61 +16,36 @@
 #include "components/permissions/permissions_client.h"
 #include "content/public/browser/browser_context.h"
 #include "content/public/browser/browser_thread.h"
+#include "neva/app_runtime/app/app_runtime_main_delegate.h"
 #include "neva/app_runtime/browser/host_content_settings_map_factory.h"
 #include "third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom.h"
 #include "url/gurl.h"
-
-namespace {
-content_settings::PatternPair GetContentSettingPatternsForNonLocalType(
-    const GURL& primary_url,
-    const GURL& secondary_url) {
-  DCHECK(!primary_url.is_empty());
-  content_settings::PatternPair patterns;
-
-  std::unique_ptr<ContentSettingsPattern::BuilderInterface> builder =
-      ContentSettingsPattern::CreateBuilder();
-  builder->WithScheme(primary_url.scheme())->WithHost(primary_url.host());
-
-  patterns.first = builder->Build();
-  patterns.second = ContentSettingsPattern::Wildcard();
-  return patterns;
-}
-
-void SetContentSettingDefaultScope(
-    const GURL& primary_url,
-    const GURL& secondary_url,
-    ContentSettingsType content_type,
-    ContentSetting setting,
-    const content_settings::ContentSettingConstraints& constraint,
-    HostContentSettingsMap* host_content_settings_map) {
-  content_settings::PatternPair patterns =
-      GetContentSettingPatternsForNonLocalType(primary_url, secondary_url);
-
-  ContentSettingsPattern primary_pattern = patterns.first;
-  ContentSettingsPattern secondary_pattern = patterns.second;
-
-  if (!primary_pattern.IsValid() || !secondary_pattern.IsValid())
-    return;
-
-  host_content_settings_map->SetContentSettingCustomScope(
-      primary_pattern, secondary_pattern, content_type, setting, constraint);
-}
-}  // namespace
 
 // static
 void NotificationPermissionContext::UpdatePermission(
     content::BrowserContext* browser_context,
     const GURL& origin,
     ContentSetting setting) {
+  ContentSettingsType type = ContentSettingsType::NOTIFICATIONS;
+  const GURL primary_url =
+      PermissionContextBase::convertToApplicationURL(origin);
+  const GURL secondary_url = GURL();
+  HostContentSettingsMap* host_content_settings_map =
+      neva_app_runtime::HostContentSettingsMapFactory::GetForBrowserContext(
+          browser_context);
+  ContentSetting generated_setting =
+      host_content_settings_map->GetContentSetting(primary_url, secondary_url,
+                                                   type);
+
+  if (generated_setting == setting)
+    return;
+
   switch (setting) {
     case CONTENT_SETTING_ALLOW:
     case CONTENT_SETTING_BLOCK:
     case CONTENT_SETTING_DEFAULT:
-      SetContentSettingDefaultScope(
-          origin, GURL(), ContentSettingsType::NOTIFICATIONS, setting,
-          content_settings::ContentSettingConstraints(),
-          neva_app_runtime::HostContentSettingsMapFactory::GetForBrowserContext(
-              browser_context));
+      host_content_settings_map->SetContentSettingDefaultScope(
+          primary_url, secondary_url, type, setting);
       break;
 
     default:
@@ -113,34 +88,6 @@ void NotificationPermissionContext::DecidePermission(
   permissions::PermissionContextBase::DecidePermission(
       id, requesting_origin, embedding_origin, user_gesture,
       std::move(callback));
-}
-
-void NotificationPermissionContext::UpdateContentSetting(
-    const GURL& requesting_origin,
-    const GURL& embedding_origin,
-    ContentSetting content_setting,
-    bool is_one_time) {
-  DCHECK_EQ(requesting_origin, requesting_origin.DeprecatedGetOriginAsURL());
-  DCHECK_EQ(embedding_origin, embedding_origin.DeprecatedGetOriginAsURL());
-  DCHECK(content_setting == CONTENT_SETTING_ALLOW ||
-         content_setting == CONTENT_SETTING_BLOCK);
-
-  // non-local file format (e.g. file://com.webos.app.test)
-  if (requesting_origin.SchemeIsFile() && !requesting_origin.host().empty()) {
-    using Constraints = content_settings::ContentSettingConstraints;
-    SetContentSettingDefaultScope(
-        requesting_origin, embedding_origin, content_settings_type(),
-        content_setting,
-        is_one_time
-            ? Constraints{base::Time(), content_settings::SessionModel::OneTime}
-            : Constraints(),
-        permissions::PermissionsClient::Get()->GetSettingsMap(
-            browser_context()));
-    return;
-  }
-
-  permissions::PermissionContextBase::UpdateContentSetting(
-      requesting_origin, embedding_origin, content_setting, is_one_time);
 }
 
 bool NotificationPermissionContext::IsRestrictedToSecureOrigins() const {

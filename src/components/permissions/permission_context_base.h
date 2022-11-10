@@ -84,6 +84,12 @@ class PermissionContextBase : public content_settings::Observer {
   // PermissionContextBase can use it.
   static const char kPermissionsKillSwitchBlockedValue[];
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // Returns origin with adding app-id as postfix for application url
+  // so that always requesting domain becomes sub domain of the app-id.
+  static GURL convertToApplicationURL(const GURL& origin);
+#endif
+
   // |callback| is called upon resolution of the request, but not if a prompt
   // is shown and ignored.
   virtual void RequestPermission(const PermissionRequestID& id,
