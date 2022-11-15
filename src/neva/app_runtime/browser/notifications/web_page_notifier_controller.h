@@ -24,6 +24,8 @@ class WebPageNotifierController : public NotifierController {
   void SetNotifierEnabled(content::BrowserContext* browser_context,
                           const GURL& origin,
                           bool enabled) override;
+  void ResetNotifier(content::BrowserContext* browser_context,
+                     const GURL& origin) override;
 };
 
 }  // namespace neva_app_runtime

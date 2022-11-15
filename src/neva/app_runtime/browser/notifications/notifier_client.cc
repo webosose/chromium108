@@ -36,4 +36,9 @@ void NotifierClient::SetNotifierEnabled(const GURL& origin, bool enabled) {
   web_page_source_->SetNotifierEnabled(browser_context_, origin, enabled);
 }
 
+void NotifierClient::ResetNotifier(const GURL& origin) {
+  VLOG(1) << __func__ << " origin: " << origin;
+  web_page_source_->ResetNotifier(browser_context_, origin);
+}
+
 }  // namespace neva_app_runtime

@@ -37,6 +37,7 @@ class NotifierClient : public NotifierSettingsController {
 
   // NotifierSettingsController:
   void SetNotifierEnabled(const GURL& url_string, bool enabled) override;
+  void ResetNotifier(const GURL& url_string) override;
 
  private:
   // Notifier source for web page

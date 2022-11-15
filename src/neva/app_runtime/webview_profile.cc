@@ -85,6 +85,14 @@ void WebViewProfile::SetNotifierEnabled(const GURL& origin, bool enabled) {
     controller->SetNotifierEnabled(origin, enabled);
 }
 
+void WebViewProfile::ResetNotifier(const GURL& origin) {
+  NotifierSettingsController* controller =
+      browser_context_adapter_->GetBrowserContext()
+          ->GetNotifierSettingsController();
+  if (controller)
+    controller->ResetNotifier(origin);
+}
+
 WebViewProfile::WebViewProfile(AppRuntimeBrowserContext* browser_context)
     : browser_context_(browser_context) {}
 

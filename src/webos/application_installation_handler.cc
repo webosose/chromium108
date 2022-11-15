@@ -47,6 +47,8 @@ void ApplicationInstallationHandler::OnAppRemoved(const std::string& app_id) {
                ->GetLocalStorageTracker();
   if (p)
     p->OnAppRemoved(app_id + WebViewBase::kSecurityOriginPostfix);
+
+  WebViewProfile::GetDefaultProfile()->ResetNotifier(app_id);
 }
 
 }  // namespace webos

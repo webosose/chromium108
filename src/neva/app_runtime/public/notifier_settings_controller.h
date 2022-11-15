@@ -31,6 +31,7 @@ class NotifierSettingsController {
   // Called to toggle the |enabled| state of a specific notifier (in response to
   // a user selecting or de-selecting that notifier).
   virtual void SetNotifierEnabled(const GURL& origin, bool enabled) = 0;
+  virtual void ResetNotifier(const GURL& origin) = 0;
 
  protected:
   NotifierSettingsController();

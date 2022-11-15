@@ -49,6 +49,7 @@ class APP_RUNTIME_EXPORT WebViewProfile {
 
   void FlushCookieStore();
   void SetNotifierEnabled(const GURL& origin, bool enabled);
+  void ResetNotifier(const GURL& origin);
 
  private:
   WebViewProfile(AppRuntimeBrowserContext* browser_context);

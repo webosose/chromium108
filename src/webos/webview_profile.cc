@@ -20,6 +20,8 @@
 #include "neva/app_runtime/webview_profile.h"
 #include "url/gurl.h"
 
+#include "base/logging.h"
+
 namespace webos {
 
 WebViewProfile::WebViewProfile(const std::string& storage_name)
@@ -63,7 +65,15 @@ void WebViewProfile::SetNotifierEnabled(const std::string& app_id,
                                         bool enabled) {
   GURL origin = GURL("file:///");
   origin.set_webapp_id(app_id);
+  VLOG(1) << __func__ << " origin: " << origin;
   profile_->SetNotifierEnabled(origin, enabled);
+}
+
+void WebViewProfile::ResetNotifier(const std::string& app_id) {
+  GURL origin = GURL("file:///");
+  origin.set_webapp_id(app_id);
+  VLOG(1) << __func__ << " origin: " << origin;
+  profile_->ResetNotifier(origin);
 }
 
 }  // namespace webos

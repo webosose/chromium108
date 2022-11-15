@@ -28,4 +28,15 @@ void WebPageNotifierController::SetNotifierEnabled(
   }
 }
 
+void WebPageNotifierController::ResetNotifier(
+    content::BrowserContext* browser_context,
+    const GURL& origin) {
+  if (origin.is_valid()) {
+    NotificationPermissionContext::UpdatePermission(browser_context, origin,
+                                                    CONTENT_SETTING_DEFAULT);
+  } else {
+    LOG(ERROR) << "Invalid pattern: " << origin.possibly_invalid_spec();
+  }
+}
+
 }  // namespace neva_app_runtime

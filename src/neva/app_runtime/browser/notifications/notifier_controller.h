@@ -25,12 +25,12 @@ class NotifierController {
   NotifierController& operator=(const NotifierController&) = delete;
   virtual ~NotifierController() = default;
 
-  // Set notifier enabled. |notifier_id| must have notifier type that can be
-  // handled by the source. It has responsibility to invoke
-  // Observer::OnNotifierEnabledChanged.
   virtual void SetNotifierEnabled(content::BrowserContext* browser_context,
                                   const GURL& url,
                                   bool enabled) = 0;
+
+  virtual void ResetNotifier(content::BrowserContext* browser_context,
+                             const GURL& url) = 0;
 };
 
 }  // namespace neva_app_runtime
