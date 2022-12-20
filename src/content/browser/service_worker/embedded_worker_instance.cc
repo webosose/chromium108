@@ -281,6 +281,14 @@ void EmbeddedWorkerInstance::Start(
   bool can_use_existing_process =
       context_->GetVersionFailureCount(params->service_worker_version_id) <
       kMaxSameProcessFailureCount;
+#if defined(USE_NEVA_APPRUNTIME)
+  // If we use existing process, service worker may share other app's renderer
+  // process. and it cause incorrect file security origin value if service
+  // worker runs on other app's renderer process since file security origin
+  // value is process wide value.
+  can_use_existing_process = false;
+#endif
+
   blink::ServiceWorkerStatusCode status =
       process_manager->AllocateWorkerProcess(
           embedded_worker_id(), params->script_url,
