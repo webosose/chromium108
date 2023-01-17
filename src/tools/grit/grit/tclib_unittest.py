@@ -24,34 +24,34 @@ import grit.extern.tclib
 
 class TclibUnittest(unittest.TestCase):
   def testInit(self):
-    msg = tclib.Message(text=u'Hello Earthlings',
+    msg = tclib.Message(text='Hello Earthlings',
                         description='Greetings\n\t      message')
-    self.failUnlessEqual(msg.GetPresentableContent(), 'Hello Earthlings')
-    self.failUnless(isinstance(msg.GetPresentableContent(), six.string_types))
-    self.failUnlessEqual(msg.GetDescription(), 'Greetings message')
+    self.assertEqual(msg.GetPresentableContent(), 'Hello Earthlings')
+    self.assertTrue(isinstance(msg.GetPresentableContent(), six.string_types))
+    self.assertEqual(msg.GetDescription(), 'Greetings message')
 
   def testGetAttr(self):
     msg = tclib.Message()
-    msg.AppendText(u'Hello')  # Tests __getattr__
-    self.failUnless(msg.GetPresentableContent() == 'Hello')
-    self.failUnless(isinstance(msg.GetPresentableContent(), six.string_types))
+    msg.AppendText('Hello')  # Tests __getattr__
+    self.assertTrue(msg.GetPresentableContent() == 'Hello')
+    self.assertTrue(isinstance(msg.GetPresentableContent(), six.string_types))
 
   def testAll(self):
-    text = u'Howdie USERNAME'
-    phs = [tclib.Placeholder(u'USERNAME', u'%s', 'Joi')]
+    text = 'Howdie USERNAME'
+    phs = [tclib.Placeholder('USERNAME', '%s', 'Joi')]
     msg = tclib.Message(text=text, placeholders=phs)
-    self.failUnless(msg.GetPresentableContent() == 'Howdie USERNAME')
+    self.assertTrue(msg.GetPresentableContent() == 'Howdie USERNAME')
 
     trans = tclib.Translation(text=text, placeholders=phs)
-    self.failUnless(trans.GetPresentableContent() == 'Howdie USERNAME')
-    self.failUnless(isinstance(trans.GetPresentableContent(), six.string_types))
+    self.assertTrue(trans.GetPresentableContent() == 'Howdie USERNAME')
+    self.assertTrue(isinstance(trans.GetPresentableContent(), six.string_types))
 
   def testUnicodeReturn(self):
-    text = u'\u00fe'
+    text = '\u00fe'
     msg = tclib.Message(text=text)
-    self.failUnless(msg.GetPresentableContent() == text)
+    self.assertTrue(msg.GetPresentableContent() == text)
     from_list = msg.GetContent()[0]
-    self.failUnless(from_list == text)
+    self.assertTrue(from_list == text)
 
   def testRegressionTranslationInherited(self):
     '''Regression tests a bug that was caused by grit.tclib.Translation
@@ -66,7 +66,7 @@ class TclibUnittest(unittest.TestCase):
     transl = tclib.Translation(text=msg.GetPresentableContent(),
                                placeholders=msg.GetPlaceholders())
     content = transl.GetContent()
-    self.failUnless(isinstance(content[3], six.string_types))
+    self.assertTrue(isinstance(content[3], six.string_types))
 
   def testFingerprint(self):
     # This has Windows line endings.  That is on purpose.
@@ -171,7 +171,7 @@ class TclibUnittest(unittest.TestCase):
     phs = [tclib.Placeholder(word[:i], str(i), str(i)) for i in range(1, 11)]
     try:
       msg = tclib.Message(text=text, placeholders=phs)
-      self.failUnless(msg.GetRealContent() == '1 2 3 4 5 6 7 8 9 10')
+      self.assertTrue(msg.GetRealContent() == '1 2 3 4 5 6 7 8 9 10')
     except:
       self.fail('tclib.Message() should handle placeholders that are '
                 'substrings of each other')

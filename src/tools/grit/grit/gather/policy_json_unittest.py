@@ -36,8 +36,8 @@ class PolicyJsonUnittest(unittest.TestCase):
       }"""
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 0)
-    self.failUnless(eval(original) == json.loads(gatherer.Translate('en')))
+    self.assertTrue(len(gatherer.GetCliques()) == 0)
+    self.assertTrue(eval(original) == json.loads(gatherer.Translate('en')))
 
   def testGeneralPolicy(self):
     original = (
@@ -65,9 +65,9 @@ class PolicyJsonUnittest(unittest.TestCase):
         "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 4)
+    self.assertTrue(len(gatherer.GetCliques()) == 4)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testEnum(self):
     original = (
@@ -89,9 +89,9 @@ class PolicyJsonUnittest(unittest.TestCase):
         "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testSchema(self):
     original = ("{"
@@ -126,9 +126,9 @@ class PolicyJsonUnittest(unittest.TestCase):
                 "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 4)
+    self.assertTrue(len(gatherer.GetCliques()) == 4)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testValidationSchema(self):
     original = ("{"
@@ -150,9 +150,9 @@ class PolicyJsonUnittest(unittest.TestCase):
                 "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testDescriptionSchema(self):
     original = ("{"
@@ -174,9 +174,9 @@ class PolicyJsonUnittest(unittest.TestCase):
                 "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   # Keeping for backwards compatibility.
   def testSubPolicyOldFormat(self):
@@ -199,9 +199,9 @@ class PolicyJsonUnittest(unittest.TestCase):
         "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testSubPolicyNewFormat(self):
     original = (
@@ -222,9 +222,9 @@ class PolicyJsonUnittest(unittest.TestCase):
         "}")
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testEscapingAndLineBreaks(self):
     original = """{
@@ -266,9 +266,9 @@ with a newline?''',
 }"""
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 6)
+    self.assertTrue(len(gatherer.GetCliques()) == 6)
     expected = self.GetExpectedOutput(original)
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
 
   def testPlaceholdersChromium(self):
     original = """{
@@ -285,16 +285,16 @@ with a newline?''',
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.SetDefines({'_chromium': True})
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = json.loads(re.sub('<ph.*ph>', 'Chromium', original))
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
-    self.failUnless(gatherer.GetCliques()[0].translateable)
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(gatherer.GetCliques()[0].translateable)
     msg = gatherer.GetCliques()[0].GetMessage()
-    self.failUnless(len(msg.GetPlaceholders()) == 1)
+    self.assertTrue(len(msg.GetPlaceholders()) == 1)
     ph = msg.GetPlaceholders()[0]
-    self.failUnless(ph.GetOriginal() == 'Chromium')
-    self.failUnless(ph.GetPresentation() == 'PRODUCT_NAME')
-    self.failUnless(ph.GetExample() == 'Google Chrome')
+    self.assertTrue(ph.GetOriginal() == 'Chromium')
+    self.assertTrue(ph.GetPresentation() == 'PRODUCT_NAME')
+    self.assertTrue(ph.GetExample() == 'Google Chrome')
 
   def testPlaceholdersChrome(self):
     original = """{
@@ -311,16 +311,16 @@ with a newline?''',
     gatherer = policy_json.PolicyJson(StringIO(original))
     gatherer.SetDefines({'_google_chrome': True})
     gatherer.Parse()
-    self.failUnless(len(gatherer.GetCliques()) == 1)
+    self.assertTrue(len(gatherer.GetCliques()) == 1)
     expected = json.loads(re.sub('<ph.*ph>', 'Google Chrome', original))
-    self.failUnless(expected == json.loads(gatherer.Translate('en')))
-    self.failUnless(gatherer.GetCliques()[0].translateable)
+    self.assertTrue(expected == json.loads(gatherer.Translate('en')))
+    self.assertTrue(gatherer.GetCliques()[0].translateable)
     msg = gatherer.GetCliques()[0].GetMessage()
-    self.failUnless(len(msg.GetPlaceholders()) == 1)
+    self.assertTrue(len(msg.GetPlaceholders()) == 1)
     ph = msg.GetPlaceholders()[0]
-    self.failUnless(ph.GetOriginal() == 'Google Chrome')
-    self.failUnless(ph.GetPresentation() == 'PRODUCT_NAME')
-    self.failUnless(ph.GetExample() == 'Google Chrome')
+    self.assertTrue(ph.GetOriginal() == 'Google Chrome')
+    self.assertTrue(ph.GetPresentation() == 'PRODUCT_NAME')
+    self.assertTrue(ph.GetExample() == 'Google Chrome')
 
   def testGetDescription(self):
     gatherer = policy_json.PolicyJson({})

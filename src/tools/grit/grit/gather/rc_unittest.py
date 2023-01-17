@@ -46,7 +46,7 @@ END
 
     out = rc.Section(f, 'IDC_KLONKACC')
     out.ReadSection()
-    self.failUnless(out.GetText() == self.part_we_want)
+    self.assertTrue(out.GetText() == self.part_we_want)
 
     out = rc.Section(util.PathFromRoot(r'grit/testdata/klonk.rc'),
                      'IDC_KLONKACC',
@@ -55,7 +55,7 @@ END
     out_text = out.GetText().replace('\t', '')
     out_text = out_text.replace(' ', '')
     self.part_we_want = self.part_we_want.replace(' ', '')
-    self.failUnless(out_text.strip() == self.part_we_want.strip())
+    self.assertTrue(out_text.strip() == self.part_we_want.strip())
 
 
   def testDialog(self):
@@ -77,13 +77,13 @@ BEGIN
 END
 '''), 'IDD_ABOUTBOX')
     dlg.Parse()
-    self.failUnless(len(dlg.GetTextualIds()) == 7)
-    self.failUnless(len(dlg.GetCliques()) == 6)
-    self.failUnless(dlg.GetCliques()[1].GetMessage().GetRealContent() ==
+    self.assertTrue(len(dlg.GetTextualIds()) == 7)
+    self.assertTrue(len(dlg.GetCliques()) == 6)
+    self.assertTrue(dlg.GetCliques()[1].GetMessage().GetRealContent() ==
                     'klonk Version "yibbee" 1.0')
 
     transl = dlg.Translate('en')
-    self.failUnless(transl.strip() == dlg.GetText().strip())
+    self.assertTrue(transl.strip() == dlg.GetText().strip())
 
   def testAlternateSkeleton(self):
     dlg = rc.Dialog(StringIO('''IDD_ABOUTBOX DIALOGEX 22, 17, 230, 75
@@ -109,9 +109,9 @@ END
     alt_dlg.Parse()
 
     transl = dlg.Translate('en', skeleton_gatherer=alt_dlg)
-    self.failUnless(transl.count('040704') and
+    self.assertTrue(transl.count('040704') and
                     transl.count('110978'))
-    self.failUnless(transl.count('Yipee skippy'))
+    self.assertTrue(transl.count('Yipee skippy'))
 
   def testMenu(self):
     menu = rc.Menu(StringIO('''IDC_KLONK MENU
@@ -134,13 +134,13 @@ BEGIN
 END'''), 'IDC_KLONK')
 
     menu.Parse()
-    self.failUnless(len(menu.GetTextualIds()) == 6)
-    self.failUnless(len(menu.GetCliques()) == 1)
-    self.failUnless(len(menu.GetCliques()[0].GetMessage().GetPlaceholders()) ==
+    self.assertTrue(len(menu.GetTextualIds()) == 6)
+    self.assertTrue(len(menu.GetCliques()) == 1)
+    self.assertTrue(len(menu.GetCliques()[0].GetMessage().GetPlaceholders()) ==
                     9)
 
     transl = menu.Translate('en')
-    self.failUnless(transl.strip() == menu.GetText().strip())
+    self.assertTrue(transl.strip() == menu.GetText().strip())
 
   def testVersion(self):
     version = rc.Version(StringIO('''
@@ -178,11 +178,11 @@ BEGIN
 END
 '''.strip()), 'VS_VERSION_INFO')
     version.Parse()
-    self.failUnless(len(version.GetTextualIds()) == 1)
-    self.failUnless(len(version.GetCliques()) == 4)
+    self.assertTrue(len(version.GetTextualIds()) == 1)
+    self.assertTrue(len(version.GetCliques()) == 4)
 
     transl = version.Translate('en')
-    self.failUnless(transl.strip() == version.GetText().strip())
+    self.assertTrue(transl.strip() == version.GetText().strip())
 
 
   def testRegressionDialogBox(self):
@@ -206,7 +206,7 @@ BEGIN
                     BS_AUTORADIOBUTTON,57,144,38,10
 END'''.strip()), 'IDD_SIDEBAR_WEATHER_PANEL_PROPPAGE')
     dialog.Parse()
-    self.failUnless(len(dialog.GetTextualIds()) == 10)
+    self.assertTrue(len(dialog.GetTextualIds()) == 10)
 
 
   def testRegressionDialogBox2(self):
@@ -226,7 +226,7 @@ BEGIN
                     IDC_STATIC,16,18,234,18
 END'''.strip()), 'IDD_SIDEBAR_EMAIL_PANEL_PROPPAGE')
     dialog.Parse()
-    self.failUnless('IDC_SIDEBAR_EMAIL_HIDDEN' in dialog.GetTextualIds())
+    self.assertTrue('IDC_SIDEBAR_EMAIL_HIDDEN' in dialog.GetTextualIds())
 
 
   def testRegressionMenuId(self):
@@ -239,7 +239,7 @@ BEGIN
     END
 END'''.strip()), 'IDR_HYPERMENU_FOLDER')
     menu.Parse()
-    self.failUnless(len(menu.GetTextualIds()) == 2)
+    self.assertTrue(len(menu.GetTextualIds()) == 2)
 
   def testRegressionNewlines(self):
     menu = rc.Menu(StringIO('''
@@ -253,7 +253,7 @@ END'''.strip()), 'IDR_HYPERMENU_FOLDER')
     menu.Parse()
     transl = menu.Translate('en')
     # Shouldn't find \\n (the \n shouldn't be changed to \\n)
-    self.failUnless(transl.find('\\\\n') == -1)
+    self.assertTrue(transl.find('\\\\n') == -1)
 
   def testRegressionTabs(self):
     menu = rc.Menu(StringIO('''
@@ -267,19 +267,19 @@ END'''.strip()), 'IDR_HYPERMENU_FOLDER')
     menu.Parse()
     transl = menu.Translate('en')
     # Shouldn't find \\t (the \t shouldn't be changed to \\t)
-    self.failUnless(transl.find('\\\\t') == -1)
+    self.assertTrue(transl.find('\\\\t') == -1)
 
   def testEscapeUnescape(self):
     original = 'Hello "bingo"\n How\\are\\you\\n?'
     escaped = rc.Section.Escape(original)
-    self.failUnless(escaped == 'Hello ""bingo""\\n How\\\\are\\\\you\\\\n?')
+    self.assertTrue(escaped == 'Hello ""bingo""\\n How\\\\are\\\\you\\\\n?')
     unescaped = rc.Section.UnEscape(escaped)
-    self.failUnless(unescaped == original)
+    self.assertTrue(unescaped == original)
 
   def testRegressionPathsWithSlashN(self):
     original = '..\\\\..\\\\trs\\\\res\\\\nav_first.gif'
     unescaped = rc.Section.UnEscape(original)
-    self.failUnless(unescaped == '..\\..\\trs\\res\\nav_first.gif')
+    self.assertTrue(unescaped == '..\\..\\trs\\res\\nav_first.gif')
 
   def testRegressionDialogItemsTextOnly(self):
     dialog = rc.Dialog(StringIO('''IDD_OPTIONS_SEARCH DIALOGEX 0, 0, 280, 292
@@ -299,8 +299,8 @@ END'''), 'IDD_OPTIONS_SEARCH')
     dialog.Parse()
     translateables = [c.GetMessage().GetRealContent()
                       for c in dialog.GetCliques()]
-    self.failUnless('Select search buttons and options' in translateables)
-    self.failUnless('Use Google site:' in translateables)
+    self.assertTrue('Select search buttons and options' in translateables)
+    self.assertTrue('Use Google site:' in translateables)
 
   def testAccelerators(self):
     acc = rc.Accelerators(StringIO('''\
@@ -312,11 +312,11 @@ BEGIN
 END
 '''), 'IDR_ACCELERATOR1')
     acc.Parse()
-    self.failUnless(len(acc.GetTextualIds()) == 4)
-    self.failUnless(len(acc.GetCliques()) == 0)
+    self.assertTrue(len(acc.GetTextualIds()) == 4)
+    self.assertTrue(len(acc.GetCliques()) == 0)
 
     transl = acc.Translate('en')
-    self.failUnless(transl.strip() == acc.GetText().strip())
+    self.assertTrue(transl.strip() == acc.GetText().strip())
 
 
   def testRegressionEmptyString(self):
@@ -339,8 +339,8 @@ END'''), 'IDD_CONFIRM_QUIT_GD_DLG')
     dlg.Parse()
 
     def Check():
-      self.failUnless(transl.count('IDC_ENABLE_GD_AUTOSTART'))
-      self.failUnless(transl.count('END'))
+      self.assertTrue(transl.count('IDC_ENABLE_GD_AUTOSTART'))
+      self.assertTrue(transl.count('END'))
 
     transl = dlg.Translate('de', pseudo_if_not_available=True,
                            fallback_to_english=True)

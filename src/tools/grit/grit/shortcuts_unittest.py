@@ -34,7 +34,7 @@ class ShortcutsUnittest(unittest.TestCase):
     c.AddToShortcutGroup('group_name')
 
     warnings = shortcuts.GenerateDuplicateShortcutsWarnings(self.uq, 'PROJECT')
-    self.failUnless(warnings)
+    self.assertTrue(warnings)
 
   def testAmpersandEscaping(self):
     c = self.uq.MakeClique(tclib.Message(text="Hello &there"))
@@ -43,7 +43,7 @@ class ShortcutsUnittest(unittest.TestCase):
     c.AddToShortcutGroup('group_name')
 
     warnings = shortcuts.GenerateDuplicateShortcutsWarnings(self.uq, 'PROJECT')
-    self.failUnless(len(warnings) == 0)
+    self.assertTrue(len(warnings) == 0)
 
   def testDialog(self):
     dlg = rc.Dialog(StringIO('''\
@@ -76,4 +76,4 @@ END'''), 'IDD_SIDEBAR_RSS_PANEL_PROPPAGE')
     dlg.Parse()
 
     warnings = shortcuts.GenerateDuplicateShortcutsWarnings(self.uq, 'PROJECT')
-    self.failUnless(len(warnings) == 0)
+    self.assertTrue(len(warnings) == 0)
