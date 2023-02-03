@@ -567,11 +567,6 @@ void GURL::WriteIntoTrace(perfetto::TracedValue context) const {
 }
 
 std::ostream& operator<<(std::ostream& out, const GURL& url) {
-#if defined(USE_NEVA_APPRUNTIME)
-  if (url.get_webapp_id().has_value()) {
-    out << "[" << url.get_webapp_id().value() << "]:";
-  }
-#endif
   return out << url.possibly_invalid_spec();
 }
 

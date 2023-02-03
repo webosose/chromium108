@@ -155,11 +155,6 @@ std::string Origin::Serialize() const {
     return "null";
 
 #if defined(USE_NEVA_APPRUNTIME)
-  if (get_webapp_id().has_value()) {
-    return std::string("[") + get_webapp_id().value() +
-           "]:" + tuple_.Serialize();
-  }
-
   if (scheme() == kFileScheme && !file_origin_changed_)
 #else
   if (scheme() == kFileScheme)
