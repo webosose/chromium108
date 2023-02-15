@@ -55,6 +55,9 @@ std::set<std::string> allowed_injections = {
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
     std::string(injections::webapi::kChromeExtensions),
 #endif
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+    std::string(injections::webapi::kInstallableManager),
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
 };
 
 }  // namespace

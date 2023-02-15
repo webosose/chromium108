@@ -41,11 +41,25 @@ source_set("pal_service_webos") {
     "memorymanager_delegate_ose.h",
   ]
 
+if (enable_pwa_manager_webapi) {
+    sources += [
+      "webapp_installable_delegate_webos.cc",
+      "webapp_installable_delegate_webos.h",
+    ]
+  }
+
   deps = [
     "//base",
     "//neva/pal_service/luna:luna_client",
     "//neva/pal_service/public/mojom",
   ]
+
+  if (enable_pwa_manager_webapi) {
+    deps += [
+      "//neva/pal_service/public:pal_service_delegates",
+      "//neva/pal_service/public/mojom",
+    ]
+  }
 
   defines = pal_service_defines
 }

@@ -26,4 +26,10 @@ mojom("mojom") {
   sources = [
     "app_runtime_webview_controller.mojom",
   ]
+
+  if (enable_pwa_manager_webapi) {
+    sources += [
+      "installable_manager.mojom",
+    ]
+  }
 }

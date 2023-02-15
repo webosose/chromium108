@@ -99,6 +99,13 @@ source_set("renderer") {
     ]
   }
 
+  if (enable_pwa_manager_webapi) {
+    sources += [
+      "installable_manager/installable_manager_injection.cc",
+      "installable_manager/installable_manager_injection.h",
+    ]
+  }
+
   if (enable_browser_shell) {
     sources += [
       "browser_shell/browser_shell_dialog_controller.cc",

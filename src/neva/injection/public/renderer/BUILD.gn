@@ -86,6 +86,13 @@ source_set("renderer") {
     ]
   }
 
+  if (enable_pwa_manager_webapi) {
+    sources += [
+      "installable_manager_webapi.cc",
+      "installable_manager_webapi.h",
+    ]
+  }
+
   if (use_gav) {
     sources += [
       "webosgavplugin_webapi.cc",

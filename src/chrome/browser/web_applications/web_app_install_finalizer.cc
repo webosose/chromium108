@@ -381,7 +381,9 @@ void WebAppInstallFinalizer::SetWebAppManifestFieldsAndWriteData(
     const WebAppInstallInfo& web_app_info,
     std::unique_ptr<WebApp> web_app,
     CommitCallback commit_callback) {
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
   SetWebAppManifestFields(web_app_info, *web_app);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
   AppId app_id = web_app->app_id();
   IconBitmaps icon_bitmaps = web_app_info.icon_bitmaps;

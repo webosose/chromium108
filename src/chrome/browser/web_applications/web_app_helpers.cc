@@ -116,17 +116,24 @@ bool IsValidWebAppUrl(const GURL& app_url) {
   return app_url.SchemeIs(url::kHttpScheme) ||
          app_url.SchemeIs(url::kHttpsScheme) ||
          app_url.SchemeIs("chrome-extension") ||
-         (app_url.SchemeIs("chrome") &&
-          (app_url.host() == chrome::kChromeUIPasswordManagerHost));
+         (app_url.SchemeIs("chrome")
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
+          && (app_url.host() == chrome::kChromeUIPasswordManagerHost)
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+         );
 }
 
 absl::optional<AppId> FindInstalledAppWithUrlInScope(Profile* profile,
                                                      const GURL& url,
                                                      bool window_only) {
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  return absl::nullopt;
+#else
   auto* provider = WebAppProvider::GetForLocalAppsUnchecked(profile);
   return provider ? provider->registrar().FindInstalledAppWithUrlInScope(
                         url, window_only)
                   : absl::nullopt;
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 }
 
 }  // namespace web_app

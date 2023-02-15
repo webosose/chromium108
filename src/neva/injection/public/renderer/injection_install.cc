@@ -50,6 +50,10 @@
 #include "neva/injection/public/renderer/memorymanager_webapi.h"
 #endif
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "neva/injection/public/renderer/installable_manager_webapi.h"
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
+
 #if defined(ENABLE_BROWSER_SHELL)
 #include "neva/injection/public/renderer/browser_shell_ipc_webapi.h"
 #include "neva/injection/public/renderer/browser_shell_webapi.h"
@@ -134,6 +138,13 @@ bool GetInjectionInstallAPI(const std::string& name, InstallAPI* api) {
     return true;
   }
 #endif
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  if (name == webapi::kInstallableManager) {
+    api->install_func = InstallableManagerWebAPI::Install;
+    api->uninstall_func = InstallableManagerWebAPI::Uninstall;
+    return true;
+  }
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 #if defined(ENABLE_BROWSER_CONTROL_WEBAPI)
   if (name == webapi::kBrowserControl) {
     api->install_func = BrowserControlWebAPI::Install;

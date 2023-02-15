@@ -26,7 +26,9 @@
 #include "neva/pal_service/public/notification_manager_delegate.h"
 #include "neva/pal_service/public/proxy_setting_delegate.h"
 #include "neva/pal_service/public/system_servicebridge_delegate.h"
-
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "neva/pal_service/public/webapp_installable_delegate.h"
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 namespace pal {
 
 class MemoryManagerDelegate;
@@ -62,6 +64,10 @@ class COMPONENT_EXPORT(PAL_SERVICE) PlatformFactory {
 
   std::unique_ptr<NotificationManagerDelegate>
   CreateNotificationManagerDelegate();
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  std::unique_ptr<WebAppInstallableDelegate> CreateWebAppInstallableDelegate();
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
  private:
   PlatformFactory();

@@ -26,5 +26,14 @@ source_set("pal_service_delegates") {
     "system_servicebridge_delegate.h",
   ]
 
+  if (enable_pwa_manager_webapi) {
+    sources += [
+      "webapp_installable_delegate.cc",
+      "webapp_installable_delegate.h",
+    ]
+  }
+
   deps = [ "//base" ]
+
+  public_deps = [ "//skia" ]
 }

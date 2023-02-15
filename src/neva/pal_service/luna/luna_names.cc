@@ -48,6 +48,10 @@ const char kServiceBus[] = "com.webos.service.bus";
 
 namespace service_name {
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+const char kChromiumInstallableManager[] =
+    "com.webos.chromium.installablemanager";
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 const char kChromiumMedia[] = "com.webos.chromium.media";
 const char kChromiumMemory[] = "com.webos.chromium.memory";
 const char kChromiumPlatformSystem[] = "com.webos.chromium.platform.system";

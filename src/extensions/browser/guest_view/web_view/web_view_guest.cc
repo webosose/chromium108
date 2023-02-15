@@ -102,6 +102,11 @@
 #include "components/permissions/permission_request_manager.h"
 #endif  // USE_NEVA_BROWSER_SERVICE
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "components/webapps/browser/installable/installable_manager.h"
+#include "extensions/shell/neva/web_view_guest_installable_manager.h"
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+
 using base::UserMetricsAction;
 using content::GlobalRequestID;
 using content::RenderFrameHost;
@@ -484,6 +489,15 @@ void WebViewGuest::CreateWebContents(std::unique_ptr<GuestViewBase> owned_this,
   permissions::PermissionRequestManager::CreateForWebContents(
       new_contents.get());
 #endif
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  installable_manager_ =
+      std::make_unique<neva_app_runtime::WebViewGuestInstallableManager>(
+          new_contents.get());
+  webapps::InstallableManager::CreateForWebContents(new_contents.get());
+  neva_app_runtime::WebViewGuestInstallableManager::CreateForWebContents(
+      new_contents.get());
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
   // Grant access to the origin of the embedder to the guest process. This
   // allows blob: and filesystem: URLs with the embedder origin to be created
@@ -1225,6 +1239,10 @@ void WebViewGuest::RenderFrameCreated(
                                std::string("{}"));
     client->AddInjectionToLoad(std::string("v8/webossystem"),
                                std::string("{}"));
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+    client->AddInjectionToLoad(std::string("v8/installablemanager"),
+                               std::string("{}"));
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
   }
 #endif
 }

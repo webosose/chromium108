@@ -238,6 +238,15 @@ static_library("app_runtime") {
     ]
   }
 
+  if (enable_pwa_manager_webapi) {
+    sources += [
+    "browser/installable/webapp_installable_manager.cc",
+    "browser/installable/webapp_installable_manager.h",
+    "browser/installable/neva_webapps_client.cc",
+    "browser/installable/neva_webapps_client.h",
+    ]
+  }
+
   public_deps = [
     ":app_runtime_webview_controller",
     "//neva/app_runtime/public/mojom:mojom_app_runtime_blink",
@@ -303,6 +312,14 @@ static_library("app_runtime") {
     "//ui/wm/public",
     "//url",
   ]
+
+  if (enable_pwa_manager_webapi) {
+    deps += [
+      "//chrome/browser/web_applications:components_minimal",
+      "//components/security_state/content",
+      "//components/security_state/core",
+    ]
+  }
 
   if (use_ozone && ozone_platform_wayland_external) {
     deps += [

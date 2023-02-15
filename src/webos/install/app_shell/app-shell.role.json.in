@@ -5,6 +5,7 @@
         "com.webos.app.enactbrowser",
         "com.webos.chromium.audio-*",
         "com.webos.chromium.camera-*",
+        "com.webos.chromium.installablemanager.*",
         "com.webos.chromium.memory.*",
         "com.webos.rm.client.*"
     ],
@@ -27,6 +28,12 @@
             "service":"com.webos.chromium.camera-*",
             "outbound":[
                 "com.webos.service.camera2"
+            ]
+        },
+        {
+            "service": "com.webos.chromium.installablemanager.*",
+            "outbound": [
+                "com.webos.applicationManager"
             ]
         },
         {

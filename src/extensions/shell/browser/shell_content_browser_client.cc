@@ -80,6 +80,11 @@
 #include "services/network/public/mojom/network_service.mojom.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/base/ui_base_neva_switches.h"
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "extensions/shell/neva/web_view_guest_installable_manager.h"
+#include "neva/app_runtime/public/mojom/installable_manager.mojom.h"
+#include "neva/injection/renderer/installable_manager/installable_manager_injection.h"
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
 #endif
 #if defined(USE_NEVA_BROWSER_SERVICE)
 #include "neva/browser_service/browser/malware_url_loader_throttle.h"
@@ -439,6 +444,18 @@ void ShellContentBrowserClient::
                                             render_frame_host);
       },
       &render_frame_host));
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  associated_registry.AddInterface<neva_app_runtime::mojom::InstallableManager>(
+      base::BindRepeating(
+          [](content::RenderFrameHost* render_frame_host,
+             mojo::PendingAssociatedReceiver<
+                 neva_app_runtime::mojom::InstallableManager> receiver) {
+            neva_app_runtime::WebViewGuestInstallableManager::
+                BindInstallableManager(std::move(receiver), render_frame_host);
+          },
+          &render_frame_host));
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
+
 #endif  // USE_NEVA_APPRUNTIME
 }
 

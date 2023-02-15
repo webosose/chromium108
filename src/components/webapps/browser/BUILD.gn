@@ -174,3 +174,34 @@ source_set("unit_tests") {
     deps += [ "//components/messages/android:test_support" ]
   }
 }
+
+#@name USE_NEVA_APPRUNTIME
+#@{
+if (enable_pwa_manager_webapi) {
+  source_set("browser_minimal") {
+    sources = [
+      "installable/installable_data.cc",
+      "installable/installable_data.h",
+      "installable/installable_logging.cc",
+      "installable/installable_logging.h",
+      "installable/installable_manager.cc",
+      "installable/installable_manager.h",
+      "installable/installable_metrics.cc",
+      "installable/installable_metrics.h",
+      "installable/installable_params.cc",
+      "installable/installable_params.h",
+      "installable/installable_task_queue.cc",
+      "installable/installable_task_queue.h",
+      "features.cc",
+      "features.h",
+      "webapps_client.cc",
+      "webapps_client.h",
+    ]
+    deps = [
+      "//components/webapps/common:mojo_bindings",
+      "//skia",
+      "//third_party/boringssl",
+    ]
+  }
+}
+#@}

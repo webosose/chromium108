@@ -24,10 +24,14 @@
 #include "extensions/common/mojom/frame.mojom.h"
 #include "third_party/blink/public/mojom/frame/find_in_page.mojom.h"
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "extensions/shell/neva/web_view_guest_installable_manager.h"
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+
 #if defined(USE_NEVA_APPRUNTIME) && defined(OS_WEBOS)
 namespace neva_app_runtime {
 class WebViewControllerDelegate;
-}
+}  // namespace neva_app_runtime
 #endif
 
 namespace extensions {
@@ -419,6 +423,11 @@ class WebViewGuest : public guest_view::GuestView<WebViewGuest> {
   std::unique_ptr<neva_app_runtime::WebViewControllerDelegate>
       webview_controller_delegate_;
 #endif
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  std::unique_ptr<neva_app_runtime::WebViewGuestInstallableManager>
+      installable_manager_;
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 };
 
 }  // namespace extensions

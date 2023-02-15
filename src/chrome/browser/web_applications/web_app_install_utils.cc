@@ -328,6 +328,7 @@ void PopulateShortcutItemIcons(WebAppInstallInfo* web_app_info,
   }
 }
 
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
 // Reconcile the file handling icons that were specified in the manifest with
 // the icons we were successfully able to download. Store the actual bitmaps and
 // update the icon metadata in `web_app_info`.
@@ -374,6 +375,7 @@ void PopulateFileHandlingIcons(WebAppInstallInfo* web_app_info,
     file_handler.downloaded_icons = std::move(manifest_icons);
   }
 }
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
 apps::FileHandler::LaunchType ToFileHandlerLaunchType(
     blink::mojom::ManifestFileHandler::LaunchType launch_type) {
@@ -425,6 +427,7 @@ apps::FileHandlers CreateFileHandlersFromManifest(
       web_app_file_handler.accept.push_back(std::move(web_app_accept_entry));
     }
 
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
     if (WebAppFileHandlerManager::IconsEnabled()) {
       for (const auto& image_resource : manifest_file_handler->icons) {
         for (const auto manifest_purpose : image_resource.purpose) {
@@ -438,6 +441,7 @@ apps::FileHandlers CreateFileHandlersFromManifest(
         }
       }
     }
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
     web_app_file_handlers.push_back(std::move(web_app_file_handler));
   }
@@ -558,13 +562,19 @@ void UpdateWebAppInfoFromManifest(const blink::mojom::Manifest& manifest,
                             : GURL();
   if (base::FeatureList::IsEnabled(
           blink::features::kWebAppManifestLockScreen) &&
-      manifest.lock_screen && manifest.lock_screen->start_url.is_valid() &&
-      IsInScope(manifest.lock_screen->start_url, inferred_scope)) {
+      manifest.lock_screen && manifest.lock_screen->start_url.is_valid()
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
+      && IsInScope(manifest.lock_screen->start_url, inferred_scope)
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+  ) {
     web_app_info->lock_screen_start_url = manifest.lock_screen->start_url;
   }
 
-  if (manifest.note_taking && manifest.note_taking->new_note_url.is_valid() &&
-      IsInScope(manifest.note_taking->new_note_url, inferred_scope)) {
+  if (manifest.note_taking && manifest.note_taking->new_note_url.is_valid()
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
+      && IsInScope(manifest.note_taking->new_note_url, inferred_scope)
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+  ) {
     web_app_info->note_taking_new_note_url = manifest.note_taking->new_note_url;
   }
 
@@ -665,7 +675,9 @@ base::flat_set<GURL> GetValidIconUrlsToDownload(
 void PopulateOtherIcons(WebAppInstallInfo* web_app_info,
                         const IconsMap& icons_map) {
   PopulateShortcutItemIcons(web_app_info, icons_map);
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
   PopulateFileHandlingIcons(web_app_info, icons_map);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 }
 
 void PopulateProductIcons(WebAppInstallInfo* web_app_info,
@@ -738,10 +750,12 @@ void PopulateProductIcons(WebAppInstallInfo* web_app_info,
 }
 
 void RecordAppBanner(content::WebContents* contents, const GURL& app_url) {
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
   webapps::AppBannerSettingsHelper::RecordBannerEvent(
       contents, app_url, app_url.spec(),
       webapps::AppBannerSettingsHelper::APP_BANNER_EVENT_DID_ADD_TO_HOMESCREEN,
       base::Time::Now());
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 }
 
 void RecordDownloadedIconsResultAndHttpStatusCodes(
@@ -897,8 +911,10 @@ WebAppManagement::Type ConvertInstallSurfaceToWebAppSource(
 
 void CreateWebAppInstallTabHelpers(content::WebContents* web_contents) {
   webapps::InstallableManager::CreateForWebContents(web_contents);
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
   SecurityStateTabHelper::CreateForWebContents(web_contents);
   favicon::CreateContentFaviconDriverForWebContents(web_contents);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 #if BUILDFLAG(IS_CHROMEOS)
   webapps::PreRedirectionURLObserver::CreateForWebContents(web_contents);
 #endif
@@ -950,6 +966,7 @@ void MaybeUnregisterOsUninstall(const WebApp* web_app,
 #endif
 }
 
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
 void SetWebAppManifestFields(const WebAppInstallInfo& web_app_info,
                              WebApp& web_app) {
   DCHECK(!web_app_info.title.empty());
@@ -1111,5 +1128,6 @@ void ApplyParamsToFinalizeOptions(
         install_params.system_app_type.value();
   }
 }
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
 }  // namespace web_app

@@ -25,6 +25,9 @@ namespace webapi {
 
 COMPONENT_EXPORT(INJECTION) extern const char kBrowserControl[];
 COMPONENT_EXPORT(INJECTION) extern const char kBrowserShell[];
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+COMPONENT_EXPORT(INJECTION) extern const char kInstallableManager[];
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
 COMPONENT_EXPORT(INJECTION) extern const char kBrowserShellIpc[];
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
 COMPONENT_EXPORT(INJECTION) extern const char kChromeExtensions[];

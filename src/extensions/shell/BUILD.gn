@@ -288,6 +288,13 @@ source_set("app_shell_lib") {
         "neva/platform_register_app.h",
       ]
     }
+
+    if (enable_pwa_manager_webapi) {
+      sources += [
+        "neva/web_view_guest_installable_manager.cc",
+        "neva/web_view_guest_installable_manager.h",
+      ]
+    }
   }
 
   if (use_neva_browser_service) {

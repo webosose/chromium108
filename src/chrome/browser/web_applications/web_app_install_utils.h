@@ -124,6 +124,7 @@ void MaybeUnregisterOsUninstall(const WebApp* web_app,
                                 WebAppManagement::Type source_installing,
                                 OsIntegrationManager& os_integration_manager);
 
+#if !defined(ENABLE_PWA_MANAGER_WEBAPI)
 // Updates |web_app| using |web_app_info|
 void SetWebAppManifestFields(const WebAppInstallInfo& web_app_info,
                              WebApp& web_app);
@@ -145,6 +146,7 @@ void ApplyParamsToWebAppInstallInfo(const WebAppInstallParams& install_params,
 void ApplyParamsToFinalizeOptions(
     const WebAppInstallParams& install_params,
     WebAppInstallFinalizer::FinalizeOptions& options);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 }  // namespace web_app
 
 #endif  // CHROME_BROWSER_WEB_APPLICATIONS_WEB_APP_INSTALL_UTILS_H_

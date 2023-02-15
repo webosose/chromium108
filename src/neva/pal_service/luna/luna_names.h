@@ -32,11 +32,13 @@ extern const char kApplicationManager[];
 extern const char kServiceMemoryManager[];
 extern const char kNotification[];
 extern const char kServiceBus[];
-
 }  // namespace service_uri
 
 namespace service_name {
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+extern const char kChromiumInstallableManager[];
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 extern const char kChromiumMedia[];
 extern const char kChromiumMemory[];
 extern const char kChromiumPlatformSystem[];

@@ -22,6 +22,9 @@ namespace webapi {
 
 const char kBrowserControl[] = "v8/browser_control";
 const char kBrowserShell[] = "v8/browser_shell";
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+const char kInstallableManager[] = "v8/installablemanager";
+#endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
 const char kBrowserShellIpc[] = "v8/browser_shell_ipc";
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
 const char kChromeExtensions[] = "v8/chrome_extensions";

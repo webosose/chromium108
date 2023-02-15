@@ -18,5 +18,8 @@
     ],
     "com.webos.rm.client.*": [
         "media"
+    ],
+    "com.webos.chromium.installablemanager.*": [
+        "application.devmode"
     ]
 }

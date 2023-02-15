@@ -34,6 +34,9 @@ declare_args() {
   # Enable Memory Manager WebAPI
   enable_memorymanager_webapi = true
 
+  # Enable PWA Manager WEBAPI
+  enable_pwa_manager_webapi = true
+
   # Disable NEVA_DCHECK by default
   neva_dcheck_always_on = false
 
