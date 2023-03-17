@@ -196,7 +196,7 @@ void WebView::CreateWebContents() {
   content::BrowserContext* browser_context = profile_->GetBrowserContext();
   content::WebContents::CreateParams params(browser_context, nullptr);
   params.desired_renderer_state =
-      content::WebContents::CreateParams::kInitializeAndWarmupRendererProcess;
+      content::WebContents::CreateParams::kNoRendererProcess;
   web_contents_ = content::WebContents::Create(params);
   injection_manager_ = std::make_unique<WebAppInjectionManager>();
   AppRuntimeWebViewHostImpl::CreateForWebContents(web_contents_.get());
