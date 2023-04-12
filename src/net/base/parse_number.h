@@ -8,6 +8,8 @@
 #include "base/strings/string_piece.h"
 #include "net/base/net_export.h"
 
+#include <cstdint>
+
 // This file contains utility functions for parsing numbers, in the context of
 // network protocols.
 //

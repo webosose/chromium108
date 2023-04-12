@@ -6,6 +6,7 @@
 #define EXTENSIONS_RENDERER_BINDINGS_API_INVOCATION_ERRORS_H_
 
 #include <set>
+#include <cstdint>
 #include <string>
 
 #include "base/strings/string_piece.h"

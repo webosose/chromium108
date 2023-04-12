@@ -8,6 +8,8 @@
 #include "base/component_export.h"
 #include "ui/gfx/geometry/matrix3_f.h"
 
+#include <cstdint>
+
 namespace ui {
 
 // This Kalman filter is used to predict state in one axles.

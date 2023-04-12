@@ -6,6 +6,8 @@
 
 #include "ui/gfx/animation/keyframe/target_property.h"
 
+#include <cstdint>
+
 namespace cc {
 
 static_assert(TargetProperty::LAST_TARGET_PROPERTY <

@@ -10,6 +10,8 @@
 #include "build/chromeos_buildflags.h"
 #include "extensions/common/extensions_export.h"
 
+#include <cstdint>
+
 namespace extensions {
 
 // Scheme we serve extension content from.

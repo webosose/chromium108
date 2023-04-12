@@ -5,6 +5,7 @@
 #ifndef DISCOVERY_DNSSD_PUBLIC_DNS_SD_TXT_RECORD_H_
 #define DISCOVERY_DNSSD_PUBLIC_DNS_SD_TXT_RECORD_H_
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <set>

@@ -5,6 +5,7 @@
 #ifndef UTIL_BASE64_H_
 #define UTIL_BASE64_H_
 
+#include <cstdint>
 #include <string>
 #include <vector>
 

@@ -5,6 +5,7 @@
 #ifndef UI_EVENTS_GESTURE_EVENT_DETAILS_H_
 #define UI_EVENTS_GESTURE_EVENT_DETAILS_H_
 
+#include <cstdint>
 #include <string.h>
 
 #include "base/check_op.h"
