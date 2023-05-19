@@ -34,7 +34,10 @@ void WebOSContentClient::AddPlugins(
   base::FilePath path;
 #if defined(ENABLE_PLAYREADY_CDM) && defined(ENABLE_PEPPER_CDMS)
   static bool skip_playready_cdm_file_check = false;
-  std::string playready_lib_path(getenv("CDM_LIB_PATH"));
+  const char* cdm_lib_path = getenv("CDM_LIB_PATH");
+  if (!cdm_lib_path)
+    return;
+  std::string playready_lib_path(cdm_lib_path);
   std::string playready_lib_file("/libplayreadycdmadapter.so");
   path = base::FilePath(playready_lib_path + playready_lib_file);
   if (skip_playready_cdm_file_check || base::PathExists(path)) {
