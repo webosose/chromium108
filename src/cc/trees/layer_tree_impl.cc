@@ -2392,6 +2392,9 @@ static void FindClosestMatchingLayer(const gfx::PointF& screen_space_point,
                                      LayerImpl* root_layer,
                                      const Functor& func,
                                      FindClosestMatchingLayerState* state) {
+  if (!root_layer)
+    return;
+
   // We want to iterate from front to back when hit testing.
   for (auto* layer : base::Reversed(*root_layer->layer_tree_impl())) {
     if (!func(layer))
