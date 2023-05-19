@@ -463,7 +463,7 @@ void PaintOpReader::Read(sk_sp<SkColorSpace>* color_space) {
   auto* scratch = CopyScratchSpace(size);
   *color_space = SkColorSpace::Deserialize(scratch, size);
   // If this had non-zero bytes, it should be a valid color space.
-  if (!color_space)
+  if (!*color_space)
     SetInvalid(DeserializationError::kSkColorSpaceDeserializeFailure);
 
   DidRead(size);
