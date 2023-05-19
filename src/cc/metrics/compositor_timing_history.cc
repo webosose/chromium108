@@ -425,6 +425,7 @@ CompositorTimingHistory::CompositorTimingHistory(
       bmf_queue_to_activate_critical_history_(kDurationHistorySize),
       bmf_queue_to_activate_critical_percentile_(
           BeginMainFrameQueueToActivateCriticalPercentile()),
+      pending_tree_is_impl_side_(false),
       uma_reporter_(CreateUMAReporter(uma_category)),
       rendering_stats_instrumentation_(rendering_stats_instrumentation) {}
 
