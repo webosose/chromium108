@@ -137,7 +137,7 @@ void PaintOpReader::ReadFlattenable(
 
   auto* scratch = CopyScratchSpace(bytes);
   val->reset(factory(scratch, bytes, nullptr).release());
-  if (!val) {
+  if (!*val) {
     SetInvalid(error_on_factory_failure);
     return;
   }
