@@ -396,28 +396,25 @@ void RootWindowController::ShiftContentByY(int height) {
     ss << "document.dispatchEvent(new CustomEvent('shiftContent', { detail: "
        << height << "}));";
     const std::u16string js_code = base::UTF8ToUTF16(ss.str());
+    if (timer_for_shifting_.IsRunning())
+      timer_for_shifting_.Stop();
     if (height == 0) {
       rfh->ExecuteJavaScript(js_code, base::NullCallback());
     } else {
-      if (timer_for_shifting_.IsRunning())
-        timer_for_shifting_.Reset();
-      else
         timer_for_shifting_.Start(
             FROM_HERE, base::Milliseconds(kKeyboardAnimationTime),
             base::BindOnce(
                 &content::RenderFrameHost::ExecuteJavaScript,
                 base::Unretained(rfh), js_code,
                 content::RenderFrameHost::JavaScriptResultCallback()));
+        if (!shifting_was_requested_)
+          shifting_was_requested_ = true;
     }
-    if (!shifting_was_requested_)
-      shifting_was_requested_ = true;
   }
 }
 
 void RootWindowController::RestoreContentByY() {
   if (shifting_was_requested_) {
-    if (timer_for_shifting_.IsRunning())
-      timer_for_shifting_.Reset();
     ShiftContentByY(0);
     shifting_was_requested_ = false;
   }
