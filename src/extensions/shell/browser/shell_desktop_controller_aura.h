@@ -53,6 +53,14 @@ class UserActivityPowerManagerNotifier;
 #endif
 }  // namespace ui
 
+#if defined(USE_NEVA_APPRUNTIME)
+namespace views {
+namespace corewm {
+class TooltipController;
+}  // namespace corewm
+}  // namespace views
+#endif
+
 namespace wm {
 class CompoundEventFilter;
 class CursorManager;
@@ -188,6 +196,7 @@ class ShellDesktopControllerAura
 #endif
 #if defined(USE_NEVA_APPRUNTIME)
   int current_rotation_ = -1;
+  std::unique_ptr<views::corewm::TooltipController> tooltip_controller_;
 #endif
 
   std::unique_ptr<AppWindowClient> app_window_client_;

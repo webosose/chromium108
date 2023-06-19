@@ -79,11 +79,15 @@ NativeWidget* CreateNativeWidget(const Widget::InitParams& params,
   if (params.native_widget)
     return params.native_widget;
 
-  const auto& factory = ViewsDelegate::GetInstance()->native_widget_factory();
-  if (!factory.is_null()) {
-    NativeWidget* native_widget = factory.Run(params, delegate);
-    if (native_widget)
-      return native_widget;
+  // ViewsDelegate interface is not implemented in appshell side
+  // and lead to crash issue when tooltips init.
+  if (ViewsDelegate::GetInstance()) {
+    const auto& factory = ViewsDelegate::GetInstance()->native_widget_factory();
+    if (!factory.is_null()) {
+      NativeWidget* native_widget = factory.Run(params, delegate);
+      if (native_widget)
+        return native_widget;
+    }
   }
   return internal::NativeWidgetPrivate::CreateNativeWidget(delegate);
 }
@@ -360,7 +364,11 @@ void Widget::Init(InitParams params) {
     widget_delegate_ =
         params.delegate ? params.delegate : default_widget_delegate.get();
 
-    ViewsDelegate::GetInstance()->OnBeforeWidgetInit(&params, this);
+    // ViewsDelegate interface is not implemented in appshell side
+    // and lead to crash issue when tooltips init.
+    if (ViewsDelegate::GetInstance()) {
+      ViewsDelegate::GetInstance()->OnBeforeWidgetInit(&params, this);
+    }
 
     widget_delegate_ =
         params.delegate ? params.delegate : default_widget_delegate.release();

@@ -61,6 +61,13 @@
 #include "ui/base/ui_base_neva_switches.h"
 ///@}
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "ui/views/corewm/tooltip_aura.h"
+#include "ui/views/corewm/tooltip_controller.h"
+#include "ui/wm/public/activation_client.h"
+#include "ui/wm/public/tooltip_client.h"
+#endif
+
 namespace extensions {
 
 namespace {
@@ -448,6 +455,9 @@ void ShellDesktopControllerAura::TearDownWindowManager() {
     screen_.reset();
   }
   root_window_event_filter_.reset();
+#if defined(USE_NEVA_APPRUNTIME)
+  tooltip_controller_.reset();
+#endif
 }
 
 std::unique_ptr<RootWindowController>
@@ -467,7 +477,13 @@ ShellDesktopControllerAura::CreateRootWindowControllerForDisplay(
   root_window->AddPreTargetHandler(focus_controller_.get());
   wm::SetActivationClient(root_window, focus_controller_.get());
   aura::client::SetCursorClient(root_window, cursor_manager_.get());
-
+#if defined(USE_NEVA_APPRUNTIME)
+  tooltip_controller_ = std::make_unique<views::corewm::TooltipController>(
+      std::make_unique<views::corewm::TooltipAura>(),
+      wm::GetActivationClient(root_window));
+  root_window->AddPreTargetHandler(tooltip_controller_.get());
+  wm::SetTooltipClient(root_window, tooltip_controller_.get());
+#endif
   base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
   if (!command_line->HasSwitch(switches::kEnableNevaIme) && !input_method_) {
     // Create an input method and become its key event dispatcher.
@@ -484,6 +500,9 @@ void ShellDesktopControllerAura::TearDownRootWindowController(
   root->host()->window()->RemovePreTargetHandler(
       root_window_event_filter_.get());
   root->host()->window()->RemovePreTargetHandler(focus_controller_.get());
+#if defined(USE_NEVA_APPRUNTIME)
+  root->host()->window()->RemovePreTargetHandler(tooltip_controller_.get());
+#endif
 }
 
 void ShellDesktopControllerAura::MaybeQuit() {
