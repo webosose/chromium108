@@ -7,10 +7,18 @@
 
 #include "base/callback.h"
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/message_loop/message_pump_for_ui.h"
+#include "base/threading/thread_checker.h"
 
 struct wl_display;
 struct wl_event_queue;
+
+namespace base {
+class Thread;
+class SingleThreadTaskRunner;
+class WaitableEvent;
+}  // namespace base
 
 namespace ui {
 
@@ -48,6 +56,8 @@ class WaylandEventWatcher {
   // of some objects that should block until they are initialized.
   void RoundTripQueue();
 
+  void UseSingleThreadedPollingForTesting();
+
  protected:
   WaylandEventWatcher(wl_display* display, wl_event_queue* event_queue);
 
@@ -78,6 +88,11 @@ class WaylandEventWatcher {
   void WlDisplayDispatchPendingQueue();
 
  private:
+  void StartProcessingEventsThread();
+  void StartProcessingEventsInternal();
+  void StopProcessingEventsInternal();
+  void WlDisplayDispatchPendingQueueInternal(base::WaitableEvent* event);
+
   // Checks if |display_| has any error set. If so, |shutdown_cb_| is executed
   // and false is returned.
   void WlDisplayCheckForErrors();
@@ -89,6 +104,28 @@ class WaylandEventWatcher {
   bool prepared_ = false;
 
   base::OnceCallback<void()> shutdown_cb_;
+
+  // Use dedicated polling thread to support --in-process-gpu with EGL wayland
+  // backend.
+  bool use_dedicated_polling_thread_ = false;
+
+  // Used to verify watching the fd happens on a valid thread.
+  THREAD_CHECKER(thread_checker_);
+
+  // See the |use_dedicated_polling_thread_| and also the comment in the source
+  // file for this header.
+  // TODO(crbug.com/1117463): consider polling on I/O instead.
+  std::unique_ptr<base::Thread> thread_;
+
+  // The original ui task runner where |this| has been created.
+  scoped_refptr<base::SingleThreadTaskRunner> ui_thread_task_runner_;
+
+  // The thread's task runner where the wl_display's fd is being watched.
+  scoped_refptr<base::SingleThreadTaskRunner> watching_thread_task_runner_;
+
+  base::WeakPtr<WaylandEventWatcher> weak_this_;  // Bound to the main thread.
+  // This weak factory must only be accessed on the main thread.
+  base::WeakPtrFactory<WaylandEventWatcher> weak_factory_{this};
 };
 
 }  // namespace ui

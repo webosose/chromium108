@@ -201,6 +201,9 @@ class WaylandEventSource : public PlatformEventSource,
   void OnRelativePointerMotion(const gfx::Vector2dF& delta) override;
 
  private:
+  // To call event_watcher_->UseSingleThreadedPollingForTesting() from it
+  friend class WaylandTest;
+
   struct PointerScrollData {
     PointerScrollData();
     PointerScrollData(const PointerScrollData& other);

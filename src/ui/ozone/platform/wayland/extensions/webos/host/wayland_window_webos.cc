@@ -40,6 +40,13 @@ WaylandWindowWebos::WaylandWindowWebos(PlatformWindowDelegate* delegate,
 WaylandWindowWebos::~WaylandWindowWebos() {
   // Prevent possible VKB outliving the window
   HideInputPanel(ImeHiddenType::kDeactivate);
+
+  // WaylandWindow requires wl_display_flush call after its destruction
+  // because it makes wayland calls.
+  base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindOnce([](WaylandConnection* connection) { connection->Flush(); },
+                     base::Unretained(connection())));
 };
 
 bool WaylandWindowWebos::CanDispatchEvent(const PlatformEvent& event) {

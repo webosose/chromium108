@@ -7,14 +7,65 @@
 #include <wayland-client-core.h>
 #include <cstring>
 
+#include "base/check.h"
 #include "base/logging.h"
 #include "base/strings/stringprintf.h"
+#include "base/synchronization/waitable_event.h"
+#include "base/task/current_thread.h"
+#include "base/threading/thread.h"
+#include "base/threading/thread_task_runner_handle.h"
 #include "components/crash/core/common/crash_key.h"
 #include "third_party/re2/src/re2/re2.h"
+#include "ui/events/event.h"
 
 namespace ui {
 
 namespace {
+
+bool HasDrmRenderNode() {
+#if defined(WAYLAND_GBM)
+  // Drm render node path template.
+  constexpr char kDriRenderNodeTemplate[] = "/dev/dri/renderD%u";
+
+  // Number of files to look for when discovering DRM devices.
+  constexpr uint32_t kDrmMajor = 226;
+  constexpr uint32_t kDrmMaxMinor = 15;
+  constexpr uint32_t kRenderNodeStart = 128;
+  constexpr uint32_t kRenderNodeEnd = kRenderNodeStart + kDrmMaxMinor + 1;
+
+  for (uint32_t i = kRenderNodeStart; i < kRenderNodeEnd; i++) {
+    /* First,  look in sysfs and skip if this is the vgem render node. */
+    std::string node_link(
+        base::StringPrintf("/sys/dev/char/%d:%d/device", kDrmMajor, i));
+    char device_link[256];
+    ssize_t len = readlink(node_link.c_str(), device_link, sizeof(device_link));
+    if (len < 0 || len == sizeof(device_link)) {
+      continue;
+    }
+
+    /* readlink does not place a nul byte at the end of the string. */
+    if (len >= 4 && memcmp(device_link + len - 4, "vgem", 4) == 0) {
+      continue;
+    }
+
+    std::string dri_render_node(base::StringPrintf(kDriRenderNodeTemplate, i));
+    base::ScopedFD drm_fd(open(dri_render_node.c_str(), O_RDWR));
+    if (drm_fd.get() < 0) {
+      continue;
+    }
+
+    // In case the first node /dev/dri/renderD128 can be opened but fails to
+    // create gbm device on certain driver (E.g. PowerVR). Skip such paths.
+    ScopedGbmDevice device(gbm_create_device(drm_fd.get()));
+    if (!device) {
+      continue;
+    }
+
+    return true;
+  }
+#endif
+  return false;
+}
 
 // Formats the |message| by removing '@' char followed by any digits until the
 // next char. Also removes new line, tab and carriage-return.
@@ -67,10 +118,49 @@ std::string GetWaylandProtocolError(int err, wl_display* display) {
 
 }  // namespace
 
+// A dedicated thread for watching wl_display's file descriptor. The reason why
+// watching happens on a separate thread is that the thread mustn't be blocked.
+// Otherwise, if Chromium is used with Wayland EGL, a deadlock may happen. The
+// deadlock happened when the thread that had been watching the file descriptor
+// (it used to be the browser's UI thread) called wl_display_prepare_read, and
+// then started to wait until the thread, which was used by the gpu service,
+// completed a buffer swap and shutdowned itself (for example, a menu window is
+// in the process of closing). However, that gpu thread hanged as it called
+// Wayland EGL that also called wl_display_prepare_read internally and started
+// to wait until the previous caller of the wl_display_prepare_read (that's by
+// the design of the wayland-client library). This situation causes a deadlock
+// as the first caller of the wl_display_prepare_read is unable to complete
+// reading as it waits for another thread to complete, and that another thread
+// is also unable to complete reading as it waits until the first caller reads
+// the display's file descriptor. For more details, see the implementation of
+// the wl_display_prepare_read in third_party/wayland/src/src/wayland-client.c.
+class WaylandEventWatcherThread : public base::Thread {
+ public:
+  explicit WaylandEventWatcherThread(
+      base::OnceClosure start_processing_events_cb)
+      : base::Thread("wayland-fd"),
+        start_processing_events_cb_(std::move(start_processing_events_cb)) {
+    wl_log_set_handler_client(wayland_log);
+  }
+  ~WaylandEventWatcherThread() override { Stop(); }
+
+  void Init() override {
+    DCHECK(!start_processing_events_cb_.is_null());
+    std::move(start_processing_events_cb_).Run();
+  }
+
+ private:
+  base::OnceClosure start_processing_events_cb_;
+};
+
 WaylandEventWatcher::WaylandEventWatcher(wl_display* display,
                                          wl_event_queue* event_queue)
-    : display_(display), event_queue_(event_queue) {
+    : display_(display),
+      event_queue_(event_queue),
+      use_dedicated_polling_thread_(!HasDrmRenderNode()) {
   DCHECK(display_);
+  VLOG(1) << __func__
+          << " use_dedicated_polling_thread=" << use_dedicated_polling_thread_;
 }
 
 WaylandEventWatcher::~WaylandEventWatcher() {
@@ -87,6 +177,37 @@ void WaylandEventWatcher::StartProcessingEvents() {
   if (watching_)
     return;
 
+  if (use_dedicated_polling_thread_) {
+    if (!ui_thread_task_runner_) {
+      ui_thread_task_runner_ = base::ThreadTaskRunnerHandle::Get();
+      weak_this_ = weak_factory_.GetWeakPtr();
+    }
+
+    if (!thread_) {
+      // FD watching will happen on a different thread.
+      DETACH_FROM_THREAD(thread_checker_);
+
+      thread_ = std::make_unique<WaylandEventWatcherThread>(
+          base::BindOnce(&WaylandEventWatcher::StartProcessingEventsThread,
+                         base::Unretained(this)));
+      base::Thread::Options thread_options;
+      thread_options.message_pump_type = base::MessagePumpType::UI;
+
+      if (!thread_->StartWithOptions(std::move(thread_options)))
+        LOG(FATAL) << "Failed to create input thread";
+    } else if (watching_thread_task_runner_) {
+      watching_thread_task_runner_->PostTask(
+          FROM_HERE,
+          base::BindOnce(&WaylandEventWatcher::StartProcessingEventsInternal,
+                         base::Unretained(this)));
+    }
+  } else {
+    StartProcessingEventsInternal();
+  }
+}
+
+void WaylandEventWatcher::StartProcessingEventsInternal() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   // Set the log handler right before starting to watch the fd so that Wayland
   // is able to send us nicely formatted error messages.
   wl_log_set_handler_client(wayland_log);
@@ -97,14 +218,28 @@ void WaylandEventWatcher::StartProcessingEvents() {
                       "descriptor.";
 }
 
+void WaylandEventWatcher::StartProcessingEventsThread() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
+  watching_thread_task_runner_ = base::ThreadTaskRunnerHandle::Get();
+  WaylandEventWatcher::StartProcessingEventsInternal();
+}
+
 void WaylandEventWatcher::RoundTripQueue() {
-  // Read must be cancelled. Otherwise, wl_display_roundtrip_queue might block
-  // as its internal implementation also reads events, which may block if there
-  // are more than one preparation for reading within the same thread.
-  //
-  // TODO(crbug.com/1288181): this won't be needed once libevent is updated. See
-  // WaylandEventWatcherFdWatch::OnFileCanReadWithoutBlocking for more details.
-  WlDisplayCancelRead();
+  // NOTE: When we are using dedicated polling thread, RoundTripQueue
+  // expected to be called by different thread from dedicated polling
+  // thread so here we can call wl_display_roundtrip_queue directly
+  // without canceling read because multiple thread can call
+  // wl_display_prepare_read_queue.
+  if (!use_dedicated_polling_thread_) {
+    // Read must be cancelled. Otherwise, wl_display_roundtrip_queue might block
+    // as its internal implementation also reads events, which may block if
+    // there are more than one preparation for reading within the same thread.
+    //
+    // TODO(crbug.com/1288181): this won't be needed once libevent is updated.
+    // See WaylandEventWatcherFdWatch::OnFileCanReadWithoutBlocking for more
+    // details.
+    WlDisplayCancelRead();
+  }
   wl_display_roundtrip_queue(display_, event_queue_);
 }
 
@@ -112,6 +247,17 @@ void WaylandEventWatcher::StopProcessingEvents() {
   if (!watching_)
     return;
 
+  if (use_dedicated_polling_thread_) {
+    watching_thread_task_runner_->PostTask(
+        FROM_HERE, base::BindOnce(&WaylandEventWatcher::StopProcessingEvents,
+                                  base::Unretained(this)));
+  } else {
+    StopProcessingEventsInternal();
+  }
+}
+
+void WaylandEventWatcher::StopProcessingEventsInternal() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   // Cancel read before stopping to watch.
   if (prepared_)
     WlDisplayCancelRead();
@@ -122,6 +268,7 @@ void WaylandEventWatcher::StopProcessingEvents() {
 }
 
 bool WaylandEventWatcher::WlDisplayPrepareToRead() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   if (prepared_)
     return true;
 
@@ -139,6 +286,7 @@ bool WaylandEventWatcher::WlDisplayPrepareToRead() {
 }
 
 void WaylandEventWatcher::WlDisplayReadEvents() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   if (!prepared_)
     return;
 
@@ -148,6 +296,7 @@ void WaylandEventWatcher::WlDisplayReadEvents() {
 }
 
 void WaylandEventWatcher::WlDisplayCancelRead() {
+  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
   if (!prepared_)
     return;
 
@@ -157,6 +306,33 @@ void WaylandEventWatcher::WlDisplayCancelRead() {
 }
 
 void WaylandEventWatcher::WlDisplayDispatchPendingQueue() {
+  if (use_dedicated_polling_thread_) {
+    DCHECK(use_dedicated_polling_thread_);
+    base::WaitableEvent event;
+    auto cb = base::BindOnce(
+        &WaylandEventWatcher::WlDisplayDispatchPendingQueueInternal, weak_this_,
+        &event);
+    ui_thread_task_runner_->PostTask(FROM_HERE, std::move(cb));
+
+    // The point of the dedicated polling thread is to let the main thread know
+    // that there are events to be dispatched. Now that this has happened the
+    // polling thread should go to sleep until the main thread is finished
+    // dispatching those events, at which point the dedicated polling thread
+    // should resume.
+    event.Wait();
+  } else {
+    WlDisplayDispatchPendingQueueInternal(nullptr);
+  }
+}
+
+void WaylandEventWatcher::WlDisplayDispatchPendingQueueInternal(
+    base::WaitableEvent* event) {
+  // wl_display_dispatch_queue_pending may block if dispatching events results
+  // in a tab dragging that spins a run loop, which doesn't return until it's
+  // over. Thus, signal before this function is called.
+  if (event)
+    event->Signal();
+
   // If the dispatch fails, it must set the errno. Check that and stop the
   // browser as this is an unrecoverable error.
   if (wl_display_dispatch_queue_pending(display_, event_queue_) < 0)
@@ -193,6 +369,10 @@ void WaylandEventWatcher::WlDisplayCheckForErrors() {
     }
     StopProcessingEvents();
   }
+}
+
+void WaylandEventWatcher::UseSingleThreadedPollingForTesting() {
+  use_dedicated_polling_thread_ = false;
 }
 
 }  // namespace ui
