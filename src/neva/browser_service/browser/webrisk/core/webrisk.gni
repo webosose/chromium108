@@ -14,15 +14,32 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import("//neva/neva.gni")
 import("//third_party/protobuf/proto_library.gni")
 
 webrisk_sources = [
+    "//neva/browser_service/browser/webrisk/core/webrisk_data_store.cc",
+    "//neva/browser_service/browser/webrisk/core/webrisk_data_store.h",
     "//neva/browser_service/browser/webrisk/core/webrisk_fetch_hashes.cc",
     "//neva/browser_service/browser/webrisk/core/webrisk_fetch_hashes.h",
     "//neva/browser_service/browser/webrisk/core/webrisk_search_hashes.cc",
     "//neva/browser_service/browser/webrisk/core/webrisk_search_hashes.h",
-    "//neva/browser_service/browser/webrisk/core/webrisk_store.cc",
-    "//neva/browser_service/browser/webrisk/core/webrisk_store.h",
+    "//neva/browser_service/browser/webrisk/core/webrisk_utils.cc",
+    "//neva/browser_service/browser/webrisk/core/webrisk_utils.h",
     "//neva/browser_service/browser/webrisk/malware_detection_service_impl.cc",
     "//neva/browser_service/browser/webrisk/malware_detection_service_impl.h",
 ]
+
+if (use_webrisk_database) {
+    webrisk_sources += [
+        "//neva/browser_service/browser/webrisk/core/database/webrisk_database.cc",
+        "//neva/browser_service/browser/webrisk/core/database/webrisk_database.h",
+        "//neva/browser_service/browser/webrisk/core/database/webrisk_sqlite_database_store.cc",
+        "//neva/browser_service/browser/webrisk/core/database/webrisk_sqlite_database_store.h",
+    ]
+} else {
+    webrisk_sources += [
+        "//neva/browser_service/browser/webrisk/core/webrisk_local_file_store.cc",
+        "//neva/browser_service/browser/webrisk/core/webrisk_local_file_store.h",
+    ]
+}

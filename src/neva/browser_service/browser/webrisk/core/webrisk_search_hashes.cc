@@ -20,7 +20,7 @@
 #include "net/http/http_status_code.h"
 #include "net/traffic_annotation/network_traffic_annotation.h"
 #include "net/url_request/redirect_info.h"
-#include "neva/browser_service/browser/webrisk/core/webrisk_store.h"
+#include "neva/browser_service/browser/webrisk/core/webrisk_data_store.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/simple_url_loader.h"
@@ -28,6 +28,14 @@
 #include "url/gurl.h"
 
 namespace webrisk {
+
+namespace {
+
+#if defined(USE_WEBRISK_DATABASE)
+constexpr base::TimeDelta kSearchTimeout = base::Seconds(3);
+#endif
+
+}  // namespace
 
 WebRiskSearchHashes::WebRiskSearchHashes(
     const std::string& webrisk_key,
@@ -49,7 +57,7 @@ void WebRiskSearchHashes::SearchHashPrefix(const std::string& hash_prefix,
   api_endpoint_url += (!webrisk_key_.empty() ? ("?key=" + webrisk_key_) : "?");
 
   std::string get_req_schema =
-      "&threatTypes=" + std::string(WebRiskStore::kThreatTypeMalware);
+      "&threatTypes=" + std::string(WebRiskDataStore::kThreatTypeMalware);
   api_endpoint_url += get_req_schema;
   api_endpoint_url += "&hash_prefix=" + hash_prefix;
 
@@ -63,12 +71,15 @@ void WebRiskSearchHashes::SearchHashPrefix(const std::string& hash_prefix,
                                                  MISSING_TRAFFIC_ANNOTATION);
   url_loader_->SetAllowHttpErrorResults(true);
   url_loader_->SetRetryOptions(kMaxRetries, kRetryMode);
+#if defined(USE_WEBRISK_DATABASE)
+  url_loader_->SetTimeoutDuration(kSearchTimeout);
+#endif
   url_loader_->DownloadToString(
       url_loader_factory_,
       base::BindOnce(&WebRiskSearchHashes::OnSearchHashResponse,
                      base::Unretained(this), api_endpoint_url,
                      std::move(callback)),
-      WebRiskStore::kMaxWebRiskStoreSize);
+      WebRiskDataStore::kMaxWebRiskStoreSize);
 }
 
 void WebRiskSearchHashes::OnSearchHashResponse(

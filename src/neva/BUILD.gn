@@ -95,6 +95,9 @@ config("config") {
 
   if (use_webrisk_service) {
     defines += [ "USE_WEBRISK_SERVICE=1" ]
+    if (use_webrisk_database) {
+      defines += [ "USE_WEBRISK_DATABASE=1" ]
+    }
   }
 
   if (use_neva_punch_hole) {

@@ -28,7 +28,7 @@ class SimpleURLLoader;
 
 namespace webrisk {
 
-class WebRiskStore;
+class WebRiskDataStore;
 
 class WebRiskFetchHashes {
  public:
@@ -38,10 +38,10 @@ class WebRiskFetchHashes {
     kSuccess,
   };
 
-  typedef base::OnceCallback<void(Status status)> FetchHashStatusCallback;
+  typedef base::RepeatingCallback<void(Status status)> FetchHashStatusCallback;
 
   WebRiskFetchHashes(const std::string& webrisk_key,
-                     scoped_refptr<WebRiskStore> webrisk_store,
+                     scoped_refptr<WebRiskDataStore> webrisk_data_store,
                      network::SharedURLLoaderFactory* url_loader_factory,
                      FetchHashStatusCallback callback);
   ~WebRiskFetchHashes();
@@ -52,9 +52,15 @@ class WebRiskFetchHashes {
   WebRiskFetchHashes() = delete;
 
   void ComputeDiffRequest();
-  void OnComputeDiffResponse(const std::string& url,
-                             std::unique_ptr<std::string> response_body);
+  void OnRequestResponse(const std::string& url,
+                         std::unique_ptr<std::string> response_body);
+  bool ComputeDiffResponse(std::unique_ptr<std::string> response_body,
+                           ComputeThreatListDiffResponse& file_format);
+  bool UpdateDiffResponse(const ComputeThreatListDiffResponse& file_format,
+                          base::TimeDelta& next_update_time);
+  void RunFetchStatusCallback(const WebRiskFetchHashes::Status& status);
   void ScheduleComputeDiffRequestInternal(base::TimeDelta update_interval_diff);
+  void ScheduleNextRequest(const base::TimeDelta& interval);
   bool IsUpdateScheduled() const;
   bool ParseJSONToUpdateResponse(const std::string& response_body,
                                  ComputeThreatListDiffResponse& file_format);
@@ -66,7 +72,7 @@ class WebRiskFetchHashes {
   FetchHashStatusCallback fetch_status_callback_;
 
   std::string webrisk_key_;
-  scoped_refptr<WebRiskStore> webrisk_store_;
+  scoped_refptr<WebRiskDataStore> webrisk_data_store_;
   network::SharedURLLoaderFactory* url_loader_factory_ = nullptr;
 };
 

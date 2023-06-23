@@ -19,6 +19,7 @@
 #include "base/base64.h"
 #include "base/base64url.h"
 #include "base/json/json_reader.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/string_util.h"
 #include "base/strings/stringprintf.h"
 #include "base/time/time.h"
@@ -27,7 +28,7 @@
 #include "net/http/http_status_code.h"
 #include "net/url_request/redirect_info.h"
 #include "neva/browser_service/browser/webrisk/core/webrisk.pb.h"
-#include "neva/browser_service/browser/webrisk/core/webrisk_store.h"
+#include "neva/browser_service/browser/webrisk/core/webrisk_data_store.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/simple_url_loader.h"
@@ -42,16 +43,23 @@ namespace {
 
 const char kCompressionTypeRAW[] = "RAW";
 const char kApiKeyInvalidResp[] = "API_KEY_INVALID";
+constexpr base::TimeDelta kRetryInterval = base::Seconds(30);
+
+#if defined(USE_WEBRISK_DATABASE)
+const int kMaxDiffEntries = 0;
+const int kMaxDatabaseEntries = 0;
+constexpr base::TimeDelta kFetchingTimeout = base::Seconds(3);
+#endif
 
 }  // namespace
 
 WebRiskFetchHashes::WebRiskFetchHashes(
     const std::string& webrisk_key,
-    scoped_refptr<WebRiskStore> webrisk_store,
+    scoped_refptr<WebRiskDataStore> webrisk_data_store,
     network::SharedURLLoaderFactory* url_loader_factory,
     FetchHashStatusCallback callback)
     : webrisk_key_(webrisk_key),
-      webrisk_store_(std::move(webrisk_store)),
+      webrisk_data_store_(webrisk_data_store),
       url_loader_factory_(url_loader_factory),
       fetch_status_callback_(std::move(callback)) {}
 
@@ -61,15 +69,20 @@ void WebRiskFetchHashes::ComputeDiffRequest() {
   VLOG(2) << __func__;
 
   const std::string kMethod = "GET";
-  std::string api_endpoint_url =
-      "https://webrisk.googleapis.com/v1/threatLists:computeDiff?";
-  api_endpoint_url += "threatType=";
-  api_endpoint_url += WebRiskStore::kThreatTypeMalware;
-  api_endpoint_url += "&constraints.supportedCompressions=";
-  api_endpoint_url += kCompressionTypeRAW;
-  api_endpoint_url += "&key=";
-  api_endpoint_url += webrisk_key_;
-
+  const std::string api_endpoint_url = base::StringPrintf(
+      "https://webrisk.googleapis.com/v1/threatLists:computeDiff?"
+      "threatType=%s"
+#if defined(USE_WEBRISK_DATABASE)
+      "&constraints.maxDiffEntries=%d"
+      "&constraints.maxDatabaseEntries=%d"
+#endif
+      "&constraints.supportedCompressions=%s"
+      "&key=%s",
+      WebRiskDataStore::kThreatTypeMalware,
+#if defined(USE_WEBRISK_DATABASE)
+      kMaxDiffEntries, kMaxDatabaseEntries,
+#endif
+      kCompressionTypeRAW, webrisk_key_.c_str());
   auto request = std::make_unique<network::ResourceRequest>();
   request->url = GURL(api_endpoint_url);
   request->method = kMethod;
@@ -79,93 +92,91 @@ void WebRiskFetchHashes::ComputeDiffRequest() {
                                                  MISSING_TRAFFIC_ANNOTATION);
   url_loader_->SetAllowHttpErrorResults(true);
 
+#if defined(USE_WEBRISK_DATABASE)
+  url_loader_->SetTimeoutDuration(kFetchingTimeout);
+  url_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
+      url_loader_factory_,
+      base::BindOnce(&WebRiskFetchHashes::OnRequestResponse,
+                     base::Unretained(this), api_endpoint_url));
+#else
   url_loader_->DownloadToString(
       url_loader_factory_,
-      base::BindOnce(&WebRiskFetchHashes::OnComputeDiffResponse,
+      base::BindOnce(&WebRiskFetchHashes::OnRequestResponse,
                      base::Unretained(this), api_endpoint_url),
-      WebRiskStore::kMaxWebRiskStoreSize);
+      WebRiskDataStore::kMaxWebRiskStoreSize);
+#endif
 }
 
-void WebRiskFetchHashes::OnComputeDiffResponse(
+void WebRiskFetchHashes::OnRequestResponse(
     const std::string& url,
     std::unique_ptr<std::string> response_body) {
-  int response_code = -1;  // Invalid response code.
-  std::string response_body_data = std::move(*response_body);
-  if (url_loader_ && url_loader_->ResponseInfo() &&
-      url_loader_->ResponseInfo()->headers) {
-    response_code = url_loader_->ResponseInfo()->headers->response_code();
+  VLOG(2) << __func__ << " URL = " << url;
+  ComputeThreatListDiffResponse file_format;
+  bool is_computed_diff =
+      ComputeDiffResponse(std::move(response_body), file_format);
+
+  if (!is_computed_diff) {
+    RunFetchStatusCallback(kFailed);
+    ScheduleNextRequest(kRetryInterval);
   } else {
-    VLOG(1) << __func__ << ", Failed response !!";
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kFailed);
-    }
-    return;
+    base::TimeDelta next_update_time = WebRiskDataStore::kDefaultUpdateInterval;
+    bool is_updated_diff = UpdateDiffResponse(file_format, next_update_time);
+    WebRiskFetchHashes::Status status = is_updated_diff ? kSuccess : kFailed;
+    RunFetchStatusCallback(status);
+    ScheduleNextRequest(next_update_time);
   }
 
-  VLOG(2) << __func__ << " URL = " << url
-          << " ContentSize = " << url_loader_->GetContentSize()
-          << " Response_code = " << response_code
-          << " NetError = " << url_loader_->NetError();
+  url_loader_.reset();
+}
 
-  if (response_code != 200) {
-    // API_KEY_INVALID
-    if ((response_code == 400) &&
-        (response_body_data.find(kApiKeyInvalidResp) != std::string::npos)) {
+bool WebRiskFetchHashes::ComputeDiffResponse(
+    std::unique_ptr<std::string> response_body,
+    ComputeThreatListDiffResponse& file_format) {
+  DCHECK(url_loader_);
+  absl::optional<int> response_code;  // Invalid response code.
+  int net_error = url_loader_->NetError();
+  if (url_loader_->ResponseInfo() && url_loader_->ResponseInfo()->headers) {
+    response_code = url_loader_->ResponseInfo()->headers->response_code();
+  }
+
+  VLOG(2) << __func__ << " ContentSize = " << url_loader_->GetContentSize()
+          << " Response_code = " << response_code.value()
+          << " NetError = " << net_error;
+  bool is_data_fetched_successful = response_body && net_error == net::OK &&
+                                    response_code &&
+                                    response_code == net::HTTP_OK;
+  if (!is_data_fetched_successful) {
+    if ((response_code == 400) && response_body &&
+        (response_body->find(kApiKeyInvalidResp) != std::string::npos)) {
       VLOG(1) << __func__ << " Failed, Invalid API Key !!";
-      if (!fetch_status_callback_.is_null()) {
-        std::move(fetch_status_callback_).Run(kInvalidKey);
-      }
-      return;
     }
-
-    VLOG(1) << __func__ << ", Failed response !!";
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kFailed);
-    }
-    return;
+    return false;
   }
 
   absl::optional<base::Value> response_dict =
-      base::JSONReader::Read(response_body_data);
+      base::JSONReader::Read(*response_body);
   if (!response_dict.has_value()) {
     VLOG(1) << __func__ << ", Failed to response body !!";
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kFailed);
-    }
-    return;
+    return false;
   }
 
-  ComputeThreatListDiffResponse file_format;
-  bool parse_status =
-      ParseJSONToUpdateResponse(response_body_data, file_format);
-  if (!parse_status) {
+  if (!ParseJSONToUpdateResponse(*response_body, file_format)) {
     VLOG(1) << __func__ << ", Failed to read response!!";
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kFailed);
-    }
-    return;
+    return false;
   }
+  return true;
+}
 
-  bool status = webrisk_store_->WriteToDisk(file_format);
-  if (!status) {
+bool WebRiskFetchHashes::UpdateDiffResponse(
+    const ComputeThreatListDiffResponse& file_format,
+    base::TimeDelta& next_update_time) {
+  if (!webrisk_data_store_->WriteDataToDisk(file_format)) {
     VLOG(1) << __func__ << ", Failed to write to store !!";
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kFailed);
-    }
-    return;
+    return false;
   }
-
-  base::TimeDelta next_update_time =
-      webrisk_store_->GetNextUpdateTime(file_format.recommended_next_diff());
-  if (next_update_time > base::TimeDelta()) {
-    VLOG(2) << __func__ << ", next_update_time= " << next_update_time;
-    ScheduleComputeDiffRequestInternal(next_update_time);
-  } else {
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kSuccess);
-    }
-  }
-  url_loader_.reset();
+  next_update_time = webrisk_data_store_->GetNextUpdateTime(
+      file_format.recommended_next_diff());
+  return true;
 }
 
 void WebRiskFetchHashes::ScheduleComputeDiffRequest(base::TimeDelta interval) {
@@ -185,13 +196,18 @@ void WebRiskFetchHashes::ScheduleComputeDiffRequestInternal(
     ComputeDiffRequest();
   } else {
     // Database store is present. Return success.
-    if (!fetch_status_callback_.is_null()) {
-      std::move(fetch_status_callback_).Run(kSuccess);
-    }
-    update_timer_.Stop();
-    update_timer_.Start(FROM_HERE, interval, this,
-                        &WebRiskFetchHashes::ComputeDiffRequest);
+    RunFetchStatusCallback(kSuccess);
+    ScheduleNextRequest(interval);
   }
+}
+
+void WebRiskFetchHashes::ScheduleNextRequest(const base::TimeDelta& interval) {
+  if (IsUpdateScheduled()) {
+    VLOG(1) << __func__ << " Update is already scheduled";
+    return;
+  }
+  update_timer_.Start(FROM_HERE, interval, this,
+                      &WebRiskFetchHashes::ComputeDiffRequest);
 }
 
 bool WebRiskFetchHashes::IsUpdateScheduled() const {
@@ -253,6 +269,13 @@ bool WebRiskFetchHashes::ParseJSONToUpdateResponse(
   }
 
   return true;
+}
+
+void WebRiskFetchHashes::RunFetchStatusCallback(
+    const WebRiskFetchHashes::Status& status) {
+  if (!fetch_status_callback_.is_null()) {
+    fetch_status_callback_.Run(status);
+  }
 }
 
 }  // namespace webrisk

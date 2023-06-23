@@ -69,6 +69,8 @@ declare_args() {
   # Use webrisk service
   use_webrisk_service = true
 
+  use_webrisk_database = true
+
   # To be used as CBE library
   use_cbe = false
 
