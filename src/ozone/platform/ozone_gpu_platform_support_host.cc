@@ -86,8 +86,7 @@ void OzoneGpuPlatformSupportHost::OnGpuServiceLaunched(
     GpuHostBindInterfaceCallback binder,
     GpuHostTerminateCallback terminate_callback) {
   for (size_t i = 0; i < handlers_.size(); ++i)
-    handlers_[i]->OnGpuServiceLaunched(host_id, std::move(binder),
-                                       std::move(terminate_callback));
+    handlers_[i]->OnGpuServiceLaunched(host_id, binder, terminate_callback);
 }
 
 void OzoneGpuPlatformSupportHost::OnMessageReceived(

@@ -34,7 +34,7 @@ class COMPONENT_EXPORT(OZONE_BASE) GpuPlatformSupportHost {
       base::RepeatingCallback<void(const std::string&,
                                    mojo::ScopedMessagePipeHandle)>;
   using GpuHostTerminateCallback =
-      base::OnceCallback<void(const std::string& message)>;
+      base::RepeatingCallback<void(const std::string& message)>;
 
   GpuPlatformSupportHost();
   virtual ~GpuPlatformSupportHost();

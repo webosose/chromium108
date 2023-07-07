@@ -410,13 +410,13 @@ void GpuHostImpl::InitOzone() {
 
   auto interface_binder = base::BindRepeating(&GpuHostImpl::BindInterface,
                                               weak_ptr_factory_.GetWeakPtr());
-  auto terminate_callback = base::BindOnce(&GpuHostImpl::TerminateGpuProcess,
-                                           weak_ptr_factory_.GetWeakPtr());
+  auto terminate_callback = base::BindRepeating(
+      &GpuHostImpl::TerminateGpuProcess, weak_ptr_factory_.GetWeakPtr());
 
   ui::OzonePlatform::GetInstance()
       ->GetGpuPlatformSupportHost()
       ->OnGpuServiceLaunched(params_.restart_id, interface_binder,
-                             std::move(terminate_callback));
+                             terminate_callback);
 }
 
 void GpuHostImpl::TerminateGpuProcess(const std::string& message) {
