@@ -96,6 +96,7 @@ namespace {
 const char kCacheStoreFile[] = "Cache";
 const char kCookieStoreFile[] = "Cookies";
 const int kDefaultDiskCacheSize = 16 * 1024 * 1024;  // default size is 16MB
+const char kWebexScheme[] = "webex";
 
 void AuthRequestCallback(
     LoginAuthRequiredCallback callback,
@@ -537,6 +538,10 @@ bool ShellContentBrowserClient::HandleExternalProtocol(
     const absl::optional<url::Origin>& initiating_origin,
     content::RenderFrameHost* initiator_document,
     mojo::PendingRemote<network::mojom::URLLoaderFactory>* out_factory) {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (url.scheme() == kWebexScheme)
+    return true;
+#endif
   return false;
 }
 
