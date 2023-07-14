@@ -21,10 +21,13 @@
 namespace neva_app_runtime {
 
 std::string FileSchemeHostForApp(const std::string& app_id) {
+  // valid host needs to be lowercase
+  std::string app_id_lower_case = base::ToLowerASCII(app_id);
+
   AppRuntimeContentClient* content_client = GetAppRuntimeContentClient();
   if (content_client)
-    return content_client->FileSchemeHostForApp(app_id);
-  return app_id;
+    return content_client->FileSchemeHostForApp(app_id_lower_case);
+  return app_id_lower_case;
 }
 
 url::Origin CreateFileSecurityOriginForApp(const std::string& app_id) {
