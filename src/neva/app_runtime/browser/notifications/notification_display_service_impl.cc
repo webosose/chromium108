@@ -7,6 +7,7 @@
 #include "neva/app_runtime/browser/notifications/notification_display_service_impl.h"
 
 #include "content/public/browser/browser_thread.h"
+#include "neva/app_runtime/browser/wrap_callback.h"
 
 namespace neva_app_runtime {
 
@@ -51,12 +52,31 @@ void NotificationDisplayServiceImpl::Display(
 void NotificationDisplayServiceImpl::Close(
     NotificationHandler::Type notification_type,
     const std::string& notification_id) {
-  NOTIMPLEMENTED();
+  CHECK(context_ || notification_type == NotificationHandler::Type::TRANSIENT);
+
+  if (!bridge_delegator_initialized_) {
+    actions_.push(base::BindOnce(&NotificationDisplayServiceImpl::Close,
+                                 weak_factory_.GetWeakPtr(), notification_type,
+                                 notification_id));
+    return;
+  }
+
+  bridge_delegator_->Close(notification_type, notification_id);
 }
 
 void NotificationDisplayServiceImpl::GetDisplayed(
     DisplayedNotificationsCallback callback) {
-  NOTIMPLEMENTED();
+  if (!bridge_delegator_initialized_) {
+    actions_.push(base::BindOnce(&NotificationDisplayServiceImpl::GetDisplayed,
+                                 weak_factory_.GetWeakPtr(),
+                                 std::move(callback)));
+    return;
+  }
+
+  bridge_delegator_->GetDisplayed(GetDisplayedNotificationsCallback(
+      std::make_unique<WrapOnceCallback<void(std::set<std::string>, bool)>>(
+          base::BindOnce(&NotificationDisplayServiceImpl::OnGetDisplayed,
+                         weak_factory_.GetWeakPtr(), std::move(callback)))));
 }
 
 void NotificationDisplayServiceImpl::OnNotificationPlatformBridgeReady() {
@@ -68,6 +88,16 @@ void NotificationDisplayServiceImpl::OnNotificationPlatformBridgeReady() {
     std::move(actions_.front()).Run();
     actions_.pop();
   }
+}
+
+void NotificationDisplayServiceImpl::OnGetDisplayed(
+    DisplayedNotificationsCallback callback,
+    std::set<std::string> notification_ids,
+    bool supports_synchronization) {
+  DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
+
+  std::move(callback).Run(std::move(notification_ids),
+                          supports_synchronization);
 }
 
 }  // namespace neva_app_runtime

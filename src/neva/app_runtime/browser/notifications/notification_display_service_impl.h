@@ -48,6 +48,12 @@ class NotificationDisplayServiceImpl : public NotificationDisplayService {
   // Called when the NotificationPlatformBridgeDelegator has been initialized.
   void OnNotificationPlatformBridgeReady();
 
+  // Called after getting displayed notifications from the bridge so we can add
+  // any currently queued notification ids.
+  void OnGetDisplayed(DisplayedNotificationsCallback callback,
+                      std::set<std::string> notification_ids,
+                      bool supports_synchronization);
+
   content::BrowserContext* context_;
 
   // This NotificationPlatformBridgeDelegator delegates to either the native

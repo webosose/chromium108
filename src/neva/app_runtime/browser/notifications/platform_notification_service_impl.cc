@@ -94,17 +94,20 @@ void PlatformNotificationServiceImpl::DisplayPersistentNotification(
 
 void PlatformNotificationServiceImpl::CloseNotification(
     const std::string& notification_id) {
-  NOTIMPLEMENTED();
+  NotificationDisplayServiceFactory::GetForProfile(context_)->Close(
+      NotificationHandler::Type::WEB_NON_PERSISTENT, notification_id);
 }
 
 void PlatformNotificationServiceImpl::ClosePersistentNotification(
     const std::string& notification_id) {
-  NOTIMPLEMENTED();
+  NotificationDisplayServiceFactory::GetForProfile(context_)->Close(
+      NotificationHandler::Type::WEB_PERSISTENT, notification_id);
 }
 
 void PlatformNotificationServiceImpl::GetDisplayedNotifications(
     DisplayedNotificationsCallback callback) {
-  NOTIMPLEMENTED();
+  NotificationDisplayServiceFactory::GetForProfile(context_)->GetDisplayed(
+      std::move(callback));
 }
 
 void PlatformNotificationServiceImpl::ScheduleTrigger(base::Time timestamp) {
