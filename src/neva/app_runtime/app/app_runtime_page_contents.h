@@ -239,7 +239,7 @@ class PageContents : public AppRuntimeWebContentsDelegate,
   std::string user_agent_;
   SSLCertErrorPolicy ssl_cert_error_policy_ = SSL_CERT_ERROR_POLICY_DEFAULT;
   // zoom changing subscription
-  raw_ptr<content::HostZoomMap> host_zoom_map_;
+  raw_ptr<content::HostZoomMap> host_zoom_map_ = nullptr;
   base::CallbackListSubscription zoom_changed_subscription_;
   // data for backup session
   content::SessionStorageNamespaceMap session_storage_namespace_map_;
