@@ -210,7 +210,8 @@ bool WebOSSystemInjection::SetCursor(gin::Arguments* args) {
 
   if (cursor_arg.empty())
     cursor_arg = "default";
-  else if (cursor_arg != "default" && cursor_arg != "blank") {
+  else if (cursor_arg.compare("default") != 0 &&
+           cursor_arg.compare("blank") != 0) {
     //custom cursor : need to check file path
     cursor_arg = GetValidatedFilePath(cursor_arg, GetInjectionData("folderPath"));
     if (cursor_arg.empty())
@@ -276,7 +277,7 @@ void WebOSSystemInjection::SetInputRegion(gin::Arguments* args) {
 std::string WebOSSystemInjection::ServiceCall(
     const std::string& uri, const std::string& payload) {
   // check trustLevel : only trusted webapp can call this function
-  if (GetInjectionData("trustLevel") != "trusted")
+  if (GetInjectionData("trustLevel").compare("trusted") != 0)
     return std::string("false");
 
   // This member is static class variable
