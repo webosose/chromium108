@@ -53,7 +53,7 @@ void WebOSFileAccessController::ParsePathsFromSettings(
     if (path_pos != std::string::npos) {
       paths.push_back(str.substr(path_pos + 1));
     }
-  } while (str != "");
+  } while (!str.empty());
 }
 
 bool WebOSFileAccessController::IsAccessAllowed(
