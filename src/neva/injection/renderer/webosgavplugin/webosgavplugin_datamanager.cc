@@ -25,7 +25,7 @@ WebOSGAVDataManager::WebOSGAVDataManager(const std::string& json) {
 WebOSGAVDataManager::~WebOSGAVDataManager() = default;
 
 void WebOSGAVDataManager::DoInitialize(const std::string& json) {
-  if (!initialized_ && json != "") {
+  if (!initialized_ && !json.empty()) {
     Initialize(json, std::vector<std::string>());
     initialized_ = true;
   }
