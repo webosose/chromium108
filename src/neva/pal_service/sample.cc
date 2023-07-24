@@ -108,7 +108,7 @@ void SampleImpl::onProcessDataResponse(const std::string& data) {
     return;
   }
 
-  const bool ret = result != "false";
+  const bool ret = result.compare("false") != 0;
   std::move(it->second).Run(ret);
   process_data_requests_.erase(it);
 }
