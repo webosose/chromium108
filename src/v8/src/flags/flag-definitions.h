@@ -303,7 +303,11 @@ DEFINE_BOOL(enable_sharedarraybuffer_per_context, false,
             "enable the SharedArrayBuffer constructor per context")
 
 #ifdef V8_INTL_SUPPORT
+#if defined(OS_WEBOS)
+DEFINE_BOOL(icu_timezone_data, false, "get information about timezones from ICU")
+#else
 DEFINE_BOOL(icu_timezone_data, true, "get information about timezones from ICU")
+#endif
 #endif
 
 #ifdef V8_ENABLE_DOUBLE_CONST_STORE_CHECK
@@ -1469,6 +1473,20 @@ DEFINE_VALUE_IMPLICATION(fuzzer_gc_analysis, stress_scavenge, 99)
 DEFINE_BOOL(
     reclaim_unmodified_wrappers, true,
     "reclaim otherwise unreachable unmodified wrapper objects when possible")
+
+#if defined(USE_NEVA_APPRUNTIME)
+DEFINE_BOOL(configure_heap_details, false, "heap configurable values in detail")
+DEFINE_BOOL(trace_configure_heap_details, false, "trace configure_heap_details")
+DEFINE_UINT(minimum_allocation_limit_growing_step_size, 0,
+            "minimum allocation limit growing step size for old generation")
+DEFINE_UINT(high_fragmentation_slack, 0,
+            "high fragmentation slack to trigger mark compact")
+DEFINE_UINT(external_allocation_hard_limit, 0,
+            "external allocation hard limit for external memory to trigger GC")
+DEFINE_UINT(external_allocation_soft_limit, 0,
+            "external allocation soft limit to set external memory limit after "
+            "MarkCompact")
+#endif
 
 // These flags will be removed after experiments. Do not rely on them.
 DEFINE_BOOL(gc_experiment_less_compaction, false,

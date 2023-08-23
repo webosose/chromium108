@@ -13,6 +13,11 @@
 #include "ui/ozone/platform/wayland/host/wayland_window.h"
 #include "ui/platform_window/platform_window_init_properties.h"
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#include "ui/ozone/platform/wayland/host/wayland_extensions.h"
+///@}
+
 namespace ui {
 
 namespace {
@@ -41,6 +46,16 @@ std::unique_ptr<WaylandWindow> WaylandWindow::Create(
       // toplevel window instead.
       if (auto* parent =
               GetParentWindow(connection, properties.parent_widget)) {
+        ///@name USE_NEVA_APPRUNTIME
+        ///@{
+        if (connection->extensions()) {
+          window = connection->extensions()->CreateWaylandWindow(delegate,
+                                                                 connection);
+          if (window)
+            break;
+        }
+        ///@}
+
         window = std::make_unique<WaylandPopup>(delegate, connection, parent);
       } else {
         DLOG(WARNING) << "Failed to determine for menu/popup window.";
@@ -50,6 +65,16 @@ std::unique_ptr<WaylandWindow> WaylandWindow::Create(
     case PlatformWindowType::kWindow:
     case PlatformWindowType::kBubble:
     case PlatformWindowType::kDrag:
+      ///@name USE_NEVA_APPRUNTIME
+      ///@{
+      if (connection->extensions()) {
+        window =
+            connection->extensions()->CreateWaylandWindow(delegate, connection);
+        if (window)
+          break;
+      }
+      ///@}
+
       // TODO(msisov): Figure out what kind of surface we need to create for
       // bubble and drag windows.
       window = std::make_unique<WaylandToplevelWindow>(delegate, connection);

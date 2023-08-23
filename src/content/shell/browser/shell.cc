@@ -495,7 +495,7 @@ blink::mojom::DisplayMode Shell::GetDisplayMode(
              : blink::mojom::DisplayMode::kBrowser;
 }
 
-#if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID) && !defined(OS_WEBOS)
 void Shell::RegisterProtocolHandler(RenderFrameHost* requesting_frame,
                                     const std::string& protocol,
                                     const GURL& url,

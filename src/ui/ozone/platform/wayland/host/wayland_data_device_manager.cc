@@ -61,12 +61,20 @@ WaylandDataDeviceManager::WaylandDataDeviceManager(
 WaylandDataDeviceManager::~WaylandDataDeviceManager() = default;
 
 WaylandDataDevice* WaylandDataDeviceManager::GetDevice() {
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(connection_->wlseat());
+#else   // defined(USE_NEVA_APPRUNTIME)
   DCHECK(connection_->seat());
+#endif  // !defined(USE_NEVA_APPRUNTIME)
   if (!device_) {
     device_ = std::make_unique<WaylandDataDevice>(
         connection_,
         wl_data_device_manager_get_data_device(
+#if defined(USE_NEVA_APPRUNTIME)
+            device_manager_.get(), connection_->wlseat()));
+#else   // defined(USE_NEVA_APPRUNTIME)
             device_manager_.get(), connection_->seat()->wl_object()));
+#endif  // !defined(USE_NEVA_APPRUNTIME)
   }
   DCHECK(device_);
   return device_.get();

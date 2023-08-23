@@ -12,6 +12,7 @@
 #include "base/check_op.h"
 #include "base/containers/adapters.h"
 #include "base/i18n/rtl.h"
+#include "base/logging.h"
 #include "base/notreached.h"
 #include "base/observer_list.h"
 #include "base/strings/utf_string_conversions.h"
@@ -822,14 +823,17 @@ bool Widget::IsVisibleOnAllWorkspaces() const {
 }
 
 void Widget::Maximize() {
+  VLOG(1) << __PRETTY_FUNCTION__;
   native_widget_->Maximize();
 }
 
 void Widget::Minimize() {
+  VLOG(1) << __PRETTY_FUNCTION__;
   native_widget_->Minimize();
 }
 
 void Widget::Restore() {
+  VLOG(1) << __PRETTY_FUNCTION__;
   native_widget_->Restore();
 }
 
@@ -847,11 +851,14 @@ void Widget::SetFullscreen(bool fullscreen, int64_t target_display_id) {
     DCHECK(target_display_id == display::kInvalidDisplayId);
   if (IsFullscreen() == fullscreen &&
       target_display_id == display::kInvalidDisplayId) {
+    LOG(INFO) << __PRETTY_FUNCTION__ << ": fullscreen=" << fullscreen
+              << ", skip";
     return;
   }
 
   auto weak_ptr = GetWeakPtr();
   native_widget_->SetFullscreen(fullscreen, target_display_id);
+  VLOG(1) << __PRETTY_FUNCTION__ << ": fullscreen=" << fullscreen;
   if (!weak_ptr)
     return;
 

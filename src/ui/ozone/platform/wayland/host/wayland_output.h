@@ -71,6 +71,10 @@ class WaylandOutput : public wl::GlobalObjectRegistrar<WaylandOutput> {
   void InitializeColorManagementOutput(WaylandZcrColorManager* manager);
   float GetUIScaleFactor() const;
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  wl_output* output() const { return output_.get(); }
+  ///@}
   Id output_id() const { return output_id_; }
   bool has_output(wl_output* output) const { return output_.get() == output; }
   float scale_factor() const { return scale_factor_; }

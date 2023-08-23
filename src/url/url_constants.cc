@@ -62,4 +62,8 @@ const char16_t kStandardSchemeSeparator16[] = u"://";
 
 const size_t kMaxURLChars = 2 * 1024 * 1024;
 
+#if defined(USE_NEVA_APPRUNTIME)
+const char kIllegalDataURL[] = "chrome-error://chromeillegalwebdata/";
+#endif
+
 }  // namespace url

@@ -474,6 +474,10 @@ bool MP4StreamParser::ParseMoov(BoxReader* reader) {
                               sample_per_second, extra_data, scheme,
                               seek_preroll, codec_delay_in_frames);
 
+#if defined(USE_NEVA_MEDIA)
+      audio_config.set_is_dolby_atmos(entry.ec3_box.is_dolby_atmos);
+#endif
+
 #if BUILDFLAG(USE_PROPRIETARY_CODECS)
       if (codec == AudioCodec::kAAC) {
         audio_config.disable_discard_decoder_delay();

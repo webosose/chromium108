@@ -44,7 +44,10 @@ class ClampedNumeric {
   template <typename Src>
   // NOLINTNEXTLINE(google-explicit-constructor)
   constexpr ClampedNumeric(Src value) : value_(saturated_cast<T>(value)) {
+// TODO(neva): GCC 8.x.x required for older 8.2.0 version
+#if defined(__clang__)
     static_assert(UnderlyingType<Src>::is_numeric, "Argument must be numeric.");
+#endif
   }
 
   // This is not an explicit constructor because we want a seamless conversion

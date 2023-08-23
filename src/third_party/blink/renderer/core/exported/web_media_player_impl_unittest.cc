@@ -267,6 +267,13 @@ class MockWebMediaPlayerDelegate : public WebMediaPlayerDelegate {
     return is_idle_;
   }
 
+#if defined(USE_NEVA_MEDIA)
+  MOCK_METHOD2(DidMediaCreated, void(int, bool));
+  MOCK_METHOD1(DidMediaActivated, void(int));
+  MOCK_METHOD1(DidMediaActivationNeeded, void(int));
+  MOCK_METHOD1(DidMediaSuspended, void(int));
+#endif
+
   void ClearStaleFlag(int player_id) override {
     DCHECK_EQ(player_id_, player_id);
     is_stale_ = false;

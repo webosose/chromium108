@@ -1,0 +1,30 @@
+From 1f5f15641f838c89eacdcceb32d6f2d0ea555d3a Mon Sep 17 00:00:00 2001
+From: Sergey Cherevko <sergey.cherevko@lgepartner.com>
+Date: Thu, 10 Nov 2022 12:10:42 +0300
+Subject: [PATCH] [build] Workaround to build webOS/OSE/Starfish with RP build #2250
+
+to prevent the following compile error:
+
+repo.lge.com/neva/chromium/src/third_party/skia/include/private/SkVx.h:245:81: internal compiler error in instantiate_decl, at cp/pt.c:24603, 245
+SI Vec<4,float> to_vec(VExt<4,float> v) { return bit_pun<Vec<4,float>>(v); }
+---
+ include/private/SkVx.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/private/SkVx.h b/include/private/SkVx.h
+index 74cdabffe2..76a7dd109f 100644
+--- a/include/private/SkVx.h
++++ b/include/private/SkVx.h
+@@ -242,7 +242,8 @@ SINT Vec<2*N,T> join(const Vec<N,T>& lo, const Vec<N,T>& hi) {
+ 
+         // For some reason some (new!) versions of GCC cannot seem to deduce N in the generic
+         // to_vec<N,T>() below for N=4 and T=float.  This workaround seems to help...
+-        SI Vec<4,float> to_vec(VExt<4,float> v) { return bit_pun<Vec<4,float>>(v); }
++        // TODO(neva): Workaround to build with RP build #2250 to prevent compile error
++        // SI Vec<4,float> to_vec(VExt<4,float> v) { return bit_pun<Vec<4,float>>(v); }
+     #endif
+ 
+     SINT VExt<N,T> to_vext(const Vec<N,T>& v) { return bit_pun<VExt<N,T>>(v); }
+-- 
+2.25.1
+

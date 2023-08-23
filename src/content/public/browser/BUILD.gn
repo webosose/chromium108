@@ -5,6 +5,7 @@
 import("//build/config/chromeos/ui_mode.gni")
 import("//build/config/ui.gni")
 import("//device/vr/buildflags/buildflags.gni")
+import("//neva/neva.gni")
 import("//ppapi/buildflags/buildflags.gni")
 import("//third_party/protobuf/proto_library.gni")
 import("//third_party/webrtc/webrtc.gni")
@@ -112,6 +113,8 @@ source_set("browser_sources") {
     "console_message.cc",
     "console_message.h",
     "contacts_picker_properties_requested.h",
+    "data_deleter.cc",
+    "data_deleter.h",
     "content_browser_client.cc",
     "content_browser_client.h",
     "content_index_context.h",
@@ -452,6 +455,7 @@ source_set("browser_sources") {
     "worker_type.h",
     "zoom_level_delegate.h",
   ]
+
   configs += [
     "//build/config:precompiled_headers",
     "//build/config/compiler:wexit_time_destructors",
@@ -522,6 +526,7 @@ source_set("browser_sources") {
     "//services/metrics/public/cpp:metrics_cpp",
     "//third_party/blink/public/common:buildflags",
     "//third_party/blink/public/common:headers",
+    "//third_party/blink/public/mojom:mojom_platform",
     "//ui/accessibility",
     "//ui/base",
     "//ui/base/clipboard",
@@ -536,6 +541,10 @@ source_set("browser_sources") {
     # include headers from each other.
     "//content/browser",
   ]
+
+  if (use_neva_media) {
+    sources += [ "neva/media_state_manager.h" ]
+  }
 
   if (enable_plugins) {
     sources += [

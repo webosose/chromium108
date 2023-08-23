@@ -426,7 +426,7 @@ void GLContextEGL::ReleaseBackpressureFences() {
       current_read_surface = eglGetCurrentSurface(EGL_READ);
       if (!eglMakeCurrent(gl_display_->GetDisplay(), EGL_NO_SURFACE,
                           EGL_NO_SURFACE, context_)) {
-        LOG(ERROR) << "eglMakeCurrent failed with error "
+        LOG(ERROR) << __func__ << ": eglMakeCurrent failed with error="
                    << GetLastEGLErrorString();
       }
     }
@@ -475,6 +475,14 @@ bool GLContextEGL::MakeCurrentImpl(GLSurface* surface) {
     return false;
   }
 
+#if defined(USE_OZONE) && defined(IS_AGL)
+// TODO(AGL): Without changing swap_interval to 0, eglSwapBuffers is pending on AGL(jellyfish, koi).
+// When upgrading to chromium 88 or higher in the future, it is necessary
+// to reconsider whether it works well in AGL without the following patch.
+  if (!surface->IsOffscreen())
+    eglSwapInterval(display_, 0);
+#endif
+
   // Set this as soon as the context is current, since we might call into GL.
   BindGLApi();
 
@@ -482,7 +490,8 @@ bool GLContextEGL::MakeCurrentImpl(GLSurface* surface) {
   InitializeDynamicBindings();
 
   if (!surface->OnMakeCurrent(this)) {
-    LOG(ERROR) << "Could not make current.";
+    LOG(ERROR) << __func__ << " Could not make current with error="
+               << GetLastEGLErrorString();
     return false;
   }
 

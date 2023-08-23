@@ -12,6 +12,7 @@ import("//build/toolchain/cc_wrapper.gni")
 import("//build/toolchain/goma.gni")
 import("//build/toolchain/toolchain.gni")
 import("//build_overrides/build.gni")
+import("//neva/neva.gni")
 
 if (is_android) {
   import("//build/config/android/abi.gni")
@@ -38,7 +39,9 @@ declare_args() {
   # In late bring-up on macOS (see docs/mac_lld.md).
   # Tentatively used on iOS.
   # The default linker everywhere else.
-  use_lld = is_clang && current_os != "zos"
+  # NEVA: disable use_lld for webOS built with GCC and ld.gold.
+  # RP: enable use_lld for webOS default_toolchain
+  use_lld = is_clang && current_os != "zos" && (!is_webos || current_toolchain == default_toolchain)
 }
 
 declare_args() {

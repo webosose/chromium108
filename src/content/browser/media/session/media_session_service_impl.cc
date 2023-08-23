@@ -62,6 +62,12 @@ void MediaSessionServiceImpl::FlushForTesting() {
   client_.FlushForTesting();
 }
 
+#if defined(OS_WEBOS) && defined(USE_GST_MEDIA)
+void MediaSessionServiceImpl::ClearPositionState() {
+  position_.reset();
+}
+#endif
+
 void MediaSessionServiceImpl::SetClient(
     mojo::PendingRemote<blink::mojom::MediaSessionClient> client) {
   client_ = mojo::Remote<blink::mojom::MediaSessionClient>(std::move(client));

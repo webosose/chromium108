@@ -10,6 +10,8 @@ import("//gpu/vulkan/features.gni")
 import("//skia/features.gni")
 import("//ui/gl/features.gni")
 
+import("//neva/neva.gni")
+
 if (is_android) {
   import("//build/config/android/rules.gni")
 }
@@ -244,6 +246,10 @@ source_set("config_sources") {
   }
   if (use_ozone) {
     deps += [ "//ui/ozone" ]
+  }
+
+  if (use_neva_appruntime) {
+    public_deps += [ "//gpu/config/neva" ]
   }
 }
 

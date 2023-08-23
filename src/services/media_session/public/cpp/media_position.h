@@ -57,6 +57,11 @@ struct COMPONENT_EXPORT(MEDIA_SESSION_BASE_CPP) MediaPosition {
   // Return the duration of the media.
   base::TimeDelta duration() const;
 
+#if defined(OS_WEBOS) && defined(USE_GST_MEDIA)
+  // Return the position of the media.
+  base::TimeDelta get_position() const;
+#endif
+
   // Return the current position of the media.
   base::TimeDelta GetPosition() const;
 

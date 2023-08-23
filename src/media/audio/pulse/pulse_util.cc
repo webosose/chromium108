@@ -409,7 +409,14 @@ bool CreateInputStream(pa_threaded_mainloop* mainloop,
                        const AudioParameters& params,
                        const std::string& device_id,
                        pa_stream_notify_cb_t stream_callback,
+#if defined(USE_WEBOS_AUDIO)
+                       void* user_data,
+                       const std::string& preferred_device) {
+  VLOG(1) << __func__ << " device_id[" << device_id << "], preferred_device["
+          << preferred_device << "]";
+#else
                        void* user_data) {
+#endif
   DCHECK(mainloop);
   DCHECK(context);
 
@@ -435,6 +442,12 @@ bool CreateInputStream(pa_threaded_mainloop* mainloop,
   ScopedPropertyList property_list;
   pa_proplist_sets(property_list.get(), PA_PROP_APPLICATION_ICON_NAME,
                    kBrowserDisplayName);
+#if defined(USE_WEBOS_AUDIO)
+  if (!preferred_device.empty()) {
+    pa_proplist_sets(property_list.get(), "preferred.device",
+                     preferred_device.c_str());
+  }
+#endif
   *stream = pa_stream_new_with_proplist(context, "RecordStream",
                                         &sample_specifications, map,
                                         property_list.get());
@@ -486,7 +499,14 @@ bool CreateOutputStream(pa_threaded_mainloop** mainloop,
                         const std::string& app_name,
                         pa_stream_notify_cb_t stream_callback,
                         pa_stream_request_cb_t write_callback,
+#if defined(USE_WEBOS_AUDIO)
+                        void* user_data,
+                        const std::string& preferred_device) {
+  VLOG(1) << __func__ << " device_id[" << device_id << "], preferred_device["
+          << preferred_device << "]";
+#else
                         void* user_data) {
+#endif
   DCHECK(!*mainloop);
   DCHECK(!*context);
 
@@ -545,6 +565,12 @@ bool CreateOutputStream(pa_threaded_mainloop** mainloop,
   ScopedPropertyList property_list;
   pa_proplist_sets(property_list.get(), PA_PROP_APPLICATION_ICON_NAME,
                    kBrowserDisplayName);
+#if defined(USE_WEBOS_AUDIO)
+  if (!preferred_device.empty()) {
+    pa_proplist_sets(property_list.get(), "preferred.device",
+                     preferred_device.c_str());
+  }
+#endif
   *stream = pa_stream_new_with_proplist(
       *context, "Playback", &sample_specifications, map, property_list.get());
   RETURN_ON_FAILURE(*stream, "failed to create PA playback stream");

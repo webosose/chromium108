@@ -106,13 +106,28 @@ class WaylandEventSource : public PlatformEventSource,
   // WaylandPointer::Delegate
   void OnPointerFocusChanged(WaylandWindow* window,
                              const gfx::PointF& location,
-                             wl::EventDispatchPolicy dispatch_policy) override;
+                             wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                             ,
+                             int device_id = -1
+#endif  // defined(OS_WEBOS)
+                             ) override;
   void OnPointerButtonEvent(EventType evtype,
                             int changed_button,
                             WaylandWindow* window,
-                            wl::EventDispatchPolicy dispatch_policy) override;
+                            wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                            ,
+                            int device_id = -1
+#endif  // defined(OS_WEBOS)
+                            ) override;
   void OnPointerMotionEvent(const gfx::PointF& location,
-                            wl::EventDispatchPolicy dispatch_policy) override;
+                            wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                            ,
+                            int device_id = -1
+#endif  // defined(OS_WEBOS)
+                            ) override;
   void OnPointerAxisEvent(const gfx::Vector2dF& offset) override;
   void OnPointerFrameEvent() override;
   void OnPointerAxisSourceEvent(uint32_t axis_source) override;
@@ -130,19 +145,44 @@ class WaylandEventSource : public PlatformEventSource,
                          const gfx::PointF& location,
                          base::TimeTicks timestamp,
                          PointerId id,
-                         wl::EventDispatchPolicy dispatch_policy) override;
+                         wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                         ,
+                         int device_id = -1
+#endif  // defined(OS_WEBOS)
+                         ) override;
   void OnTouchReleaseEvent(base::TimeTicks timestamp,
                            PointerId id,
-                           wl::EventDispatchPolicy dispatch_policy) override;
+                           wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                           ,
+                           int device_id = -1
+#endif  // defined(OS_WEBOS)
+                           ) override;
   void OnTouchMotionEvent(const gfx::PointF& location,
                           base::TimeTicks timestamp,
                           PointerId id,
-                          wl::EventDispatchPolicy dispatch_policy) override;
-  void OnTouchCancelEvent() override;
+                          wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                          ,
+                          int device_id = -1
+#endif  // defined(OS_WEBOS)
+                          ) override;
+  void OnTouchCancelEvent(
+#if defined(OS_WEBOS)
+      int device_id = -1
+#endif  // defined(OS_WEBOS)
+      ) override;
   void OnTouchFrame() override;
   void OnTouchFocusChanged(WaylandWindow* window) override;
   std::vector<PointerId> GetActiveTouchPointIds() override;
+
+#if defined(OS_WEBOS)
+  const WaylandWindow* GetTouchTarget(PointerId id,
+                                      int device_id = -1) const override;
+#else
   const WaylandWindow* GetTouchTarget(PointerId id) const override;
+#endif  // defined(OS_WEBOS)
   void OnTouchStylusToolChanged(PointerId pointer_id,
                                 EventPointerType pointer_type) override;
   void OnTouchStylusForceChanged(PointerId pointer_id, float force) override;

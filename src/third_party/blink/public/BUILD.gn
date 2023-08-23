@@ -5,6 +5,7 @@
 import("//build/buildflag_header.gni")
 import("//build/config/devtools.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
+import("//neva/neva.gni")
 import("//third_party/blink/public/public_features.gni")
 import("//third_party/blink/renderer/build/scripts/scripts.gni")
 import("//third_party/blink/renderer/config.gni")
@@ -407,6 +408,14 @@ source_set("blink_headers") {
     "web/web_widget.h",
     "web/web_window_features.h",
   ]
+
+  if (use_neva_media) {
+    sources += [
+      "platform/neva/web_media_codec_capability.h",
+      "platform/neva/web_media_player.h",
+      "platform/neva/web_media_player_client.h",
+    ]
+  }
 
   if (is_mac) {
     sources += [

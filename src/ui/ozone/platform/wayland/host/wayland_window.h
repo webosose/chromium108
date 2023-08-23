@@ -256,6 +256,24 @@ class WaylandWindow : public PlatformWindow,
   // size that GPU renders at.
   virtual void UpdateVisualSize(const gfx::Size& size_px);
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  virtual void HandleStateChanged(PlatformWindowState state);
+  virtual void HandleActivationChanged(bool is_activated);
+  void HandleKeyboardEnter();
+  void HandleKeyboardLeave();
+  void OnSurfaceContentChanged();
+
+  // neva::PlatformWindow
+  void SetInputArea(const std::vector<gfx::Rect>& regions) override;
+  void SetCustomCursor(neva_app_runtime::CustomCursorType type,
+                       const std::string& path,
+                       int hotspot_x,
+                       int hotspot_y,
+                       bool allowed_cursor_overriding) override;
+  void OnInputPanelVisibilityChanged(bool state) override;
+  ///@}
+
   // Handles close requests.
   virtual void OnCloseRequest();
 
@@ -406,6 +424,15 @@ class WaylandWindow : public PlatformWindow,
   FRIEND_TEST_ALL_PREFIXES(WaylandBufferManagerTest,
                            CommitOverlaysNonsensicalBoundsRect);
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  enum class CustomCursorMode {
+    OFF,
+    REQUESTED,
+    APPLIED
+  };
+  ///@}
+
   // Initializes the WaylandWindow with supplied properties.
   bool Initialize(PlatformWindowInitProperties properties);
 
@@ -455,6 +482,14 @@ class WaylandWindow : public PlatformWindow,
 
   // The current cursor bitmap (immutable).
   scoped_refptr<BitmapCursor> cursor_;
+
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  bool allowed_cursor_overriding_ = false;
+  CustomCursorMode custom_cursor_mode_ = CustomCursorMode::OFF;
+  neva_app_runtime::CustomCursorType cursor_type_ =
+      neva_app_runtime::CustomCursorType::kNotUse;
+  ///@}
 
   // Current bounds of the platform window. This is either initialized, or the
   // requested size by the Wayland compositor. When this is set in SetBounds(),

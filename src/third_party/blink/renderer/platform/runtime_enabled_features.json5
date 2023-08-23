@@ -775,6 +775,11 @@
       status: "stable",
     },
     {
+      name: "CSSNavigation",
+      public: true,
+      status: "experimental",
+    },
+    {
       name: "CSSOffsetPathRay",
       status: "experimental",
     },
@@ -3155,11 +3160,66 @@
       status: "experimental",
       base_feature: "WindowPlacementFullscreenOnScreensChange",
     },
+    ///@name USE_FILESCHEME_CODECACHE
+    ///@{
+    {
+      name: "LocalResourceCodeCache",
+      public: true,
+      status: "experimental",
+    },
+    ///@}
+    ///@name USE_NEVA_MEDIA
+    ///@{
+    {
+      name: "AudioFocusExtension",
+      status: "experimental",
+    },
+    {
+      name: "CustomEventExtension",
+      status: "experimental",
+    },
+    {
+      name: "MediaBlobAndDataURLSupportExtension",
+      status: "experimental",
+    },
+    {
+      name: "MediaSourceIsSupportedExtension",
+      status: "experimental",
+    },
+    {
+      name: "MediaTimelineOffset",
+      status: "experimental",
+    },
+    {
+      name: "NegativePlaybackRate",
+      status: "experimental",
+    },
+    {
+      name: "NoAudioAttr",
+      status: "experimental",
+    },
+    {
+      name: "PreloadDefaultIsAuto",
+      status: "experimental",
+    },
+    {
+      name: "SupportPreloadNoneOnMSE",
+      status: "experimental",
+    },
+    {
+      name: "UMSExtension",
+      status: "experimental",
+    },
     {
       // If enabled, the `getDisplayMedia()` family of APIs will ask for NV12
       // frames, which should trigger a zero-copy path in the tab capture code.
       name: "ZeroCopyTabCapture",
       base_feature: "ZeroCopyTabCapture",
     },
+    {
+      name: "SendMethod",
+      status: "experimental",
+    },
+    ///@}
   ],
 }

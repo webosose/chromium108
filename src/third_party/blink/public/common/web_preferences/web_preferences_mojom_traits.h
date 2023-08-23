@@ -14,6 +14,17 @@
 
 namespace mojo {
 
+#if defined(USE_NEVA_APPRUNTIME)
+template <>
+struct BLINK_COMMON_EXPORT
+    EnumTraits<blink::mojom::FirstFramePolicy, blink::FirstFramePolicy> {
+  static blink::mojom::FirstFramePolicy ToMojom(blink::FirstFramePolicy policy);
+
+  static bool FromMojom(blink::mojom::FirstFramePolicy input,
+                        blink::FirstFramePolicy* out);
+};
+#endif
+
 template <>
 struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
                                         blink::web_pref::WebPreferences> {
@@ -411,6 +422,10 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
     return r.spatial_navigation_enabled;
   }
 
+  static bool css_navigation_enabled(const blink::web_pref::WebPreferences& r) {
+    return r.css_navigation_enabled;
+  }
+
   static bool navigate_on_drag_drop(const blink::web_pref::WebPreferences& r) {
     return r.navigate_on_drag_drop;
   }
@@ -509,6 +524,11 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
 
   static bool immersive_mode_enabled(const blink::web_pref::WebPreferences& r) {
     return r.immersive_mode_enabled;
+  }
+
+  static bool accessibility_explore_by_mouse_enabled(
+      const blink::web_pref::WebPreferences& r) {
+    return r.accessibility_explore_by_mouse_enabled;
   }
 
   static bool double_tap_to_zoom_enabled(
@@ -677,6 +697,34 @@ struct BLINK_COMMON_EXPORT StructTraits<blink::mojom::WebPreferencesDataView,
       const blink::web_pref::WebPreferences& r) {
     return r.do_not_update_selection_on_mutating_selection_range;
   }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  static bool x_frame_options_cross_origin_allowed(
+      const blink::web_pref::WebPreferences& r) {
+    return r.x_frame_options_cross_origin_allowed;
+  }
+
+  static bool keep_alive_webapp(const blink::web_pref::WebPreferences& r) {
+    return r.keep_alive_webapp;
+  }
+
+  static blink::FirstFramePolicy first_frame_policy(
+      const blink::web_pref::WebPreferences& r) {
+    return r.first_frame_policy;
+  }
+
+  static blink::mojom::ThirdPartyCookiesPolicy third_party_cookies_policy(
+      const blink::web_pref::WebPreferences& r) {
+    return r.third_party_cookies_policy;
+  }
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+  static uint32_t max_timeupdate_event_frequency(
+      const blink::web_pref::WebPreferences& r) {
+    return r.max_timeupdate_event_frequency;
+  }
+#endif
 
   static blink::mojom::AutoplayPolicy autoplay_policy(
       const blink::web_pref::WebPreferences& r) {

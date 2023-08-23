@@ -30,9 +30,12 @@ bool ConvertKeyCodeToText
      int modifiers,
      std::string* text,
      std::string* error_msg) {
+#if !defined(USE_NEVA_APPRUNTIME)
   ui::KeyboardLayoutEngine* keyboard_layout_engine =
       ui::KeyboardLayoutEngineManager::GetKeyboardLayoutEngine();
-
+#else
+  ui::KeyboardLayoutEngine* keyboard_layout_engine = nullptr;
+#endif
   std::unique_ptr<ui::StubKeyboardLayoutEngine> stub_layout_engine;
   if (!keyboard_layout_engine) {
     stub_layout_engine = std::make_unique<ui::StubKeyboardLayoutEngine>();

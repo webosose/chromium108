@@ -8,10 +8,23 @@
 #include "base/strings/string_piece.h"
 #include "media/base/mime_util_internal.h"
 
+#if defined(USE_NEVA_MEDIA)
+#include "base/command_line.h"
+#include "media/base/media_switches_neva.h"
+#include "media/base/neva/neva_mime_util_internal.h"
+#endif
+
 namespace media {
 
 // This variable is Leaky because it is accessed from WorkerPool threads.
 static const internal::MimeUtil* GetMimeUtil() {
+#if defined(USE_NEVA_MEDIA)
+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva)) {
+    static const base::NoDestructor<internal::NevaMimeUtil> neva_mime_util;
+    return &(*neva_mime_util);
+  }
+#endif
   static const base::NoDestructor<internal::MimeUtil> mime_util;
   return &(*mime_util);
 }

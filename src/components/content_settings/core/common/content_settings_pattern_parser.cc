@@ -215,6 +215,9 @@ std::string PatternParser::ToString(
       str += kPathWildcard;
       return str;
     }
+#if defined(USE_NEVA_APPRUNTIME)
+    str += parts.host;
+#endif
     str += parts.path;
     return str;
   }

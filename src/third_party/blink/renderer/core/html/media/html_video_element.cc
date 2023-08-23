@@ -218,6 +218,16 @@ void HTMLVideoElement::ParseAttribute(
       remoting_interstitial_->OnPosterImageChanged();
     if (picture_in_picture_interstitial_)
       picture_in_picture_interstitial_->OnPosterImageChanged();
+#if defined(USE_NEVA_MEDIA)
+  } else if (RuntimeEnabledFeatures::NoAudioAttrEnabled() &&
+             params.name == html_names::kNoaudioAttr) {
+    if (!params.new_value.IsNull())
+      has_noaudio_attr_ = true;
+    else
+      has_noaudio_attr_ = false;
+    if (GetWebMediaPlayer())
+      GetWebMediaPlayer()->SetDisableAudio(*has_noaudio_attr_);
+#endif  // USE_NEVA_MEDIA
   } else if (params.name == html_names::kAutopictureinpictureAttr &&
              RuntimeEnabledFeatures::AutoPictureInPictureEnabled(
                  GetExecutionContext())) {

@@ -270,7 +270,15 @@ class WebThemeEngine {
     return absl::nullopt;
   }
 
+  // FIXME(neva): Check if we still need such adaptation for GCC or not
+  // See http://repo.lge.com:8080/2687 for details
+#if defined(USE_NEVA_APPRUNTIME)
+  virtual blink::ForcedColors GetForcedColors() const {
+    return blink::ForcedColors::kNone;
+  }
+#else
   virtual ForcedColors GetForcedColors() const { return ForcedColors::kNone; }
+#endif
   virtual void OverrideForcedColorsTheme(bool is_dark_theme) {}
   virtual void SetForcedColors(const blink::ForcedColors forced_colors) {}
   virtual void ResetToSystemColors(

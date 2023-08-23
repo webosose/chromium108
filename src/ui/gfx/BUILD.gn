@@ -5,6 +5,7 @@
 import("//build/config/ozone.gni")
 import("//build/config/ui.gni")
 import("//device/vr/buildflags/buildflags.gni")
+import("//neva/neva.gni")
 import("//testing/libfuzzer/fuzzer_test.gni")
 import("//testing/test.gni")
 
@@ -265,6 +266,20 @@ component("gfx") {
     ]
   }
 
+  if (use_neva_appruntime) {
+    sources += [
+      "neva/file_utils.cc",
+      "neva/file_utils.h",
+    ]
+  }
+
+  if (use_neva_media) {
+    sources += [
+      "neva/video_utils.cc",
+      "neva/video_utils.h",
+    ]
+  }
+
   configs += [
     "//build/config:precompiled_headers",
     "//build/config/compiler:wexit_time_destructors",
@@ -516,6 +531,13 @@ source_set("buffer_types") {
   sources = [ "buffer_types.h" ]
 }
 
+# Depend on this to use location_hints.h without pulling in all of gfx.
+source_set("location_hint") {
+  sources = [
+    "location_hint.h",
+  ]
+}
+
 # The GPU memory buffer stuff is separate from "gfx" to allow GPU-related
 # things to use these files without pulling in all of gfx, which includes large
 # things like Skia.
@@ -569,7 +591,10 @@ source_set("memory_buffer_sources") {
 
   defines = [ "GFX_IMPLEMENTATION" ]
 
-  public_deps = [ ":buffer_types" ]
+  public_deps = [
+    ":buffer_types",
+    ":location_hint",
+  ]
 
   deps = [
     ":gfx_switches",

@@ -60,6 +60,10 @@ class VIZ_SERVICE_EXPORT DisplaySchedulerBase
   virtual void ReportFrameTime(
       base::TimeDelta frame_time,
       base::flat_set<base::PlatformThreadId> thread_ids) = 0;
+#if defined(USE_NEVA_APPRUNTIME)
+  virtual void RenderProcessGone() = 0;
+  virtual void SetFirstActivateTimeout(base::TimeDelta timeout) = 0;
+#endif
 
  protected:
   raw_ptr<DisplaySchedulerClient> client_ = nullptr;

@@ -25,6 +25,12 @@
 #include "chromeos/ash/components/audio/audio_devices_pref_handler_impl.h"
 #endif
 
+#if defined(USE_NEVA_BROWSER_SERVICE)
+#include "components/content_settings/core/browser/host_content_settings_map.h"
+#include "neva/app_runtime/browser/media/webrtc/device_media_stream_access_handler.h"
+#include "neva/app_runtime/browser/media/webrtc/media_capture_devices_dispatcher.h"
+#endif
+
 using base::FilePath;
 using user_prefs::PrefRegistrySyncable;
 
@@ -85,6 +91,14 @@ std::unique_ptr<PrefService> CreateUserPrefService(
   ExtensionPrefs::RegisterProfilePrefs(pref_registry);
   AudioAPI::RegisterUserPrefs(pref_registry);
   PermissionsManager::RegisterProfilePrefs(pref_registry);
+
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  HostContentSettingsMap::RegisterProfilePrefs(pref_registry);
+  neva_app_runtime::DeviceMediaStreamAccessHandler::RegisterProfilePrefs(
+      pref_registry);
+  neva_app_runtime::MediaCaptureDevicesDispatcher::RegisterProfilePrefs(
+      pref_registry);
+#endif
 
   std::unique_ptr<PrefService> pref_service = factory.Create(pref_registry);
   user_prefs::UserPrefs::Set(browser_context, pref_service.get());

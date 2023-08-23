@@ -185,6 +185,11 @@ GetSwitchDependentFeatureOverrides(const base::CommandLine& command_line) {
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
     {switches::kEnablePrivacySandboxAdsApis, std::cref(kPrivateAggregationApi),
      base::FeatureList::OVERRIDE_ENABLE_FEATURE},
+
+    // Aggressive flushing of DOM storage also affects cookies.
+    {switches::kEnableAggressiveDOMStorageFlushing,
+     std::cref(net::features::kAggressiveFlushing),
+     base::FeatureList::OVERRIDE_ENABLE_FEATURE},
   };
 
   std::vector<base::FeatureList::FeatureOverrideInfo> overrides;

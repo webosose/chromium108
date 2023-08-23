@@ -51,6 +51,10 @@ class CORE_EXPORT FirstMeaningfulPaintDetector
   void OnNetwork2Quiet();
   bool SeenFirstMeaningfulPaint() const;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void ResetStateToMarkNextPaint();
+#endif
+
   // The caller owns the |clock| which must outlive the paint detector.
   static void SetTickClockForTesting(const base::TickClock* clock);
 
@@ -71,6 +75,12 @@ class CORE_EXPORT FirstMeaningfulPaintDetector
   int ActiveConnections();
   void RegisterNotifyPresentationTime(PaintEvent);
   void SetFirstMeaningfulPaint(base::TimeTicks presentation_time);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  void NotifyNonFirstMeaningfulPaint();
+  void ReportFirstContainerResetPaint(PaintEvent event,
+                                      base::TimeTicks timestamp);
+#endif
 
   bool next_paint_is_meaningful_ = false;
   HadUserInput had_user_input_ = kNoUserInput;

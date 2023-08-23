@@ -6767,6 +6767,19 @@ KURL Document::CompleteURLWithOverride(const String& url,
                                        const KURL& base_url_override) const {
   DCHECK(base_url_override.IsEmpty() || base_url_override.IsValid());
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // Add file security origin if it is missing.
+  KURL kurl(url);
+  if (kurl.IsLocalFile()) {
+    if (kurl.Host().empty() || kurl.Host().IsNull()) {
+      String file_security_origin =
+          GetPage()->GetChromeClient().FileSecurityOrigin();
+      kurl.SetHost(file_security_origin);
+      return kurl;
+    }
+  }
+#endif
+
   // Always return a null URL when passed a null string.
   // FIXME: Should we change the KURL constructor to have this behavior?
   // See also [CSS]StyleSheet::completeURL(const String&)
@@ -7943,8 +7956,10 @@ bool Document::HaveRenderBlockingStylesheetsLoaded() const {
 }
 
 bool Document::HaveRenderBlockingResourcesLoaded() const {
-  return !render_blocking_resource_manager_ ||
-         !render_blocking_resource_manager_->HasRenderBlockingResources();
+  return (!render_blocking_resource_manager_ ||
+          !render_blocking_resource_manager_->HasRenderBlockingResources()) &&
+         (first_frame_policy_accepted_ ||
+          deferred_background_image_count_ == 0);
 }
 
 Locale& Document::GetCachedLocale(const AtomicString& locale) {
@@ -8893,6 +8908,39 @@ const EventPath::NodePath& Document::GetOrCalculateEventNodePath(Node& node) {
   DCHECK_EQ(event_node_path_cache_.size(),
             event_node_path_cache_key_list_.size());
   return *event_node_path;
+}
+
+bool Document::AddDeferredBackgroundImage() {
+  if (!IsMainThread() || !IsInMainFrame())
+    return false;
+
+  VLOG(1) << __func__;
+
+  ++deferred_background_image_count_;
+  return true;
+}
+
+void Document::RemoveDeferredBackgroundImage() {
+  if (!IsMainThread() || !IsInMainFrame())
+    return;
+
+  VLOG(1) << __func__;
+  --deferred_background_image_count_;
+
+  // resume update when all background images were undeferred
+  if (deferred_background_image_count_ == 0)
+    BeginLifecycleUpdatesIfRenderingReady();
+}
+
+void Document::SetFirstFramePolicyAccepted(bool accepted) {
+  if (!IsMainThread() || !IsInMainFrame())
+    return;
+  if (accepted == first_frame_policy_accepted_)
+    return;
+  first_frame_policy_accepted_ = accepted;
+  if (accepted) {
+    BeginLifecycleUpdatesIfRenderingReady();
+  }
 }
 
 template class CORE_TEMPLATE_EXPORT Supplement<Document>;

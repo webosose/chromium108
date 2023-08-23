@@ -35,7 +35,9 @@
 #include "ui/gfx/linux/drm_util_linux.h"
 #include "ui/gfx/linux/gbm_buffer.h"
 #include "ui/gfx/linux/gbm_device.h"
+#if !defined(USE_NEVA_V4L2_CODEC)
 #include "ui/gfx/linux/gbm_util.h"
+#endif
 #include "ui/gfx/linux/gbm_wrapper.h"
 #include "ui/gfx/linux/native_pixmap_dmabuf.h"
 #include "ui/gfx/native_pixmap.h"
@@ -106,6 +108,10 @@ class GbmDeviceWrapper {
 
  private:
   GbmDeviceWrapper() {
+#if defined(USE_NEVA_V4L2_CODEC)
+    CHECK(false) << "USE_NEVA_V4L2_CODEC doesn't support GBM";
+    return;
+#else
     constexpr char kRenderNodeFilePattern[] = "/dev/dri/renderD%d";
     // This loop ends on either the first card that does not exist or the first
     // one that results in the creation of a gbm device.
@@ -131,6 +137,7 @@ class GbmDeviceWrapper {
       if (gbm_device_)
         return;
     }
+#endif
   }
   ~GbmDeviceWrapper() = default;
 
@@ -138,6 +145,10 @@ class GbmDeviceWrapper {
                                                  const gfx::Size& size,
                                                  gfx::BufferUsage buffer_usage)
       EXCLUSIVE_LOCKS_REQUIRED(lock_) {
+#if defined(USE_NEVA_V4L2_CODEC)
+    CHECK(false) << "USE_NEVA_V4L2_CODEC doesn't support GBM";
+    return nullptr;
+#else
     uint32_t flags = ui::BufferUsageToGbmFlags(buffer_usage);
     std::unique_ptr<ui::GbmBuffer> buffer =
         gbm_device_->CreateBuffer(fourcc_format, size, flags);
@@ -156,6 +167,7 @@ class GbmDeviceWrapper {
     if (!kScanoutUsages.contains(buffer_usage))
       flags &= ~GBM_BO_USE_SCANOUT;
     return gbm_device_->CreateBuffer(fourcc_format, size, flags);
+#endif
   }
 
   friend class base::NoDestructor<GbmDeviceWrapper>;

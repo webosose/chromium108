@@ -14,6 +14,7 @@
 #include "base/compiler_specific.h"
 #include "base/component_export.h"
 #include "base/memory/ref_counted.h"
+#include "components/cookie_config/cookie_store_util_neva.h"
 #include "net/cookies/cookie_monster.h"
 #include "net/extras/sqlite/sqlite_persistent_cookie_store.h"
 #include "net/log/net_log_with_source.h"
@@ -37,7 +38,9 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) SessionCleanupCookieStore
 
   // Wraps the passed-in |cookie_store|.
   explicit SessionCleanupCookieStore(
-      const scoped_refptr<net::SQLitePersistentCookieStore>& cookie_store);
+      const scoped_refptr<net::SQLitePersistentCookieStore>& cookie_store,
+      const scoped_refptr<cookie_config::CookieNevaCryptoDelegate>&
+          crypto_delegate);
 
   SessionCleanupCookieStore(const SessionCleanupCookieStore&) = delete;
   SessionCleanupCookieStore& operator=(const SessionCleanupCookieStore&) =
@@ -79,6 +82,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) SessionCleanupCookieStore
   bool force_keep_session_state_ = false;
 
   net::NetLogWithSource net_log_;
+
+  const scoped_refptr<cookie_config::CookieNevaCryptoDelegate> crypto_delegate_;
 };
 
 }  // namespace network

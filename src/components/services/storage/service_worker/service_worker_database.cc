@@ -1671,6 +1671,9 @@ ServiceWorkerDatabase::Status ServiceWorkerDatabase::ParseRegistrationData(
     return Status::kErrorCorrupted;
 
   GURL scope_url(data.scope_url());
+#if defined(USE_NEVA_APPRUNTIME)
+  std::string app_id(data.app_id());
+#endif
   GURL script_url(data.script_url());
   if (!scope_url.is_valid() || !script_url.is_valid() ||
       scope_url.DeprecatedGetOriginAsURL() !=
@@ -1696,6 +1699,9 @@ ServiceWorkerDatabase::Status ServiceWorkerDatabase::ParseRegistrationData(
   *out = mojom::ServiceWorkerRegistrationData::New();
   (*out)->registration_id = data.registration_id();
   (*out)->scope = scope_url;
+#if defined(USE_NEVA_APPRUNTIME)
+  (*out)->app_id = app_id;
+#endif
   (*out)->script = script_url;
   (*out)->key = key;
   (*out)->version_id = data.version_id();
@@ -1972,6 +1978,9 @@ void ServiceWorkerDatabase::WriteRegistrationDataInBatch(
   ServiceWorkerRegistrationData data;
   data.set_registration_id(registration.registration_id);
   data.set_scope_url(registration.scope.spec());
+#if defined(USE_NEVA_APPRUNTIME)
+  data.set_app_id(registration.app_id);
+#endif
   data.set_script_url(registration.script.spec());
   // Do not store the StorageKey, it's already encoded in the registration key
   // prefix.

@@ -359,6 +359,11 @@ component("capture_lib") {
       "//third_party/libyuv",
     ]
   }
+
+  if (use_webos_camera) {
+    defines += [ "USE_WEBOS_CAMERA=1" ]
+    public_deps += [ "//media/capture/video/webos" ]
+  }
 }
 
 source_set("test_support") {

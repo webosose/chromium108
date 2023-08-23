@@ -19,6 +19,11 @@
 #include "gpu/command_buffer/common/buffer.h"
 #include "gpu/command_buffer/common/discardable_handle.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "base/command_line.h"
+#include "gpu/config/neva/gpu_switches_neva.h"
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 namespace gpu {
 
 namespace {
@@ -169,6 +174,14 @@ void ServiceFontManager::Destroy() {
 
   client_ = nullptr;
   strike_client_.reset();
+#if defined(USE_NEVA_APPRUNTIME)
+  // TODO(neva): This relieve continously increasing memory
+  // from 6000 bareapp and 6000 mediadiscovery memory test.
+  // Instead of using this revert or fix https://crrev.com/c/3580848
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kEnableClearCachedFonts))
+    discardable_handle_map_.clear();
+#endif  // defined(USE_NEVA_APPRUNTIME)
   destroyed_ = true;
 }
 

@@ -89,13 +89,16 @@ bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   }
   std::replace(path.begin(), path.end(), '/', '\\');
 #else   // BUILDFLAG(IS_WIN)
+#if !defined(USE_NEVA_APPRUNTIME)
   // On POSIX, there's no obvious interpretation of file:// URLs with a host.
   // Usually, remote mounts are still mounted onto the local filesystem.
   // Therefore, we discard all URLs that are not obviously local to prevent
   // spoofing attacks using file:// URLs. See crbug.com/881675.
+  // NOTE(webOS): webOS webapp uses appid as host.
   if (!url.host().empty() && !net::IsLocalhost(url)) {
     return false;
   }
+#endif
   std::string path = url.path();
 #endif  // !BUILDFLAG(IS_WIN)
 
@@ -109,7 +112,15 @@ bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   // https://crbug.com/585422 that this represents a potential security risk).
   // It isn't correct to keep it as "%2F", so this just fails. This is fine,
   // because '/' is not a valid filename character on either POSIX or Windows.
+#if defined(OS_WEBOS)
+  // For WebOS the local paths what have '../../' are encoded to '..%2f..%2f..',
+  // thus we need to exclude the '/' symbols from illegal set.
+  // For the browser the local files do not matter. So, this part can be applied
+  // to all applications, web applications and browser.
+  std::set<unsigned char> illegal_encoded_bytes;
+#else
   std::set<unsigned char> illegal_encoded_bytes{'/'};
+#endif
 
 #if BUILDFLAG(IS_WIN)
   // "%5C" ('\\') on Windows results in failure, for the same reason as '/'

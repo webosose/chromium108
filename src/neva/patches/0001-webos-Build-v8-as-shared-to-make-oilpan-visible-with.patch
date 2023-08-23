@@ -1,0 +1,47 @@
+From 31eca1aede4a69695d26ede779a911298349ee98 Mon Sep 17 00:00:00 2001
+From: Eugeny Aristov <eugeny.aristov@lge.com>
+Date: Mon, 7 Feb 2022 14:43:17 +0300
+Subject: [PATCH] [webos] Build v8 as shared to make oilpan visible within
+ libcbe
+
+:Release Notes:
+Build v8 in shared mode to fix broken libcbe.so after migration
+of Oilpan c++ garbage collector from blink to v8.
+
+:Detailed Notes:
+Upstream CL https://crrev.com/c/3162166 completely migrates Oilpan
+from blink to v8 making it the only available option. It's not
+compatible with webOS since v8 symbols aren't exported and
+hence aren't visible to blink using v8 Oilpan in
+case of building non-monolithic binaries (libcbe.so case).
+Hence build v8 in shared mode to fix the issue.
+
+:Testing Performed:
+0. Build and deploy on webOS
+1. Run wam_demo and launch any app
+Expected: an app is launched and works as expected, GUI is responsive
+
+:QA Notes:
+
+:Issues Addressed:
+[NEVA-6764] Upgrade neva-master-rolling up to 4656 BUILD
+---
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index 46f21328dcb..d8351bd0d6a 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -574,7 +574,7 @@ config("internal_config") {
+     ":cppgc_header_features",
+   ]
+ 
+-  if (is_component_build) {
++  if (is_component_build || use_cbe) {
+     defines += [ "BUILDING_V8_SHARED" ]
+   }
+ 
+-- 
+2.17.1
+

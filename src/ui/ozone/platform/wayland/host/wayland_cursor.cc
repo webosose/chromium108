@@ -17,6 +17,14 @@
 #include "ui/ozone/platform/wayland/host/wayland_pointer.h"
 #include "ui/ozone/platform/wayland/host/wayland_serial_tracker.h"
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#include "ui/views/widget/desktop_aura/neva/ui_constants.h"
+#if defined(USE_NEVA_APPRUNTIME)
+#include "ui/gfx/neva/file_utils.h"
+#endif
+///@}
+
 namespace ui {
 
 WaylandCursor::WaylandCursor(WaylandPointer* pointer,
@@ -40,8 +48,14 @@ void WaylandCursor::UpdateBitmap(const std::vector<SkBitmap>& cursor_image,
   if (!pointer_)
     return;
 
-  if (!cursor_image.size())
+  if (!cursor_image.size()) {
+#if defined(OS_WEBOS)
+    if (hotspot_in_dips == lsm_cursor_hide_hotspot ||
+        hotspot_in_dips == lsm_cursor_restore_hotspot)
+      return SetLSMCursorAndCommit(hotspot_in_dips);
+#endif
     return HideCursor();
+  }
 
   const SkBitmap& image = cursor_image[0];
   if (image.dimensions().isEmpty())
@@ -162,5 +176,23 @@ void WaylandCursor::AttachAndCommit(wl_buffer* buffer,
 
   connection_->Flush();
 }
+
+#if defined(OS_WEBOS)
+void WaylandCursor::SetLSMCursorAndCommit(const gfx::Point& hotspot_in_dips) {
+  auto pointer_enter_serial =
+      connection_->serial_tracker().GetSerial(wl::SerialType::kMouseEnter);
+  if (!pointer_enter_serial) {
+    LOG(ERROR) << __func__ << " No mouse enter serial found.";
+    return;
+  }
+
+  wl_pointer_set_cursor(pointer_->wl_object(), pointer_enter_serial->value,
+                        pointer_surface_.get(), hotspot_in_dips.x(),
+                        hotspot_in_dips.y());
+  wl_surface_commit(pointer_surface_.get());
+
+  connection_->Flush();
+}
+#endif
 
 }  // namespace ui

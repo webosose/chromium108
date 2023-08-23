@@ -382,6 +382,11 @@ component("events") {
       "//third_party/fuchsia-sdk/sdk/fidl/fuchsia.ui.pointer",
     ]
   }
+
+  #@name USE_NEVA_APPRUNTIME
+  #@{
+  deps += [ "//ui/events/keycodes/neva" ]
+  #@}
 }
 
 component("keyboard_hook") {

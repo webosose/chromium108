@@ -53,6 +53,10 @@
 #include "third_party/blink/renderer/platform/wtf/cross_thread_copier_media.h"
 #include "third_party/blink/renderer/platform/wtf/cross_thread_functional.h"
 
+#if defined(USE_WEBOS_AUDIO)
+#include "media/audio/audio_device_description.h"
+#endif
+
 namespace WTF {
 
 template <>
@@ -86,6 +90,12 @@ const char* LoadTypeToString(WebMediaPlayer::LoadType type) {
       return "MediaSource";
     case WebMediaPlayer::kLoadTypeMediaStream:
       return "MediaStream";
+#if defined(USE_NEVA_MEDIA)
+    case blink::WebMediaPlayer::kLoadTypeBlobURL:
+      return "BlobURL";
+    case blink::WebMediaPlayer::kLoadTypeDataURL:
+      return "DataURL";
+#endif
   }
 }
 
@@ -182,6 +192,12 @@ class WebMediaPlayerMS::FrameDeliverer {
 
   void OnVideoFrame(scoped_refptr<media::VideoFrame> frame) {
     DCHECK_CALLED_ON_VALID_THREAD(io_thread_checker_);
+
+#if defined(USE_NEVA_WEBRTC)
+    if (render_frame_suspended_ ||
+        (player_ && player_->HandleVideoFrame(frame)))
+      return;
+#endif
 
 // On Android, stop passing frames.
 #if BUILDFLAG(IS_ANDROID)
@@ -908,6 +924,12 @@ bool WebMediaPlayerMS::SetSinkId(
   }
 
   auto sink_id_utf8 = sink_id.Utf8();
+#if defined(USE_WEBOS_AUDIO)
+  if (!initial_audio_output_device_id_.IsEmpty() &&
+      sink_id_utf8 == media::AudioDeviceDescription::kDefaultDeviceId) {
+    return true;
+  }
+#endif
   audio_renderer_->SwitchOutputDevice(sink_id_utf8, std::move(callback));
   return true;
 }
@@ -1175,6 +1197,19 @@ void WebMediaPlayerMS::OnIdleTimeout() {}
 void WebMediaPlayerMS::SetVolumeMultiplier(double multiplier) {
   // TODO(perkj, magjed): See TODO in OnPlay().
 }
+
+#if defined(USE_NEVA_WEBRTC)
+void WebMediaPlayerMS::EnqueueHoleFrame(
+    scoped_refptr<media::VideoFrame>& hole_frame) {
+  if (frame_deliverer_) {
+    PostCrossThreadTask(
+        *io_task_runner_, FROM_HERE,
+        CrossThreadBindOnce(&FrameDeliverer::EnqueueFrame,
+                            CrossThreadUnretained(frame_deliverer_.get()),
+                            hole_frame->unique_id(), hole_frame));
+  }
+}
+#endif
 
 void WebMediaPlayerMS::ActivateSurfaceLayerForVideo(
     media::VideoTransformation video_transform) {

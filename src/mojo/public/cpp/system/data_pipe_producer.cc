@@ -146,6 +146,17 @@ class DataPipeProducer::SequenceState
       }
 
       bytes_transferred_ += result.bytes_read;
+
+// TODO(neva): Partial revert of https://crrev.com/c/3900892 to fix
+// miscommunication between chromedriver and webruntime
+#if defined(USE_NEVA_APPRUNTIME)
+      if (result.bytes_read < read_buffer.size()) {
+        // DataSource::Read makes a best effort to read all requested bytes. We
+        // reasonably assume if it fails to read what we ask for, we've hit EOF.
+        Finish(MOJO_RESULT_OK);
+        return;
+      }
+#endif
     }
   }
 

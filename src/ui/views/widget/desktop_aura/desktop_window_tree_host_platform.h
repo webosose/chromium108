@@ -139,9 +139,30 @@ class VIEWS_EXPORT DesktopWindowTreeHostPlatform
   void HideImpl() override;
   gfx::Rect CalculateRootWindowBounds() const override;
   gfx::Rect GetBoundsInDIP() const override;
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  void SetFirstActivateTimeout(base::TimeDelta timeout) override;
+  void SetLocationHint(gfx::LocationHint value) override;
+  ///@}
 
   // PlatformWindowDelegate:
   void OnClosed() override;
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  void OnKeyboardEnter() override;
+  void OnKeyboardLeave() override;
+  void OnWindowHostClose() override;
+  void OnWindowHostExposed() override;
+  void OnWindowStateAboutToChange(ui::PlatformWindowState state) override;
+  void OnCursorVisibilityChanged(bool visible) override;
+  void OnInputPanelVisibilityChanged(bool visible) override;
+  void OnInputPanelRectChanged(std::int32_t x,
+                               std::int32_t y,
+                               std::uint32_t width,
+                               std::uint32_t height) override;
+  void BeginPrepareStackForWebApp() override;
+  void FinishPrepareStackForWebApp() override;
+  ///@}
   void OnWindowStateChanged(ui::PlatformWindowState old_state,
                             ui::PlatformWindowState new_state) override;
   void OnCloseRequest() override;

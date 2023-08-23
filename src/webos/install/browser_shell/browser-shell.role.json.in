@@ -1,0 +1,27 @@
+{
+    "exeName":"@@EXENAME@@",
+    "trustLevel":"oem",
+    "type": "privileged",
+    "allowedNames": [
+      "com.webos.app.enactbrowser*",
+      "com.webos.app.test.browsershell*",
+      "com.webos.settingsservice.client*"
+    ],
+    "permissions": [
+        {
+            "service":"com.webos.app.enactbrowser*",
+            "inbound":["*"],
+            "outbound":["*"]
+        },
+        {
+            "service": "com.webos.app.test.browsershell*",
+            "inbound": ["*"],
+            "outbound": ["*"]
+        },
+        {
+            "service":"com.webos.settingsservice.client*",
+            "inbound":["com.webos.settingsservice"],
+            "outbound":["com.webos.settingsservice"]
+        }
+    ]
+}

@@ -194,6 +194,10 @@ bool DevToolsAgentHost::IsDebuggerAttached(WebContents* web_contents) {
 void RenderFrameDevToolsAgentHost::AddAllAgentHosts(
     DevToolsAgentHost::List* result) {
   for (WebContentsImpl* wc : WebContentsImpl::GetAllWebContents()) {
+#if defined(USE_NEVA_APPRUNTIME)
+    if (!wc->IsInspectablePage())
+      continue;
+#endif
     // Inner web contents such as portals or guestviews are already handled by
     // ForEachRenderFrameHost.
     if (wc->GetOutermostWebContents() != wc)

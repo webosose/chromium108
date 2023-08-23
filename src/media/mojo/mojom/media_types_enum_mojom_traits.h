@@ -293,6 +293,10 @@ struct EnumTraits<media::mojom::RendererType, ::media::RendererType> {
         return media::mojom::RendererType::kCastStreaming;
       case ::media::RendererType::kContentEmbedderDefined:
         return media::mojom::RendererType::kContentEmbedderDefined;
+#if defined(USE_NEVA_MEDIA)
+      case ::media::RendererType::kNevaMediaPlayer:
+        return media::mojom::RendererType::kNevaMediaPlayer;
+#endif
     }
 
     NOTREACHED();
@@ -334,6 +338,11 @@ struct EnumTraits<media::mojom::RendererType, ::media::RendererType> {
       case media::mojom::RendererType::kContentEmbedderDefined:
         *output = ::media::RendererType::kContentEmbedderDefined;
         return true;
+#if defined(USE_NEVA_MEDIA)
+      case media::mojom::RendererType::kNevaMediaPlayer:
+        *output = ::media::RendererType::kNevaMediaPlayer;
+        return true;
+#endif
     }
 
     NOTREACHED();

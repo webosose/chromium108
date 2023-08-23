@@ -4024,6 +4024,8 @@ NavigationControllerImpl::CreateNavigationRequestFromEntry(
     return nullptr;
   }
 
+#if !defined(OS_WEBOS)
+  // This is workaround for some webOS apps (e.g., Enyo-based apps).
   if (!DoesURLMatchOriginForNavigation(
           dest_url, origin_to_commit,
           frame_entry->subresource_web_bundle_navigation_info(), entry,
@@ -4033,6 +4035,7 @@ NavigationControllerImpl::CreateNavigationRequestFromEntry(
                   << " origin:" << origin_to_commit.value();
     return nullptr;
   }
+#endif  // !defined(OS_WEBOS)
 
   // This will be used to set the Navigation Timing API navigationStart
   // parameter for browser navigations in new tabs (intents, tabs opened through

@@ -479,7 +479,11 @@ AtomicString SecurityOrigin::ToAtomicString() const {
   if (SerializesAsNull())
     return AtomicString("null");
 
+#if defined(USE_NEVA_APPRUNTIME)
+  if (protocol_ == "file" && host_.empty())
+#else
   if (protocol_ == "file")
+#endif
     return AtomicString("file://");
 
   StringBuilder result;
@@ -488,7 +492,11 @@ AtomicString SecurityOrigin::ToAtomicString() const {
 }
 
 String SecurityOrigin::ToRawString() const {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (protocol_ == "file" && host_.empty())
+#else
   if (protocol_ == "file")
+#endif
     return "file://";
 
   StringBuilder result;

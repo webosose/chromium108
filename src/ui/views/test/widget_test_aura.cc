@@ -15,7 +15,8 @@
 #include "ui/views/widget/widget.h"
 #include "ui/wm/core/shadow_controller.h"
 
-#if BUILDFLAG(ENABLE_DESKTOP_AURA)
+#if BUILDFLAG(ENABLE_DESKTOP_AURA) && \
+    !defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_platform.h"
 #endif
 
@@ -75,7 +76,8 @@ std::vector<aura::Window*> GetAllTopLevelWindows() {
     EnumThreadWindows(GetCurrentThreadId(), FindAllWindowsCallback,
                       reinterpret_cast<LPARAM>(&data));
   }
-#elif BUILDFLAG(ENABLE_DESKTOP_AURA)
+#elif BUILDFLAG(ENABLE_DESKTOP_AURA) && \
+      !defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
   roots = DesktopWindowTreeHostPlatform::GetAllOpenWindows();
 #endif
   aura::test::AuraTestHelper* aura_test_helper =

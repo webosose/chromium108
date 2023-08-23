@@ -18,6 +18,7 @@ import("//device/vr/buildflags/buildflags.gni")
 import("//gpu/vulkan/features.gni")
 import("//media/media_options.gni")
 import("//net/features.gni")
+import("//neva/neva.gni")
 import("//ppapi/buildflags/buildflags.gni")
 import("//printing/buildflags/buildflags.gni")
 import("//third_party/blink/public/public_features.gni")
@@ -2280,6 +2281,37 @@ source_set("browser") {
     "worker_host/worker_script_loader_factory.h",
   ]
 
+  if (use_neva_appruntime) {
+    deps += [
+      "//gpu/config/neva",
+      "//neva/app_drm",
+      "//neva/browser_service:browser_service",
+      "//neva/pal_service:pal_service"
+    ]
+
+    if (enable_browser_shell) {
+      deps += [ "//neva/browser_shell/service/public:shell_service_binding" ]
+    }
+  }
+
+  if (use_neva_media) {
+    import("//content/browser/media/neva/build.gni")
+    sources += rebase_path(neva.sources, ".")
+    deps += neva.deps
+
+    # runtime dependency from content/public/app/content_renderer_manifest.cc
+    # by .RequireCapability("neva_media", "neva:media_player")
+    deps += [ "//neva/neva_media_service" ]
+  }
+
+  if (use_pulseaudio) {
+    defines += [ "USE_PULSEAUDIO" ]
+  }
+
+  if (use_webos_audio) {
+    defines += [ "USE_WEBOS_AUDIO=1" ]
+  }
+
   if (is_mac) {
     sources += [
       "../app_shim_remote_cocoa/web_drag_source_mac.h",
@@ -3202,6 +3234,14 @@ source_set("browser") {
       "renderer_host/delegated_frame_host.cc",
       "renderer_host/delegated_frame_host.h",
     ]
+    if (use_neva_appruntime) {
+      sources += [
+        "renderer_host/delegated_frame_host_client_neva.cc",
+        "renderer_host/delegated_frame_host_client_neva.h",
+        "renderer_host/delegated_frame_host_neva.cc",
+        "renderer_host/delegated_frame_host_neva.h",
+      ]
+    }
     deps += [ "//ui/compositor" ]
     if (is_mac) {
       sources += [
@@ -3209,6 +3249,14 @@ source_set("browser") {
         "renderer_host/browser_compositor_view_mac.mm",
       ]
     }
+  }
+
+  if (is_webos && use_gst_media) {
+    sources += [
+      "media/session/webos/media_session_webos.cc",
+      "media/session/webos/media_session_webos.h",
+    ]
+    deps += [ "//base/neva/webos" ]
   }
 
   if ((is_linux || is_chromeos) && use_dbus) {
@@ -3289,6 +3337,13 @@ source_set("browser") {
       "accessibility/browser_accessibility_state_impl_lacros.h",
       "screenlock_monitor/screenlock_monitor_device_source_lacros.cc",
     ]
+  }
+
+  if (use_local_storage_tracker) {
+    deps += [
+      "//components/local_storage_tracker/browser",
+    ]
+    defines += [ "USE_LOCAL_STORAGE_TRACKER" ]
   }
 }
 

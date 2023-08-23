@@ -242,7 +242,11 @@ bool ContentSettingsPattern::Builder::Canonicalize(PatternParts* parts) {
   // Canonicalize the scheme part.
   parts->scheme = base::ToLowerASCII(parts->scheme);
 
-  if (parts->scheme == url::kFileScheme && !parts->is_path_wildcard) {
+  if (parts->scheme == url::kFileScheme && !parts->is_path_wildcard
+#if defined(USE_NEVA_APPRUNTIME)
+      && parts->host.empty()
+#endif
+  ) {
     // TODO(crbug.com/1132957): Remove this loop once GURL canonicalization is
     // idempotent (see crbug.com/1128999).
     while (true) {
@@ -300,7 +304,12 @@ bool ContentSettingsPattern::Builder::Validate(const PatternParts& parts) {
 
   // file:// URL patterns have an empty host and port.
   if (parts.scheme == url::kFileScheme) {
-    if (parts.has_domain_wildcard || !parts.host.empty() || !parts.port.empty())
+#if defined(USE_NEVA_APPRUNTIME)
+    // If file scheme has an app-id as a hostname, path would be empty.
+    if (!parts.host.empty() && parts.path.empty())
+      return true;
+#endif
+    if (parts.has_domain_wildcard || !parts.port.empty() || !parts.host.empty())
       return false;
     if (parts.is_path_wildcard)
       return parts.path.empty();
@@ -539,6 +548,16 @@ bool ContentSettingsPattern::Matches(
       parts_.scheme != local_url->scheme_piece()) {
     return false;
   }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Match the host part for File shceme.
+  // This identifies non-local file URI like file://[host]. This format is used
+  // for sending application id for web-push and notification in specific case.
+  if (local_url->scheme_piece() == url::kFileScheme &&
+      parts_.scheme == local_url->scheme_piece())
+    return !parts_.has_domain_wildcard &&
+           parts_.host == local_url->host_piece();
+#endif
 
   // File URLs have no host. Matches if the pattern has the path wildcard set,
   // or if the path in the URL is identical to the one in the pattern.

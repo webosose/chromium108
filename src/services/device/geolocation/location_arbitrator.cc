@@ -13,6 +13,7 @@
 #include "base/memory/ptr_util.h"
 #include "build/build_config.h"
 #include "services/device/geolocation/network_location_provider.h"
+#include "services/device/geolocation/webos/geolocation_provider_neva.h"
 #include "services/device/geolocation/wifi_polling_policy.h"
 #include "services/device/public/cpp/geolocation/geoposition.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
@@ -117,8 +118,15 @@ void LocationArbitrator::RegisterProviders() {
     return;
   }
 
-  if (url_loader_factory_)
-    RegisterProvider(NewNetworkLocationProvider(url_loader_factory_, api_key_));
+  if (url_loader_factory_) {
+    RegisterProvider(
+#if defined(USE_GEOPLUGIN)
+        std::make_unique<GeolocationProviderNeva>(url_loader_factory_)
+#else
+        NewNetworkLocationProvider(url_loader_factory_, api_key_)
+#endif
+    );
+  }
 }
 
 void LocationArbitrator::OnLocationUpdate(
@@ -131,6 +139,21 @@ void LocationArbitrator::OnLocationUpdate(
     return;
   position_provider_ = provider;
   position_ = new_position;
+#if defined(USE_GEOPLUGIN)
+  const auto iter = std::find_if(providers_.begin(), providers_.end(),
+                                 [provider](const auto& provider_it) {
+                                   return provider_it.get() == provider;
+                                 });
+
+  if (iter != providers_.end())
+    providers_.erase(iter);
+
+  // Check if response from any provider is pending from the providers_ vector,
+  // then make the update callback, instead of making the callback only with the
+  // first provider response received.
+  if (!providers_.empty())
+    return;
+#endif
   arbitrator_update_callback_.Run(this, position_);
 }
 

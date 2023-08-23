@@ -29,6 +29,10 @@
 #include "net/third_party/nss/ssl/cmpcert.h"
 #include "third_party/boringssl/src/include/openssl/pool.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "net/ssl/neva/platform_certificates.h"
+#endif
+
 namespace net {
 
 namespace {
@@ -167,6 +171,10 @@ void ClientCertStoreNSS::GetPlatformCertsOnWorkerThread(
     const CertFilter& cert_filter,
     ClientCertIdentityList* identities) {
   crypto::EnsureNSSInit();
+
+#if defined(USE_NEVA_APPRUNTIME)
+  EnsurePlatformCerts();
+#endif
 
   CERTCertList* found_certs = CERT_FindUserCertsByUsage(
       CERT_GetDefaultCertDB(), certUsageSSLClient, PR_FALSE, PR_FALSE,

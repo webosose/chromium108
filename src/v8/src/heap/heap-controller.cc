@@ -19,7 +19,7 @@ double MemoryController<Trait>::GrowingFactor(Heap* heap, size_t max_heap_size,
       DynamicGrowingFactor(gc_speed, mutator_speed, max_factor);
   if (v8_flags.trace_gc_verbose) {
     Isolate::FromHeap(heap)->PrintWithTimestamp(
-        "[%s] factor %.1f based on mu=%.3f, speed_ratio=%.f "
+        "[%s] factor %.3f based on mu=%.3f, speed_ratio=%.f "
         "(gc=%.f, mutator=%.f)\n",
         Trait::kName, factor, Trait::kTargetMutatorUtilization,
         gc_speed / mutator_speed, gc_speed, mutator_speed);
@@ -115,10 +115,23 @@ double MemoryController<Trait>::DynamicGrowingFactor(double gc_speed,
 
 template <typename Trait>
 size_t MemoryController<Trait>::MinimumAllocationLimitGrowingStep(
+#if defined(USE_NEVA_APPRUNTIME)
+    Heap* heap, Heap::HeapGrowingMode growing_mode) {
+#else
     Heap::HeapGrowingMode growing_mode) {
+#endif
   const size_t kRegularAllocationLimitGrowingStep = 8;
   const size_t kLowMemoryAllocationLimitGrowingStep = 2;
   size_t limit = (Page::kPageSize > MB ? Page::kPageSize : MB);
+#if defined(USE_NEVA_APPRUNTIME)
+  if (FLAG_configure_heap_details)  {
+    if (FLAG_trace_configure_heap_details) {
+      Isolate::FromHeap(heap)->PrintWithTimestamp("MinimumAllocationLimitGrowingStep: %6zu \n",
+                               limit * heap->min_allocation_limit_growing_step_size());
+    }
+    return limit * heap->min_allocation_limit_growing_step_size();
+  }
+#endif
   return limit * (growing_mode == Heap::HeapGrowingMode::kConservative
                       ? kLowMemoryAllocationLimitGrowingStep
                       : kRegularAllocationLimitGrowingStep);
@@ -150,7 +163,11 @@ size_t MemoryController<Trait>::CalculateAllocationLimit(
   const uint64_t limit =
       std::max(static_cast<uint64_t>(current_size * factor),
                static_cast<uint64_t>(current_size) +
+#if defined(USE_NEVA_APPRUNTIME)
+                   MinimumAllocationLimitGrowingStep(heap, growing_mode)) +
+#else
                    MinimumAllocationLimitGrowingStep(growing_mode)) +
+#endif
       new_space_capacity;
   const uint64_t limit_above_min_size = std::max<uint64_t>(limit, min_size);
   const uint64_t halfway_to_the_max =
@@ -159,7 +176,7 @@ size_t MemoryController<Trait>::CalculateAllocationLimit(
       static_cast<size_t>(std::min(limit_above_min_size, halfway_to_the_max));
   if (v8_flags.trace_gc_verbose) {
     Isolate::FromHeap(heap)->PrintWithTimestamp(
-        "[%s] Limit: old size: %zu KB, new limit: %zu KB (%.1f)\n",
+        "[%s] Limit: old size: %zu KB, new limit: %zu KB (%.3f)\n",
         Trait::kName, current_size / KB, result / KB, factor);
   }
   return result;

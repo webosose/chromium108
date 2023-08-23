@@ -1,0 +1,48 @@
+From d87292e8066f4d0940a57f43a5e7d9d685c19644 Mon Sep 17 00:00:00 2001
+From: Sergey Cherevko <sergey.cherevko@lgepartner.com>
+Date: Wed, 23 Nov 2022 14:36:23 +0300
+Subject: [PATCH] [PATCH] [build] Workaround to build webOS/OSE with RP build
+ #2250
+
+to prevent the following compile error:
+
+|   232 |   const uint16x8x4_t vmask = vld1q_u16_x4(kSlidingWindowMask);
+|       |                              ^~~~~~~~~~~~
+|       |                              vld1q_u16_x2
+| ../../../../../../../../../../repo.lge.com/neva/chromium/src/third_party/libaom/source/libaom/av1/encoder/arm/neon/temporal_filter_neon.c:232:30: error: invalid initializer
+---
+ av1/encoder/arm/neon/temporal_filter_neon.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/av1/encoder/arm/neon/temporal_filter_neon.c b/av1/encoder/arm/neon/temporal_filter_neon.c
+index 65fb332ba..f4b31c70d 100644
+--- a/av1/encoder/arm/neon/temporal_filter_neon.c
++++ b/av1/encoder/arm/neon/temporal_filter_neon.c
+@@ -229,6 +229,16 @@ static void apply_temporal_filter(
+          ((block_height == 16) || (block_height == 32)));
+ 
+   uint32_t acc_5x5_neon[BH][BW];
++
++// NEVA: Exclude usage of vld1q_u16_x4 when it is not available.
++// Support for these xN intrinsics is lacking in older compilers.
++#if (defined(_MSC_VER) && !defined(__clang__) && !defined(_M_ARM64)) || \
++     (defined(__GNUC__) &&                                               \
++      ((!defined(__clang__) && (__GNUC__ < 8 || defined(__arm__))) ||    \
++       (defined(__clang__) && defined(__arm__) &&                        \
++        (__clang_major__ <= 6 ||                                         \
++         (defined(__ANDROID__) && __clang_major__ <= 7)))))
++
+   const uint16x8x4_t vmask = vld1q_u16_x4(kSlidingWindowMask);
+ 
+   // Traverse 4 columns at a time - first and last two columns need padding.
+@@ -270,6 +280,7 @@ static void apply_temporal_filter(
+       }
+     }
+   }
++#endif
+ 
+   // Perform filtering.
+   for (unsigned int i = 0, k = 0; i < block_height; i++) {
+-- 
+2.25.1
+

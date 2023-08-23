@@ -1,0 +1,81 @@
+From 55b4c31226f3fcb04e4e4cbc91ce50f22807f76d Mon Sep 17 00:00:00 2001
+From: "soocheol.lee" <soocheol.lee@lge.com>
+Date: Mon, 14 Sep 2020 15:36:03 +0900
+Subject: [PATCH] [op][ds][version] Add webOS submission number to v8 version
+
+:Release Notes:
+Add webOS submission number to v8 version number
+
+:Detailed Notes:
+In order to create a new hash value using v8 version when updating V8
+for webOS, this patch adds webOS submission number to patch level number
+of v8. Because the version information has effects on snapshot, code
+cache and wasm.
+
+Some applications sometimes occur crashes while doing launch due to
+invalid access of a service worker, and it was related with code cache
+of v8.
+Our thought that there was no way to detect its update status while
+consuming cache data or deserializing snapshot. Because the v8 version
+information is used for a metadata of them. By update the version number
+v8 can decide if using cached data or not.
+
+:Testing Performed:
+1. Create a sample startup_blob.bin file by the command below
+ (Use mksnapshot executable under build directory)
+ mksnapshot --startup-blob startup_blob.bin
+2. Check the version by the command below
+ xxd -s 12 -g 1 -l 64 startup_blob.bin
+0000000c: 39 2e 31 2e 32 36 39 2e 33 36 30 30 31 00 00 00 9.1.269.36001...
+0000001c: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+0000002c: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+0000003c: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+Version string should contain webOS submission number like
+"9.1.269.36001"
+         ~~
+         | ~~~
+         |  |
+         | weOS submission number: 001
+         patch number: 36
+
+:QA Notes:
+Depends on: http://gpro.lge.com/c/webosose/chromium94/+/324904
+Test-cases: QWT-4182
+
+:Issues Addressed:
+[WRN-15738] Port [op][ds][version] Add webOS submission number to v8 version
+[QEVENTTWON-4104] WAM is crashed when launching BBC IPlayer
+
+Change-Id: Ie05238007a853cae961f7fbef569e042bc91691e
+Originally-Reviewed-on: http://gpro.lge.com/c/webosose/chromium-v8/+/315736
+Reviewed-on: http://gpro.lge.com/c/webosose/chromium-v8/+/325586
+Reviewed-by: Commit Msg Checker <commit_msg@lge.com>
+Reviewed-by: Ban Word Checker <ban_word@lge.com>
+Reviewed-by: Wanchang Ryu <wanchang.ryu@lge.com>
+Reviewed-by: Jose Dapena Paz <j.dapena@lgepartner.com>
+Reviewed-by: Donghyun Kim <donghyun11.kim@lge.com>
+Tested-by: Wanchang Ryu <wanchang.ryu@lge.com>
+---
+ include/v8-version.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/v8-version.h b/include/v8-version.h
+index b5b7a58e9fe..60c04fdfbee 100644
+--- a/include/v8-version.h
++++ b/include/v8-version.h
+@@ -11,7 +11,12 @@
+ #define V8_MAJOR_VERSION 10
+ #define V8_MINOR_VERSION 8
+ #define V8_BUILD_NUMBER 168
++#if defined(OS_WEBOS) && defined(WEBOS_SUBMISSION_NUMBER)
++#define V8_PATCH_LEVEL (25*1000 + WEBOS_SUBMISSION_NUMBER)
++#else
+ #define V8_PATCH_LEVEL 25
++#endif
++
+ 
+ // Use 1 for candidates and 0 otherwise.
+ // (Boolean macro values are not supported by all preprocessors.)
+-- 
+2.40.0
+

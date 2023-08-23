@@ -1,0 +1,14 @@
+{
+    "id": "browser_shell",
+    "version": "1.0.0",
+    "roleFilesPrv": [
+        "/usr/share/ls2/roles/prv/browser-shell.json"
+    ],
+    "roleFilesPub": [
+        "/usr/share/ls2/roles/pub/browser-shell.json"
+    ],
+    "serviceFiles": [
+        "/usr/share/dbus-1/services/browser-shell.service",
+        "/usr/share/dbus-1/system-services/browser-shell.service"
+    ]
+}

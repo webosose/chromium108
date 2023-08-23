@@ -390,6 +390,21 @@ class AppWindow : public content::WebContentsDelegate,
     native_app_window_ = std::move(native_app_window);
   }
 
+#if defined(OS_WEBOS)
+  void SetApplicationId(const std::string& application_id) {
+    application_id_ = application_id;
+  }
+  std::string GetApplicationId() const { return application_id_; }
+
+  // used by neva project
+  std::string GetDisplayId() const { return display_id_; }
+  void SetDisplayId(const std::string& id) { display_id_ = id; }
+
+  std::string GetMediaCodecCapability() const {
+    return media_codec_capability_;
+  }
+#endif
+
   bool DidFinishFirstNavigation() { return did_finish_first_navigation_; }
 
  protected:
@@ -455,6 +470,10 @@ class AppWindow : public content::WebContentsDelegate,
   bool OnMessageReceived(const IPC::Message& message,
                          content::RenderFrameHost* render_frame_host) override;
   void RenderFrameCreated(content::RenderFrameHost* frame_host) override;
+#if defined(OS_WEBOS)
+  void DidFirstVisuallyNonEmptyPaint() override;
+  void ReadMediaCapabilityFromPath(const base::FilePath& path);
+#endif
 
   // ExtensionFunctionDispatcher::Delegate implementation.
   WindowController* GetExtensionWindowController() const override;
@@ -593,6 +612,17 @@ class AppWindow : public content::WebContentsDelegate,
   // Whether the first navigation was completed in both browser and renderer
   // processes.
   bool did_finish_first_navigation_ = false;
+
+#if defined(OS_WEBOS)
+  // Application Id that is sent to backend
+  std::string application_id_;
+
+  // display affinity sent to backend
+  std::string display_id_;
+
+  // Platform media codec capability sent to backend.
+  std::string media_codec_capability_;
+#endif
 
   base::WeakPtrFactory<AppWindow> image_loader_ptr_factory_{this};
 };

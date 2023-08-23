@@ -384,6 +384,30 @@ void GpuHostImpl::InitOzone() {
   // The Ozone/Wayland requires mojo communication to be established to be
   // functional with a separate gpu process. Thus, using the PlatformProperties,
   // check if there is such a requirement.
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  // TODO(sergey.kipet@lge.com): substitution of the GpuPlatformSupport
+  // wrappings (by the OZONE_PLATFORM_WAYLAND_EXTERNAL macro) by the
+  // USE_NEVA_APPRUNTIME comment blocks is better to implement in scope of a
+  // dedicated task
+  if (ui::OzonePlatform::IsWaylandExternal()) {
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+    auto send_callback = base::BindRepeating(
+        [](base::WeakPtr<GpuHostImpl> host, IPC::Message* message) {
+          if (host)
+            host->delegate_->SendGpuProcessMessage(message);
+          else
+            delete message;
+        },
+        weak_ptr_factory_.GetWeakPtr());
+    ui::OzonePlatform::GetInstance()
+        ->GetGpuPlatformSupportHost()
+        ->OnGpuProcessLaunched(params_.restart_id, send_callback);
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+    return;
+  }
+  ///@} USE_NEVA_APPRUNTIME
+
   auto interface_binder = base::BindRepeating(&GpuHostImpl::BindInterface,
                                               weak_ptr_factory_.GetWeakPtr());
   auto terminate_callback = base::BindOnce(&GpuHostImpl::TerminateGpuProcess,

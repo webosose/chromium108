@@ -445,8 +445,9 @@ void Page::SetValidationMessageClientForTesting(
 }
 
 void Page::SetPaused(bool paused) {
-  if (paused == paused_)
+  if (paused == paused_ || is_destroying_) {
     return;
+  }
 
   paused_ = paused;
   for (Frame* frame = MainFrame(); frame;
@@ -973,6 +974,7 @@ void Page::WillStopCompositing() {
 }
 
 void Page::WillBeDestroyed() {
+  is_destroying_ = true;
   Frame* main_frame = main_frame_;
 
   // TODO(https://crbug.com/838348): Sadly, there are situations where Blink may

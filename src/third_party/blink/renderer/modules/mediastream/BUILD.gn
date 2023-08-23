@@ -125,6 +125,10 @@ blink_modules_sources("mediastream") {
       [ "//third_party/blink/renderer/modules/imagecapture:imagecapture" ]
 
   public_deps = [ "//media/capture:capture_lib" ]
+
+  if (use_webos_audio) {
+    configs += [ "//media:media_config" ]
+  }
 }
 
 source_set("test_support") {

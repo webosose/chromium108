@@ -10,4 +10,4 @@ checkout_openxr = false
 checkout_rts_model = false
 cros_boards = ""
 cros_boards_with_qemu_images = ""
-generate_location_tags = true
+generate_location_tags = false

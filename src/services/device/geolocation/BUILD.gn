@@ -97,6 +97,17 @@ source_set("geolocation") {
     deps += [ "//services/device/public/cpp:device_features" ]
   }
 
+  if (use_geoplugin) {
+    defines = [ "USE_GEOPLUGIN=1" ]
+
+    sources += [
+      "webos/geolocation_provider_neva.cc",
+      "webos/geolocation_provider_neva.h",
+      "webos/geolocation_request_geoplugin.cc",
+      "webos/geolocation_request_geoplugin.h",
+    ]
+  }
+
   # Platform-specific WifiDataProvider implementations.
   if (is_chromeos_ash) {
     sources += [

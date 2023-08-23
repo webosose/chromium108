@@ -14,7 +14,6 @@
 
 namespace {
 
-// These characters mess with either the stdout parsing or the dashboard itself.
 static const base::NoDestructor<std::vector<std::string>> kInvalidCharacters{
     {"/", ":", "="}};
 

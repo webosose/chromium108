@@ -190,6 +190,10 @@
 #include "ui/gfx/font_render_params.h"
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "cc/base/switches_neva.h"
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 #if BUILDFLAG(IS_WIN)
 #include "third_party/blink/public/web/win/web_font_rendering.h"
 #endif
@@ -378,6 +382,13 @@ void ApplyCommandLineToSettings(WebSettings* settings) {
           WebString(pos == kNotFound ? "" : setting.Substring(pos + 1)));
     }
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  // This is for checking condition whether native scroll is enabled
+  // on blink side. In initial phase of this feature, all related changes
+  // are blocked inside this condition.
+  settings->SetWebOSNativeScrollEnabled(
+      command_line.HasSwitch(cc::switches::kEnableWebOSNativeScroll));
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 ui::mojom::blink::WindowOpenDisposition NavigationPolicyToDisposition(
@@ -1595,6 +1606,8 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
   if (prefs.spatial_navigation_enabled)
     RuntimeEnabledFeatures::SetKeyboardFocusableScrollersEnabled(true);
 
+  WebRuntimeFeatures::EnableCSSNavigation(prefs.css_navigation_enabled);
+
   settings->SetSelectionIncludesAltImageText(true);
 
   RuntimeEnabledFeatures::SetFakeNoAllocDirectCallForTestingEnabled(
@@ -1654,6 +1667,10 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
       prefs.dont_send_key_events_to_javascript);
   settings->SetWebAppScope(WebString::FromASCII(prefs.web_app_scope.spec()));
 
+  settings->SetAccessibilityExploreByMouseEnabled(
+      settings->GetAccessibilityExploreByMouseEnabled() &&
+      prefs.accessibility_explore_by_mouse_enabled);
+
 #if BUILDFLAG(IS_ANDROID)
   settings->SetAllowCustomScrollbarInMainFrame(false);
   settings->SetAccessibilityFontScaleFactor(prefs.font_scale_factor);
@@ -1702,7 +1719,18 @@ void WebView::ApplyWebPreferences(const web_pref::WebPreferences& prefs,
       !prefs.disable_accelerated_small_canvases);
   RuntimeEnabledFeatures::SetWebAuthEnabled(!prefs.disable_webauthn);
 #endif  // BUILDFLAG(IS_ANDROID)
+#if defined(USE_NEVA_APPRUNTIME)
+  settings->SetFirstFramePolicy(prefs.first_frame_policy);
+#endif  // defined(USE_NEVA_APPRUNTIME)
   settings->SetForceDarkModeEnabled(prefs.force_dark_mode_enabled);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  settings->SetKeepAliveWebApp(prefs.keep_alive_webapp);
+#endif
+#if defined(USE_NEVA_MEDIA)
+  settings->SetMaxTimeupdateEventFrequency(
+      prefs.max_timeupdate_event_frequency);
+#endif
 
   settings->SetAccessibilityAlwaysShowFocus(prefs.always_show_focus);
   settings->SetAutoplayPolicy(prefs.autoplay_policy);
@@ -3286,6 +3314,10 @@ void WebViewImpl::UpdateFontRenderingFromRendererPrefs() {
   }
 #endif  // (BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)) &&
         // !BUILDFLAG(IS_ANDROID)
+#if defined(USE_NEVA_APPRUNTIME)
+  WebFontRenderStyle::SetAllowFakeBoldText(
+      renderer_preferences_.allow_fake_bold_text);
+#endif  // defined(USE_NEVA_APPRUNTIME)
 #endif  // BUILDFLAG(IS_WIN)
 #endif  // !BUILDFLAG(IS_MAC)
 }
@@ -3445,6 +3477,14 @@ void WebViewImpl::SetWebPreferences(
 const web_pref::WebPreferences& WebViewImpl::GetWebPreferences() {
   return web_preferences_;
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+void WebViewImpl::SetKeepAliveWebApp(bool keep_alive) {
+  web_preferences_.keep_alive_webapp = keep_alive;
+  if (GetSettings())
+    GetSettings()->SetKeepAliveWebApp(keep_alive);
+}
+#endif
 
 void WebViewImpl::UpdateWebPreferences(
     const blink::web_pref::WebPreferences& preferences) {

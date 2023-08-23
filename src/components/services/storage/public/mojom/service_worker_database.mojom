@@ -46,6 +46,10 @@ struct ServiceWorkerRegistrationData {
   // ServiceWorkerDatabase::WriteRegistration).
   blink.mojom.StorageKey key;
 
+  // webapp needs application id to openWindow under the webapp
+  [EnableIf=use_neva_appruntime]
+  string app_id;
+
   // Versions are first stored once they successfully install and become
   // the waiting version. Then transition to the active version. The stored
   // version may be in the ACTIVATED state or in the INSTALLED state.

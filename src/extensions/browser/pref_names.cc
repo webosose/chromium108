@@ -62,5 +62,9 @@ const char kPrefRegularOnlyPreferences[] = "regular_only_preferences";
 const char kPrefContentSettings[] = "content_settings";
 const char kPrefIncognitoContentSettings[] = "incognito_content_settings";
 
+#if defined(USE_NEVA_APPRUNTIME)
+const char kPrefPdfJsEnableScripting[] = "pdfjs.enableScripting";
+#endif
+
 }  // namespace pref_names
 }  // namespace extensions

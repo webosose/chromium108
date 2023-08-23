@@ -75,6 +75,7 @@
 #include "services/network/public/cpp/ip_address_space_util.h"
 #include "services/network/public/cpp/net_adapters.h"
 #include "services/network/public/cpp/network_switches.h"
+#include "services/network/public/cpp/neva/cors_corb_exception.h"
 #include "services/network/public/cpp/parsed_headers.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/mojom/client_security_state.mojom-forward.h"
@@ -594,6 +595,10 @@ URLLoader::URLLoader(
                             std::make_unique<UnownedPointer>(this));
   url_request_->set_accepted_stream_types(
       request.devtools_accepted_stream_types);
+
+  if (neva::CorsCorbException::ShouldAllowExceptionForProcess(GetProcessId())) {
+    is_nocors_corb_excluded_request_ = true;
+  }
 
   if (request.trusted_params) {
     has_user_activation_ = request.trusted_params->has_user_activation;
@@ -1564,7 +1569,7 @@ void URLLoader::ContinueOnResponseStarted() {
 
   // Figure out if we need to sniff (for MIME type detection or for Cross-Origin
   // Read Blocking / CORB).
-  if (factory_params_.is_corb_enabled) {
+  if (factory_params_.is_corb_enabled && !is_nocors_corb_excluded_request_) {
     corb_analyzer_ = corb::ResponseAnalyzer::Create(per_factory_corb_state_);
     is_more_corb_sniffing_needed_ = true;
     auto decision =

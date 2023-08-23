@@ -108,7 +108,7 @@ WebViewEvents.EVENTS = {
   },
   'loadcommit': {
     evt: CreateEvent('webViewInternal.onLoadCommit'),
-    fields: ['url', 'isTopLevel'],
+    fields: ['url', 'oldUrl', 'isTopLevel'],
     handler: 'handleLoadCommitEvent'
   },
   'loadprogress': {

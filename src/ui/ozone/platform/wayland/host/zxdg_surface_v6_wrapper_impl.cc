@@ -56,7 +56,13 @@ void ZXDGSurfaceV6WrapperImpl::AckConfigure(uint32_t serial) {
 }
 
 bool ZXDGSurfaceV6WrapperImpl::IsConfigured() {
+#if defined(USE_NEVA_APPRUNTIME)
+  // FIXME(neva, M93): Temp workaround to avoid PC
+  // wam_demo crash in --in-process-gpu mode
+  return true;
+#else
   return is_configured_;
+#endif
 }
 
 void ZXDGSurfaceV6WrapperImpl::SetWindowGeometry(const gfx::Rect& bounds) {

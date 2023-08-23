@@ -27,6 +27,10 @@ struct MEDIA_EXPORT AudioDeviceName {
 
   std::string device_name;  // Friendly name of the device.
   std::string unique_id;    // Unique identifier for the device.
+
+#if defined(USE_WEBOS_AUDIO)
+  std::string display_id;  // Display Id (0 or 1) associated with the device
+#endif
 };
 
 typedef std::list<AudioDeviceName> AudioDeviceNames;

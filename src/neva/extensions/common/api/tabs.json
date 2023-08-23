@@ -1,0 +1,167 @@
+// Copyright 2012 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+// (This file was partially copied from //chrome/common/extensions/api.)
+
+[
+  {
+    "namespace": "tabs",
+    "description": "Use the <code>chrome.tabs</code> API to interact with the browser's tab system. You can use this API to create, modify, and rearrange tabs in the browser.",
+    "compiler_options": {
+      "implemented_in": "neva/extensions/browser/api/tabs/tabs_api.h"
+    },
+    "types": [
+      {
+        "id": "TabStatus",
+        "type": "string",
+        "enum": ["unloaded", "loading", "complete"],
+        "description": "The tab's loading status."
+      },
+      {
+        "id": "MutedInfoReason",
+        "type": "string",
+        "description": "An event that caused a muted state change.",
+        "enum": [
+          {"name": "user", "description": "A user input action set the muted state."},
+          {"name": "capture", "description": "Tab capture was started, forcing a muted state change."},
+          {"name": "extension", "description": "An extension, identified by the extensionId field, set the muted state."}
+        ]
+      },
+      {
+        "id": "MutedInfo",
+        "type": "object",
+        "description": "The tab's muted state and the reason for the last state change.",
+        "properties": {
+          "muted": {
+            "type": "boolean",
+            "description": "Whether the tab is muted (prevented from playing sound). The tab may be muted even if it has not played or is not currently playing sound. Equivalent to whether the 'muted' audio indicator is showing."
+          },
+          "reason": {
+            "$ref": "MutedInfoReason",
+            "optional": true,
+            "description": "The reason the tab was muted or unmuted. Not set if the tab's mute state has never been changed."
+          },
+          "extensionId": {
+            "type": "string",
+            "optional": true,
+            "description": "The ID of the extension that changed the muted state. Not set if an extension was not the reason the muted state last changed."
+          }
+        }
+      },
+      {
+        "id": "Tab",
+        "type": "object",
+        "properties": {
+          "id": {"type": "integer", "minimum": -1, "optional": true, "description": "The ID of the tab. Tab IDs are unique within a browser session. Under some circumstances a tab may not be assigned an ID; for example, when querying foreign tabs using the $(ref:sessions) API, in which case a session ID may be present. Tab ID can also be set to <code>chrome.tabs.TAB_ID_NONE</code> for apps and devtools windows."},
+          // TODO(kalman): Investigate how this is ending up as -1 (based on window type? a bug?) and whether it should be optional instead.
+          "index": {"type": "integer", "minimum": -1, "description": "The zero-based index of the tab within its window."},
+          "groupId": {"type": "integer", "minimum": -1, "description": "The ID of the group that the tab belongs to."},
+          "windowId": {"type": "integer", "minimum": 0, "description": "The ID of the window that contains the tab."},
+          "openerTabId": {"type": "integer", "minimum": 0, "optional": true, "description": "The ID of the tab that opened this tab, if any. This property is only present if the opener tab still exists."},
+          "selected": {"type": "boolean", "description": "Whether the tab is selected.", "deprecated": "Please use $(ref:tabs.Tab.highlighted)."},
+          "highlighted": {"type": "boolean", "description": "Whether the tab is highlighted."},
+          "active": {"type": "boolean", "description": "Whether the tab is active in its window. Does not necessarily mean the window is focused."},
+          "pinned": {"type": "boolean", "description": "Whether the tab is pinned."},
+          "audible": {"type": "boolean", "optional": true, "description": "Whether the tab has produced sound over the past couple of seconds (but it might not be heard if also muted). Equivalent to whether the 'speaker audio' indicator is showing."},
+          "discarded": {"type": "boolean", "description": "Whether the tab is discarded. A discarded tab is one whose content has been unloaded from memory, but is still visible in the tab strip. Its content is reloaded the next time it is activated."},
+          "autoDiscardable":  {"type": "boolean", "description": "Whether the tab can be discarded automatically by the browser when resources are low."},
+          "mutedInfo": {"$ref": "MutedInfo", "optional": true, "description": "The tab's muted state and the reason for the last state change."},
+          "url": {"type": "string", "optional": true, "description": "The last committed URL of the main frame of the tab. This property is only present if the extension's manifest includes the <code>\"tabs\"</code> permission and may be an empty string if the tab has not yet committed. See also $(ref:Tab.pendingUrl)."},
+          "pendingUrl": {"type": "string", "optional": true, "description": "The URL the tab is navigating to, before it has committed. This property is only present if the extension's manifest includes the <code>\"tabs\"</code> permission and there is a pending navigation."},
+          "title": {"type": "string", "optional": true, "description": "The title of the tab. This property is only present if the extension's manifest includes the <code>\"tabs\"</code> permission."},
+          "favIconUrl": {"type": "string", "optional": true, "description": "The URL of the tab's favicon. This property is only present if the extension's manifest includes the <code>\"tabs\"</code> permission. It may also be an empty string if the tab is loading."},
+          "status": {
+            "$ref": "TabStatus",
+            "optional": true,
+            "description": "The tab's loading status."
+          },
+          "incognito": {"type": "boolean", "description": "Whether the tab is in an incognito window."},
+          "width": {"type": "integer", "optional": true, "description": "The width of the tab in pixels."},
+          "height": {"type": "integer", "optional": true, "description": "The height of the tab in pixels."},
+          "sessionId": {"type": "string", "optional": true, "description": "The session ID used to uniquely identify a tab obtained from the $(ref:sessions) API."}
+        }
+      },
+      {
+        "id": "WindowType",
+        "type": "string",
+        "enum": ["normal", "popup", "panel", "app", "devtools"],
+        "description": "The type of window."
+      }
+    ],
+    "properties": {
+      "MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND": {
+        "value": 2,
+        "description": "The maximum number of times that $(ref:captureVisibleTab) can be called per second. $(ref:captureVisibleTab) is expensive and should not be called too often."
+      },
+      "TAB_ID_NONE": {
+        "value": -1,
+        "description": "An ID that represents the absence of a browser tab."
+      }
+    },
+    "functions": [
+      {
+        "name": "create",
+        "type": "function",
+        "description": "Creates a new tab.",
+        "parameters": [
+          {
+            "type": "object",
+            "name": "createProperties",
+            "properties": {
+              "windowId": {
+                "type": "integer",
+                "minimum": -2,
+                "optional": true,
+                "description": "The window in which to create the new tab. Defaults to the <a href='windows#current-window'>current window</a>."
+              },
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "optional": true,
+                "description": "The position the tab should take in the window. The provided value is clamped to between zero and the number of tabs in the window."
+              },
+              "url": {
+                "type": "string",
+                "optional": true,
+                "description": "The URL to initially navigate the tab to. Fully-qualified URLs must include a scheme (i.e., 'http://www.google.com', not 'www.google.com'). Relative URLs are relative to the current page within the extension. Defaults to the New Tab Page."
+              },
+              "active": {
+                "type": "boolean",
+                "optional": true,
+                "description": "Whether the tab should become the active tab in the window. Does not affect whether the window is focused (see $(ref:windows.update)). Defaults to <var>true</var>."
+              },
+              "selected": {
+                "deprecated": "Please use <em>active</em>.",
+                "type": "boolean",
+                "optional": true,
+                "description": "Whether the tab should become the selected tab in the window. Defaults to <var>true</var>"
+              },
+              "pinned": {
+                "type": "boolean",
+                "optional": true,
+                "description": "Whether the tab should be pinned. Defaults to <var>false</var>"
+              },
+              "openerTabId": {
+                "type": "integer",
+                "minimum": 0,
+                "optional": true,
+                "description": "The ID of the tab that opened this tab. If specified, the opener tab must be in the same window as the newly created tab."
+              }
+            }
+          }
+        ],
+        "returns_async": {
+          "name": "callback",
+          "optional": true,
+          "parameters": [
+            {
+              "name": "tab",
+              "$ref": "Tab",
+              "description": "The created tab."
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

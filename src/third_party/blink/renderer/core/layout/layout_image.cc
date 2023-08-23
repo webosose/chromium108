@@ -483,6 +483,29 @@ void LayoutImage::UpdateAfterLayout() {
   } else if (auto* video_element = DynamicTo<HTMLVideoElement>(node)) {
     media_element_parser_helpers::CheckUnsizedMediaViolation(
         this, video_element->IsDefaultIntrinsicSize());
+
+#if defined(USE_NEVA_MEDIA)
+    HTMLMediaElement* media_element = DynamicTo<HTMLMediaElement>(node);
+    WebMediaPlayer* web_media_player = media_element->GetWebMediaPlayer();
+    if (web_media_player &&
+        video_element->getReadyState() >= HTMLVideoElement::kHaveMetadata) {
+      gfx::Size size;
+      if (!web_media_player->UsesIntrinsicSize()) {
+        size = video_element->VideoRectInScreen().size();
+        const gfx::Size widget_view_size =
+            media_element->WidgetViewRect().size();
+        if (!size.IsEmpty() && (size.width() >= widget_view_size.width() ||
+                                size.height() >= widget_view_size.height() ||
+                                video_element->IsFullscreen())) {
+          SetIntrinsicSize(LayoutSize(size));
+        } else {
+          size = web_media_player->NaturalSize();
+          if (!size.IsEmpty())
+            SetIntrinsicSize(LayoutSize(size));
+        }
+      }
+    }
+#endif
   }
 }
 

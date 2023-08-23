@@ -67,7 +67,11 @@ class MEDIA_EXPORT AudioManagerPulse : public AudioManagerBase {
       const std::string& output_device_id,
       const AudioParameters& input_params) override;
 
+#if defined(USE_WEBOS_AUDIO)
+ protected:
+#else
  private:
+#endif
   void GetAudioDeviceNames(bool input, media::AudioDeviceNames* device_names);
 
   // Callback to get the devices' info like names, used by GetInputDevices().

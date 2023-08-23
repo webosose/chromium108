@@ -46,6 +46,10 @@
 #include "ui/gl/gl_surface_egl.h"
 #include "ui/gl/scoped_binders.h"
 
+#if defined(USE_NEVA_V4L2_CODEC)
+#include "neva/logging.h"
+#endif
+
 #define NOTIFY_ERROR(x)                      \
   do {                                       \
     VLOGF(1) << "Setting error state:" << x; \
@@ -1019,6 +1023,11 @@ void V4L2VideoDecodeAccelerator::DecodeBufferTask() {
       // Our current bitstream buffer is done; return it.
       int32_t input_id = decoder_current_bitstream_buffer_->input_id;
       DVLOGF(4) << "finished input_id=" << input_id;
+#if defined(USE_NEVA_V4L2_CODEC)
+      if (buffer) {
+        bitstream_buffer_id_map_[buffer->timestamp()].push_back(input_id);
+      }
+#endif
       // BitstreamBufferRef destructor calls NotifyEndOfBitstreamBuffer().
       decoder_current_bitstream_buffer_.reset();
     }
@@ -1128,8 +1137,29 @@ bool V4L2VideoDecodeAccelerator::AppendToInputFrame(const void* data,
       DVLOGF(4) << "stalled for input buffers";
       return false;
     }
+
+#if defined(USE_NEVA_V4L2_CODEC)
+    // timestamp was used for bitstream_buffer_id to know the output index.
+    // But RPI4 V4L2 decoder driver changes timestamp for B frame when
+    // timestamp has invald value.
+    // To avoid this issue, we sets timestamp with valid value instead of
+    // bitstream_buffer_id.
+    struct timeval timestamp {};
+    if (decoder_current_bitstream_buffer_->buffer) {
+      const base::TimeDelta timedelta =
+          decoder_current_bitstream_buffer_->buffer->timestamp();
+      timestamp.tv_sec = timedelta.InSeconds();
+      timestamp.tv_usec =
+          timedelta.InMicroseconds() % base::Time::kMicrosecondsPerSecond;
+    } else {
+      NEVA_DCHECK(decoder_current_bitstream_buffer_->input_id ==
+                  kFlushBufferId);
+      timestamp.tv_sec = decoder_current_bitstream_buffer_->input_id;
+    }
+#else
     struct timeval timestamp = {
         .tv_sec = decoder_current_bitstream_buffer_->input_id};
+#endif
     current_input_buffer_->SetTimeStamp(timestamp);
   }
 
@@ -1501,7 +1531,22 @@ bool V4L2VideoDecodeAccelerator::DequeueOutputBuffer() {
   DCHECK_NE(output_record.picture_id, -1);
   // Zero-bytes buffers are returned as part of a flush and can be dismissed.
   if (buf->GetPlaneBytesUsed(0) > 0) {
+#if defined(USE_NEVA_V4L2_CODEC)
+    base::TimeDelta timestamp = base::Seconds(buf->GetTimeStamp().tv_sec) +
+                                base::Microseconds(buf->GetTimeStamp().tv_usec);
+    auto it = bitstream_buffer_id_map_.find(timestamp);
+    if (it == bitstream_buffer_id_map_.end()) {
+      LOG(ERROR) << "Can't find bitstream_buffer_id for " << timestamp;
+      NOTIFY_ERROR(PLATFORM_FAILURE);
+      return false;
+    }
+    int32_t bitstream_buffer_id = it->second.front();
+    it->second.pop_front();
+    if (it->second.empty())
+      bitstream_buffer_id_map_.erase(it);
+#else
     int32_t bitstream_buffer_id = buf->GetTimeStamp().tv_sec;
+#endif
     DCHECK_GE(bitstream_buffer_id, 0);
     DVLOGF(4) << "Dequeue output buffer: dqbuf index=" << buf->BufferId()
               << " bitstream input_id=" << bitstream_buffer_id;
@@ -1894,6 +1939,10 @@ void V4L2VideoDecodeAccelerator::DestroyTask() {
 
   input_queue_ = nullptr;
   output_queue_ = nullptr;
+
+#if defined(USE_NEVA_V4L2_CODEC)
+  bitstream_buffer_id_map_.clear();
+#endif
 
   frame_splitter_ = nullptr;
   workarounds_.clear();
@@ -2580,6 +2629,18 @@ void V4L2VideoDecodeAccelerator::SendPictureReady() {
   bool send_now = (decoder_state_ == kChangingResolution ||
                    decoder_state_ == kResetting || decoder_flushing_);
   while (pending_picture_ready_.size() > 0) {
+#if defined(USE_NEVA_V4L2_CODEC)
+    frames_per_sec_++;
+    base::TimeTicks curr_time = base::TimeTicks::Now();
+    base::TimeDelta time_past = curr_time - old_time_;
+    if (time_past >= base::Seconds(1)) {
+      LOG(INFO) << "--------------------------------------------------";
+      LOG(INFO) << __func__ << " decoded frames_per_sec: " << frames_per_sec_;
+      LOG(INFO) << "--------------------------------------------------";
+      old_time_ = curr_time;
+      frames_per_sec_ = 0;
+    }
+#endif
     bool cleared = pending_picture_ready_.front().cleared;
     const Picture& picture = pending_picture_ready_.front().picture;
     if (cleared && picture_clearing_count_ == 0) {

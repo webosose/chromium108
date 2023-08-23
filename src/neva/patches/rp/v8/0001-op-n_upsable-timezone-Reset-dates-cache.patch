@@ -1,0 +1,71 @@
+From 33c1d50790c0c16c9a5483c5435796ec31b73cf6 Mon Sep 17 00:00:00 2001
+From: Igor Makarov <igor.makarov@lge.com>
+Date: Mon, 15 Feb 2021 18:09:50 +0300
+Subject: [PATCH] [op][n_upsable][timezone] Reset dates cache
+
+:Release Notes:
+Avoided the standard time zone detection mechanism to keep
+the Daylight Saving Time (DST) feature operational on webOS.
+
+:Detailed Notes:
+The changelist fixes support of the DST feature by skipping
+time zone detection when resetting the date cache in V8 JS
+engine on any incoming time zone adjustment notification.
+
+:Testing Performed:
+1. Go to Settings > General > Time&Date
+   and uncheck "Set Automatically"
+2. Remember current time and date in Time&Date
+3. Click on Daylight Saving Time and turn Daylight Saving Time ON
+4. Set Start Time for DST to a date earlier than the current time
+5. Set End Time for DST to a date later than the current time
+6. Go to Settings > General > Time&Date
+
+Expected Result: Time must be 1 hour later than time remembered
+                 in step 2
+
+:QA Notes:
+Test cases: QWS-865, QWS-1382, QWS-1684, QWS-1786
+
+:Issues Addressed:
+[PLAT-100933] DST - Basic Functionality Not working
+[WRO-6644] Port [op][n_upsable][timezone] Reset dates cache
+                    for webOS before time zone adjustment
+
+Originally-Reviewed-on: http://gpro.lge.com/304427
+Change-Id: I17040c9bb348a27c36a65b52b32a91520d76ae61
+Reviewed-on: http://gpro.lge.com/c/webosose/chromium-v8/+/331845
+Reviewed-by: Commit Msg Checker <commit_msg@lge.com>
+Reviewed-by: Ban Word Checker <ban_word@lge.com>
+Reviewed-by: Oleg Chaklyarov <oleg.chaklyarov@lge.com>
+Reviewed-by: Vladislav Mukulov <vladislav.mukulov@lge.com>
+Reviewed-by: Jose Dapena Paz <j.dapena@lgepartner.com>
+Reviewed-by: Donghyun Kim <donghyun11.kim@lge.com>
+Tested-by: Oleg Chaklyarov <oleg.chaklyarov@lge.com>
+---
+ src/api/api.cc | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/src/api/api.cc b/src/api/api.cc
+index cce1d5ffeed..02675928fed 100644
+--- a/src/api/api.cc
++++ b/src/api/api.cc
+@@ -9699,8 +9699,15 @@ void v8::Isolate::DateTimeConfigurationChangeNotification(
+   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+   API_RCS_SCOPE(i_isolate, Isolate, DateTimeConfigurationChangeNotification);
+   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
++#if !defined(OS_WEBOS)
+   i_isolate->date_cache()->ResetDateCache(
+       static_cast<base::TimezoneCache::TimeZoneDetection>(time_zone_detection));
++#else   // defined(OS_WEBOS)
++  // Due to in webOS non-standard timezones and DST can be used, timezone
++  // detection shall be disabled and date caches for all zones shall be reset.
++  i_isolate->date_cache()->ResetDateCache(
++      base::TimezoneCache::TimeZoneDetection::kSkip);
++#endif  // !defined(OS_WEBOS)
+ #ifdef V8_INTL_SUPPORT
+   i_isolate->clear_cached_icu_object(
+       i::Isolate::ICUObjectCacheType::kDefaultSimpleDateFormat);
+-- 
+2.40.0
+

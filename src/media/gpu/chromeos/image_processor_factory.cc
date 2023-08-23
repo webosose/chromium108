@@ -213,7 +213,7 @@ std::unique_ptr<ImageProcessor> ImageProcessorFactory::Create(
 #if BUILDFLAG(USE_VAAPI)
   create_funcs.push_back(
       base::BindRepeating(&VaapiImageProcessorBackend::Create));
-#elif BUILDFLAG(USE_V4L2_CODEC)
+#elif BUILDFLAG(USE_V4L2_CODEC) && !defined(USE_WEBOS_CODEC)
   create_funcs.push_back(base::BindRepeating(
       &V4L2ImageProcessorBackend::Create, V4L2Device::Create(), num_buffers));
 #endif  // BUILDFLAG(USE_V4L2_CODEC)

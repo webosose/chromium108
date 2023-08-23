@@ -62,6 +62,11 @@ def SetConfigPath(options):
   libdir = sysroot + '/usr/' + options.system_libdir + '/pkgconfig'
   libdir += ':' + sysroot + '/usr/share/pkgconfig'
   os.environ['PKG_CONFIG_LIBDIR'] = libdir
+  # PKG_CONFIG_SYSROOT_DIR can be empty but it added as workaround for webos
+  # wayland-webos-client.pc package which has one from lib paths empty (-L)
+  # that is incorrect for the parsing. The workaround is correct for all
+  # toolchains (target, host and v8-snapshot).
+  os.environ['PKG_CONFIG_SYSROOT_DIR'] = sysroot
   return libdir
 
 
@@ -80,6 +85,12 @@ def GetPkgConfigPrefixToStrip(options, args):
   # from pkg-config's |prefix| variable.
   prefix = subprocess.check_output([options.pkg_config,
       "--variable=prefix"] + args, env=os.environ).decode('utf-8')
+
+  # Some .pc files may not contain the prefix field, in that case we need to
+  # prevent the string index out of range error.
+  if len(prefix) < 4:
+    return prefix
+
   if prefix[-4] == '/usr':
     return prefix[4:]
   return prefix

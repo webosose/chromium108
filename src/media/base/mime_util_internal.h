@@ -49,6 +49,9 @@ class MEDIA_EXPORT MimeUtil {
     THEORA,
     DOLBY_VISION,
     AV1,
+#if defined(USE_NEVA_MEDIA)
+    VALID_CODEC,
+#endif
     MPEG_H_AUDIO,
     DTS,
     DTSXP2,
@@ -110,6 +113,10 @@ class MEDIA_EXPORT MimeUtil {
                                         const PlatformInfo& platform_info);
 
  private:
+#if defined(USE_NEVA_MEDIA)
+  friend class NevaMimeUtil;
+#endif
+
   typedef base::flat_set<int> CodecSet;
   typedef base::flat_map<std::string, CodecSet> MediaFormatMappings;
 

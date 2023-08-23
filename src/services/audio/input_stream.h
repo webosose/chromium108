@@ -68,6 +68,10 @@ class InputStream final : public media::mojom::AudioInputStream,
 
   // media::mojom::AudioInputStream implementation.
   void Record() override;
+#if defined(USE_NEVA_SUSPEND_MEDIA_CAPTURE)
+  void Pause() override;
+  void Resume() override;
+#endif
   void SetVolume(double volume) override;
 
   // InputController::EventHandler implementation.
@@ -83,6 +87,13 @@ class InputStream final : public media::mojom::AudioInputStream,
   void OnStreamPlatformError();
   void CallDeleter();
   void SendLogMessage(const char* format, ...) PRINTF_FORMAT(2, 3);
+#if defined(USE_WEBOS_AUDIO)
+  void CreateStreamAsync(media::AudioManager* audio_manager,
+                         InputStreamActivityMonitor* activity_monitor,
+                         const media::AudioParameters& params,
+                         const std::string& device_id,
+                         bool enable_agc);
+#endif
 
   SEQUENCE_CHECKER(owning_sequence_);
 

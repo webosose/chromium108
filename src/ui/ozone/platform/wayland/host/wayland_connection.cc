@@ -39,12 +39,18 @@
 #include "ui/ozone/platform/wayland/host/wayland_cursor.h"
 #include "ui/ozone/platform/wayland/host/wayland_cursor_position.h"
 #include "ui/ozone/platform/wayland/host/wayland_data_device_manager.h"
+#if !defined(OS_WEBOS)
 #include "ui/ozone/platform/wayland/host/wayland_drm.h"
+#endif  // !defined(OS_WEBOS)
 #include "ui/ozone/platform/wayland/host/wayland_event_source.h"
 #include "ui/ozone/platform/wayland/host/wayland_input_method_context.h"
+#if !defined(USE_NEVA_APPRUNTIME)
 #include "ui/ozone/platform/wayland/host/wayland_keyboard.h"
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 #include "ui/ozone/platform/wayland/host/wayland_output_manager.h"
+#if !defined(USE_NEVA_APPRUNTIME)
 #include "ui/ozone/platform/wayland/host/wayland_pointer.h"
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 #include "ui/ozone/platform/wayland/host/wayland_seat.h"
 #include "ui/ozone/platform/wayland/host/wayland_shm.h"
 #include "ui/ozone/platform/wayland/host/wayland_window.h"
@@ -70,6 +76,17 @@
 #include "third_party/wayland/libwayland_stubs.h"  // nogncheck
 #endif
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#include "ui/ozone/platform/wayland/host/wayland_extensions.h"
+///@}
+
+#if defined(USE_NEVA_APPRUNTIME)
+#include "base/command_line.h"
+#include "base/strings/string_number_conversions.h"
+#include "ui/events/event_switches.h"
+#endif
+
 namespace ui {
 
 namespace {
@@ -93,6 +110,10 @@ constexpr uint32_t kMaxXdgOutputManagerVersion = 3;
 constexpr uint32_t kMaxKeyboardShortcutsInhibitManagerVersion = 1;
 constexpr uint32_t kMaxStylusVersion = 2;
 constexpr uint32_t kMaxWpContentTypeVersion = 1;
+
+#if defined(USE_NEVA_APPRUNTIME)
+const int kDefaultMaxTouchPoints = 1;
+#endif  // defined(USE_NEVA_APPRUNTIME)
 
 int64_t ConvertTimespecToMicros(const struct timespec& ts) {
   // On 32-bit systems, the calculation cannot overflow int64_t.
@@ -129,7 +150,12 @@ void ReportShellUMA(UMALinuxWaylandShell shell) {
   reported_shells.insert(shell);
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+WaylandConnection::WaylandConnection()
+    : seat_manager_(std::make_unique<WaylandSeatManager>()) {}
+#else   // defined(USE_NEVA_APPRUNTIME)
 WaylandConnection::WaylandConnection() = default;
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 
 WaylandConnection::~WaylandConnection() = default;
 
@@ -177,12 +203,16 @@ bool WaylandConnection::Initialize() {
                               &SurfaceAugmenter::Instantiate);
   RegisterGlobalObjectFactory(WaylandDataDeviceManager::kInterfaceName,
                               &WaylandDataDeviceManager::Instantiate);
+#if !defined(OS_WEBOS)
   RegisterGlobalObjectFactory(WaylandDrm::kInterfaceName,
                               &WaylandDrm::Instantiate);
+#endif // !defined(OS_WEBOS)
   RegisterGlobalObjectFactory(WaylandOutput::kInterfaceName,
                               &WaylandOutput::Instantiate);
+#if !defined(USE_NEVA_APPRUNTIME)
   RegisterGlobalObjectFactory(WaylandSeat::kInterfaceName,
                               &WaylandSeat::Instantiate);
+#endif  // !defined(USE_NEVA_APPRUNTIME)
   RegisterGlobalObjectFactory(WaylandShm::kInterfaceName,
                               &WaylandShm::Instantiate);
   RegisterGlobalObjectFactory(WaylandZAuraShell::kInterfaceName,
@@ -238,6 +268,13 @@ bool WaylandConnection::Initialize() {
     return false;
   }
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (!extensions_) {
+    extensions_ = CreateWaylandExtensions(this);
+  }
+  ///@}
+
   // Now that the connection with the display server has been properly
   // estabilished, initialize the event source and input objects.
   DCHECK(!event_source_);
@@ -264,20 +301,45 @@ bool WaylandConnection::Initialize() {
     LOG(ERROR) << "No wl_shm object";
     return false;
   }
-  if (!shell_v6_ && !shell_) {
+  if (!shell_v6_ && !shell_
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  && !(extensions_ && extensions_->HasShellObject())
+  ///@}
+  ) {
     LOG(ERROR) << "No Wayland shell found";
     return false;
   }
 
   // When we are running tests with weston in headless mode, the seat is not
   // announced.
+#if defined(USE_NEVA_APPRUNTIME)
+  if (!wlseat())
+#else  // defined(USE_NEVA_APPRUNTIME)
   if (!seat_)
+#endif  // !defined(USE_NEVA_APPRUNTIME)
     LOG(WARNING) << "No wl_seat object. The functionality may suffer.";
+
+#if defined(USE_NEVA_MEDIA)
+  video_window_provider_impl_ = std::make_unique<VideoWindowProviderImpl>();
+  video_window_provider_impl_->SetDelegate(
+      extensions_->GetVideoWindowProviderDelegate());
+#endif  // defined(USE_NEVA_MEDIA)
 
   if (UseTestConfigForPlatformWindows())
     wayland_proxy_ = std::make_unique<wl::WaylandProxyImpl>(this);
   return true;
 }
+
+#if defined(USE_NEVA_MEDIA)
+void WaylandConnection::BindVideoWindowProviderClient(
+    mojo::Remote<mojom::VideoWindowProviderClient> remote) {
+  video_window_controller_mojo_ = std::make_unique<VideoWindowControllerMojo>(
+      video_window_provider_impl_.get(), std::move(remote));
+  video_window_provider_impl_->SetVideoWindowController(
+      video_window_controller_mojo_.get());
+}
+#endif  // defined(USE_NEVA_MEDIA)
 
 void WaylandConnection::RoundTripQueue() {
   if (roundtrip_closure_for_testing_) {
@@ -294,27 +356,124 @@ void WaylandConnection::SetShutdownCb(base::OnceCallback<void()> shutdown_cb) {
   event_source()->SetShutdownCb(std::move(shutdown_cb));
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+wl_seat* WaylandConnection::wlseat() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->seat();
+  return nullptr;
+}
+
+WaylandCursor* WaylandConnection::cursor() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->cursor();
+  return nullptr;
+}
+
+WaylandTouch* WaylandConnection::touch() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->touch();
+  return nullptr;
+}
+
+WaylandPointer* WaylandConnection::pointer() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->pointer();
+  return nullptr;
+}
+
+WaylandKeyboard* WaylandConnection::keyboard() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->keyboard();
+  return nullptr;
+}
+
+WaylandCursorPosition* WaylandConnection::wayland_cursor_position() const {
+  DCHECK(seat_manager_);
+  if (seat_manager_->GetFirstSeat())
+    return seat_manager_->GetFirstSeat()->cursor_position();
+  return nullptr;
+}
+
+void WaylandConnection::OnTouchAdded(const int wayland_touch_id) {
+  auto* command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(switches::kIgnoreTouchDevices))
+    return;
+
+  const std::string device_name = "touch-" + std::to_string(wayland_touch_id);
+  const int touch_points = GetMaxTouchPoints();
+  touchscreen_devices_.emplace_back(TouchscreenDevice(
+      wayland_touch_id, InputDeviceType::INPUT_DEVICE_INTERNAL, device_name,
+      gfx::Size(), touch_points));
+
+  GetHotplugEventObserver()->OnTouchscreenDevicesUpdated(touchscreen_devices_);
+}
+
+int WaylandConnection::GetMaxTouchPoints() {
+  auto* command_line = base::CommandLine::ForCurrentProcess();
+  std::string str =
+      command_line->GetSwitchValueASCII(switches::kForceMaxTouchPoints);
+
+  if (!str.empty()) {
+    int max_touch_points;
+    if (base::StringToInt(str, &max_touch_points))
+      return max_touch_points;
+    else
+      LOG(ERROR) << "Failed to get force max touch points. Use default value.";
+  }
+
+  return kDefaultMaxTouchPoints;
+}
+
+void WaylandConnection::OnTouchRemoved(int wayland_touch_id) {
+  auto* command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(switches::kIgnoreTouchDevices))
+    return;
+
+  base::EraseIf(touchscreen_devices_, [wayland_touch_id](const auto& device) {
+    return device.id == wayland_touch_id;
+  });
+  GetHotplugEventObserver()->OnTouchscreenDevicesUpdated(touchscreen_devices_);
+}
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 void WaylandConnection::SetPlatformCursor(wl_cursor* cursor_data,
                                           int buffer_scale) {
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(seat_manager_);
+  seat_manager_->SetCursorPlatformShape(cursor_data, buffer_scale);
+#else   // defined(USE_NEVA_APPRUNTIME)
   if (!cursor_)
     return;
   cursor_->SetPlatformShape(cursor_data, buffer_scale);
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 }
 
 void WaylandConnection::SetCursorBufferListener(
     WaylandCursorBufferListener* listener) {
+#if !defined(USE_NEVA_APPRUNTIME)
   listener_ = listener;
   if (!cursor_)
     return;
   cursor_->set_listener(listener_);
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 }
 
 void WaylandConnection::SetCursorBitmap(const std::vector<SkBitmap>& bitmaps,
                                         const gfx::Point& hotspot_in_dips,
                                         int buffer_scale) {
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(seat_manager_);
+  seat_manager_->UpdateCursorBitmap(bitmaps, hotspot_in_dips, buffer_scale);
+#else   // defined(USE_NEVA_APPRUNTIME)
   if (!cursor_)
     return;
   cursor_->UpdateBitmap(bitmaps, hotspot_in_dips, buffer_scale);
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 }
 
 bool WaylandConnection::IsDragInProgress() const {
@@ -400,7 +559,11 @@ DeviceHotplugEventObserver* WaylandConnection::GetHotplugEventObserver() {
 }
 
 void WaylandConnection::CreateDataObjectsIfReady() {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (data_device_manager_ && wlseat()) {
+#else   // defined(USE_NEVA_APPRUNTIME)
   if (data_device_manager_ && seat_) {
+#endif  // !defined(USE_NEVA_APPRUNTIME)
     DCHECK(!data_drag_controller_);
     data_drag_controller_ = std::make_unique<WaylandDataDragController>(
         this, data_device_manager_.get(), event_source(), event_source());
@@ -434,6 +597,12 @@ void WaylandConnection::Global(void* data,
   auto* connection = static_cast<WaylandConnection*>(data);
 
   auto factory_it = connection->global_object_factories_.find(interface);
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (connection->extensions_->Bind(registry, name, interface, version)) {
+    DVLOG(1) << "Successfully bound to " << interface;
+  } else
+  ///@}
   if (factory_it != connection->global_object_factories_.end()) {
     (*factory_it->second)(connection, registry, name, interface, version);
   } else if (!connection->compositor_ &&
@@ -452,6 +621,19 @@ void WaylandConnection::Global(void* data,
       LOG(ERROR) << "Failed to bind to wl_subcompositor global";
       return;
     }
+#if defined(USE_NEVA_APPRUNTIME)
+  } else if (strcmp(interface, "wl_seat") == 0) {
+    wl::Object<wl_seat> seat =
+        wl::Bind<wl_seat>(registry, name, std::min(
+            version, /*kMaxSeatVersion*/ (uint32_t) 5));
+    if (!seat) {
+      LOG(ERROR) << "Failed to bind to wl_seat global";
+      return;
+    }
+    if (connection->seat_manager_)
+      connection->seat_manager_->AddSeat(connection, name, seat.release());
+#endif  // !defined(USE_NEVA_APPRUNTIME)
+    connection->CreateDataObjectsIfReady();
   } else if (!connection->shell_v6_ &&
              strcmp(interface, "zxdg_shell_v6") == 0) {
     // Check for zxdg_shell_v6 first.
@@ -528,8 +710,13 @@ void WaylandConnection::Global(void* data,
     }
     // CreateKeyboard may fail if we do not have keyboard seat capabilities yet.
     // We will create the keyboard when get them in that case.
+#if defined(USE_NEVA_APPRUNTIME)
+    if (connection->seat_manager_)
+      connection->seat_manager_->CreateKeyboard();
+#else   // defined(USE_NEVA_APPRUNTIME)
     if (connection->seat_)
       connection->seat_->RefreshKeyboard();
+#endif  // !defined(USE_NEVA_APPRUNTIME)
   } else if (!connection->keyboard_shortcuts_inhibit_manager_v1_ &&
              strcmp(interface, "zwp_keyboard_shortcuts_inhibit_manager_v1") ==
                  0) {

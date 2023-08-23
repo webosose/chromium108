@@ -706,6 +706,10 @@ void RenderThreadImpl::Init() {
             },
             std::move(recorder)));
   }
+
+#if defined(USE_NEVA_MEDIA) || defined(USE_NEVA_SUSPEND_MEDIA_CAPTURE)
+  neva::RenderThreadImpl<RenderThreadImpl>::Init();
+#endif
 }
 
 RenderThreadImpl::~RenderThreadImpl() {
@@ -971,6 +975,10 @@ void RenderThreadImpl::RegisterSchemes() {
   // googlechrome:
   WebString google_chrome_scheme(WebString::FromASCII(kGoogleChromeScheme));
   WebSecurityPolicy::RegisterURLSchemeAsDisplayIsolated(google_chrome_scheme);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  GetContentClient()->renderer()->RegisterSchemes();
+#endif
 }
 
 void RenderThreadImpl::RecordAction(const base::UserMetricsAction& action) {
@@ -1029,7 +1037,7 @@ media::GpuVideoAcceleratorFactories* RenderThreadImpl::GetGpuFactories() {
 
   const bool enable_video_decode_accelerator =
 
-#if BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(IS_LINUX) && !defined(USE_NEVA_V4L2_CODEC)
       base::FeatureList::IsEnabled(media::kVaapiVideoDecodeLinux) &&
 #else
       !cmd_line->HasSwitch(switches::kDisableAcceleratedVideoDecode) &&
@@ -1040,7 +1048,7 @@ media::GpuVideoAcceleratorFactories* RenderThreadImpl::GetGpuFactories() {
 
   const bool enable_video_encode_accelerator =
 
-#if BUILDFLAG(IS_LINUX)
+#if BUILDFLAG(IS_LINUX) && !defined(USE_NEVA_V4L2_CODEC)
       base::FeatureList::IsEnabled(media::kVaapiVideoEncodeLinux) &&
 #else
       !cmd_line->HasSwitch(switches::kDisableAcceleratedVideoEncode) &&
@@ -1083,6 +1091,10 @@ media::GpuVideoAcceleratorFactories* RenderThreadImpl::GetGpuFactories() {
       enable_video_decode_accelerator, enable_video_encode_accelerator,
       std::move(interface_factory), std::move(vea_provider)));
   gpu_factories_.back()->SetRenderingColorSpace(rendering_color_space_);
+#if defined(USE_NEVA_MEDIA)
+  gpu_factories_.back()->SetUseVideoDecodeAccelerator(
+      use_video_decode_accelerator_);
+#endif
   return gpu_factories_.back().get();
 }
 
@@ -1364,6 +1376,31 @@ void RenderThreadImpl::SetProcessState(
   visible_state_ = visible_state;
 }
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+void RenderThreadImpl::ProcessSuspend() {
+#if defined(USE_NEVA_APPRUNTIME)
+  page_pauser_ = blink::WebScopedPagePauser::Create();
+  ++suspension_count_;
+#endif
+}
+
+void RenderThreadImpl::ProcessResume() {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (suspension_count_ > 0) {
+    page_pauser_.reset();
+    --suspension_count_;
+  }
+#endif
+}
+
+void RenderThreadImpl::OnSystemMemoryPressureLevelChanged(
+    base::MemoryPressureListener::MemoryPressureLevel level) {
+  LOG(INFO) << __func__ << " level: " << level;
+  base::MemoryPressureListener::NotifyMemoryPressure(level);
+}
+///@}
+
 void RenderThreadImpl::SetIsLockedToSite() {
   DCHECK(blink_platform_impl_);
   blink_platform_impl_->SetIsLockedToSite();
@@ -1460,6 +1497,13 @@ void RenderThreadImpl::OnNetworkConnectionChanged(
       NetConnectionTypeToWebConnectionType(type), max_bandwidth_mbps);
   if (url_loader_throttle_provider_)
     url_loader_throttle_provider_->SetOnline(online_status);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Reverted part of CL http://crrev.com/c/2692032
+  // since NEVA-3272 depends on it
+  for (auto& observer : observers_)
+    observer.NetworkStateChanged(online_status);
+#endif
 }
 
 void RenderThreadImpl::OnNetworkQualityChanged(
@@ -1700,6 +1744,10 @@ void RenderThreadImpl::OnRendererForegrounded() {
 }
 
 void RenderThreadImpl::ReleaseFreeMemory() {
+#if defined(USE_NEVA_APPRUNTIME)
+  VLOG(1) << __func__;
+#endif
+
   TRACE_EVENT0("blink", "RenderThreadImpl::ReleaseFreeMemory()");
   base::allocator::ReleaseFreeMemory();
   discardable_memory_allocator_->ReleaseFreeMemory();
@@ -1757,5 +1805,16 @@ gfx::ColorSpace RenderThreadImpl::GetRenderingColorSpace() {
   DCHECK(IsMainThread());
   return rendering_color_space_;
 }
+
+#if defined(USE_NEVA_MEDIA)
+void RenderThreadImpl::SetUseVideoDecodeAccelerator(bool use) {
+  DCHECK(IsMainThread());
+  use_video_decode_accelerator_ = use;
+  for (const auto& factories : gpu_factories_) {
+    if (factories)
+      factories->SetUseVideoDecodeAccelerator(use);
+  }
+}
+#endif
 
 }  // namespace content

@@ -136,7 +136,12 @@ std::string Origin::Serialize() const {
   if (opaque())
     return "null";
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // webapp will use appid as a host and it needs to be used as a origin.
+  if (scheme() == kFileScheme && host().empty())
+#else
   if (scheme() == kFileScheme)
+#endif
     return "file://";
 
   return tuple_.Serialize();
@@ -146,7 +151,12 @@ GURL Origin::GetURL() const {
   if (opaque())
     return GURL();
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // webapp will use appid as a host and it needs to be used as a origin.
+  if (scheme() == kFileScheme && host().empty())
+#else
   if (scheme() == kFileScheme)
+#endif
     return GURL("file:///");
 
   return tuple_.GetURL();

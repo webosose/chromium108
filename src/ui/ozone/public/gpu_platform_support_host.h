@@ -11,6 +11,12 @@
 #include "base/component_export.h"
 #include "mojo/public/cpp/system/message_pipe.h"
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+namespace IPC {
+class Message;
+}
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+
 namespace ui {
 
 // Platform-specific object to support a GPU process host.
@@ -32,6 +38,18 @@ class COMPONENT_EXPORT(OZONE_BASE) GpuPlatformSupportHost {
 
   GpuPlatformSupportHost();
   virtual ~GpuPlatformSupportHost();
+
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+  // Called when the GPU process is spun up.
+  // This is called from browser IO thread.
+  virtual void OnGpuProcessLaunched(
+      int host_id,
+      base::RepeatingCallback<void(IPC::Message*)> sender);
+
+  // Called to handle an IPC message. Note that this can be called from any
+  // thread.
+  virtual void OnMessageReceived(const IPC::Message& message);
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
 
   // Called when the GPU process is destroyed.
   // This is called from browser UI thread.

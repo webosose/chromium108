@@ -51,6 +51,10 @@
 #include "third_party/blink/public/common/tokens/tokens.h"
 #include "third_party/blink/public/mojom/dom_storage/dom_storage.mojom.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/pal_service/os_crypt.h"
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 namespace leveldb_proto {
 class ProtoDatabaseProvider;
 }  // namespace leveldb_proto
@@ -704,6 +708,8 @@ class CONTENT_EXPORT StoragePartitionImpl
 
   mojo::Receiver<network::mojom::NetworkContextClient>
       network_context_client_receiver_{this};
+
+  std::unique_ptr<pal::OSCryptImpl> os_crypt_impl_;
 
   scoped_refptr<URLLoaderFactoryForBrowserProcess>
       shared_url_loader_factory_for_browser_process_;

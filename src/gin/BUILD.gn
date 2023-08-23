@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import("//base/allocator/allocator.gni")
+import("//neva/neva.gni")
 import("//testing/test.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 import("//v8/gni/v8.gni")
@@ -95,6 +96,10 @@ component("gin") {
     "//base/third_party/dynamic_annotations",
     "//third_party/abseil-cpp:absl",
   ]
+
+  if (use_neva_appruntime) {
+    public_deps += [ "//base/neva" ]
+  }
 
   if (is_mac) {
     frameworks = [ "CoreFoundation.framework" ]

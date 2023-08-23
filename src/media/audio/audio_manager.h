@@ -138,14 +138,22 @@ class MEDIA_EXPORT AudioManager {
       const LogCallback& log_callback) = 0;
 
   // Returns the task runner used for audio IO.
+#if defined(USE_WEBOS_AUDIO)
+  virtual base::SingleThreadTaskRunner* GetTaskRunner() const {
+#else
   base::SingleThreadTaskRunner* GetTaskRunner() const {
+#endif
     return audio_thread_->GetTaskRunner();
   }
 
   // Heavyweight tasks should use GetWorkerTaskRunner() instead of
   // GetTaskRunner(). On most platforms they are the same, but some share the
   // UI loop with the audio IO loop.
+#if defined(USE_WEBOS_AUDIO)
+  virtual base::SingleThreadTaskRunner* GetWorkerTaskRunner() const {
+#else
   base::SingleThreadTaskRunner* GetWorkerTaskRunner() const {
+#endif
     return audio_thread_->GetWorkerTaskRunner();
   }
 

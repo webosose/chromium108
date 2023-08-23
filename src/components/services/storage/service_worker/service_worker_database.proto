@@ -126,6 +126,7 @@ message ServiceWorkerRegistrationData {
   optional AncestorFrameType ancestor_frame_type = 21 [default = NORMAL_FRAME];
 
   optional PolicyContainerPolicies policy_container_policies = 23;
+  optional string app_id = 24;
 }
 
 message ServiceWorkerResourceRecord {

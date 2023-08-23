@@ -287,6 +287,13 @@ class CORE_EXPORT ChromeClientImpl final : public ChromeClient {
 
   void NotifyPresentationTime(LocalFrame& frame,
                               ReportTimeCallback callback) override;
+#if defined(USE_NEVA_APPRUNTIME)
+  void NotifyVizFMPSwap(LocalFrame& frame,
+                        bool is_first_contentful_paint = false,
+                        bool did_reset_container_state = false) override;
+  String ApplicationId() const override;
+  String FileSecurityOrigin() const override;
+#endif
 
   void RequestBeginMainFrameNotExpected(LocalFrame& frame,
                                         bool request) override;

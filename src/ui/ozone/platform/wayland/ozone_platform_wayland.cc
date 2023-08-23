@@ -63,15 +63,30 @@
 #include "ui/events/ozone/layout/stub/stub_keyboard_layout_engine.h"
 #endif
 
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+#include "ui/ozone/public/gpu_platform_support.h"
+#endif
+
 #if BUILDFLAG(USE_GTK)
 #include "ui/ozone/platform/wayland/host/linux_ui_delegate_wayland.h"  // nogncheck
 #endif
+
+#if defined(USE_NEVA_MEDIA)
+#include "ui/ozone/common/neva/video_window_controller_impl.h"
+#include "ui/ozone/common/neva/video_window_provider_mojo.h"
+#endif  // defined(USE_NEVA_MEDIA)
 
 #if BUILDFLAG(IS_CHROMEOS)
 #include "ui/ozone/common/bitmap_cursor_factory.h"
 #else
 #include "ui/ozone/platform/wayland/host/wayland_cursor_factory.h"
 #endif
+
+#if defined(USE_NEVA_APPRUNTIME)
+#include "base/command_line.h"
+#include "ui/base/ime/linux/neva/input_method_auralinux_neva.h"
+#include "ui/base/ui_base_neva_switches.h"
+#endif  // defined(USE_NEVA_APPRUNTIME)
 
 namespace ui {
 
@@ -95,8 +110,10 @@ class OzonePlatformWayland : public OzonePlatform,
     // Disable key-repeat flag synthesizing. On Wayland, key repeat events are
     // generated inside Chrome, and the flag is properly set.
     // See also WaylandEventSource.
+#if !defined(OS_WEBOS)
+    // webOS uses synthesized key-repeat flag
     KeyEvent::SetSynthesizeKeyRepeatEnabled(false);
-
+#endif
     OSExchangeDataProviderFactoryOzone::SetInstance(this);
   }
 
@@ -122,6 +139,12 @@ class OzonePlatformWayland : public OzonePlatform,
   InputController* GetInputController() override {
     return input_controller_.get();
   }
+
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+  GpuPlatformSupport* GetGpuPlatformSupport() override {
+    return gpu_platform_support_.get();
+  }
+#endif
 
   GpuPlatformSupportHost* GetGpuPlatformSupportHost() override {
     return buffer_manager_connector_ ? buffer_manager_connector_.get()
@@ -173,6 +196,17 @@ class OzonePlatformWayland : public OzonePlatform,
   std::unique_ptr<InputMethod> CreateInputMethod(
       ImeKeyEventDispatcher* ime_key_event_dispatcher,
       gfx::AcceleratedWidget widget) override {
+#if defined(USE_NEVA_APPRUNTIME)
+    if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+            switches::kEnableNevaIme))
+      return std::make_unique<InputMethodAuraLinuxNeva>(
+          ime_key_event_dispatcher
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+          , widget
+#endif
+          );
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
     return std::make_unique<InputMethodAuraLinux>(ime_key_event_dispatcher);
   }
 
@@ -260,10 +294,18 @@ class OzonePlatformWayland : public OzonePlatform,
 
   void InitializeGPU(const InitParams& args) override {
     buffer_manager_ = std::make_unique<WaylandBufferManagerGpu>();
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+    gpu_platform_support_.reset(CreateStubGpuPlatformSupport());
+#endif
     surface_factory_ = std::make_unique<WaylandSurfaceFactory>(
         connection_.get(), buffer_manager_.get());
     overlay_manager_ =
         std::make_unique<WaylandOverlayManager>(buffer_manager_.get());
+
+#if defined(USE_NEVA_MEDIA)
+    video_window_controller_ = std::make_unique<VideoWindowControllerImpl>();
+    video_window_controller_->Initialize(base::ThreadTaskRunnerHandle::Get());
+#endif  // defined(USE_NEVA_MEDIA)
   }
 
   const PlatformProperties& GetPlatformProperties() override {
@@ -375,12 +417,47 @@ class OzonePlatformWayland : public OzonePlatform,
             &OzonePlatformWayland::CreateWaylandBufferManagerGpuBinding,
             base::Unretained(this)),
         gpu_task_runner);
+
+#if defined(USE_NEVA_MEDIA)
+    // This is called from GPU main thread and we want to get callback with GPU
+    // main thread.
+    binders->Add<mojom::VideoWindowConnector>(
+        base::BindRepeating(
+            &OzonePlatformWayland::CreateVideoWindowConnectorBinding,
+            base::Unretained(this)),
+        gpu_task_runner);
+
+    binders->Add<mojom::VideoWindowProviderClient>(
+        base::BindRepeating(
+            &OzonePlatformWayland::CreateVideoWindowProviderClientBinding,
+            base::Unretained(this)),
+        gpu_task_runner);
+#endif  // defined(USE_NEVA_MEDIA)
   }
 
   void CreateWaylandBufferManagerGpuBinding(
       mojo::PendingReceiver<ozone::mojom::WaylandBufferManagerGpu> receiver) {
     buffer_manager_->AddBindingWaylandBufferManagerGpu(std::move(receiver));
   }
+
+#if defined(USE_NEVA_MEDIA)
+  void CreateVideoWindowConnectorBinding(
+      mojo::PendingReceiver<mojom::VideoWindowConnector> receiver) {
+    video_window_controller_->Bind(std::move(receiver));
+  }
+
+  void CreateVideoWindowProviderClientBinding(
+      mojo::PendingReceiver<mojom::VideoWindowProviderClient> receiver) {
+    video_window_provider_mojo_ = std::make_unique<VideoWindowProviderMojo>(
+        video_window_controller_.get(), std::move(receiver));
+    video_window_controller_->SetVideoWindowProvider(
+        video_window_provider_mojo_.get());
+  }
+
+  VideoWindowGeometryManager* GetVideoWindowGeometryManager() override {
+    return video_window_controller_.get();
+  }
+#endif  // defined(USE_NEVA_MEDIA)
 
   void PostCreateMainMessageLoop(
       base::OnceCallback<void()> shutdown_cb) override {
@@ -408,6 +485,9 @@ class OzonePlatformWayland : public OzonePlatform,
   std::unique_ptr<CursorFactory> cursor_factory_;
   std::unique_ptr<InputController> input_controller_;
   std::unique_ptr<GpuPlatformSupportHost> gpu_platform_support_host_;
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+  std::unique_ptr<GpuPlatformSupport> gpu_platform_support_;
+#endif
   std::unique_ptr<WaylandBufferManagerConnector> buffer_manager_connector_;
   std::unique_ptr<WaylandMenuUtils> menu_utils_;
   std::unique_ptr<WaylandUtils> wayland_utils_;
@@ -416,6 +496,11 @@ class OzonePlatformWayland : public OzonePlatform,
   std::unique_ptr<WaylandBufferManagerGpu> buffer_manager_;
   std::unique_ptr<WaylandOverlayManager> overlay_manager_;
   std::unique_ptr<WaylandGLEGLUtility> gl_egl_utility_;
+
+#if defined(USE_NEVA_MEDIA)
+  std::unique_ptr<VideoWindowControllerImpl> video_window_controller_;
+  std::unique_ptr<VideoWindowProviderMojo> video_window_provider_mojo_;
+#endif  // defined(USE_NEVA_MEDIA)
 
   // Provides supported buffer formats for native gpu memory buffers
   // framework.

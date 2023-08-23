@@ -90,12 +90,16 @@ class ShellBrowserContext : public BrowserContext {
   std::unique_ptr<ShellResourceContext> resource_context_;
   std::unique_ptr<ShellDownloadManagerDelegate> download_manager_delegate_;
   std::unique_ptr<PermissionControllerDelegate> permission_manager_;
+#if !defined(USE_CBE)
   std::unique_ptr<BackgroundSyncController> background_sync_controller_;
+#endif
   std::unique_ptr<ContentIndexProvider> content_index_provider_;
   std::unique_ptr<ShellFederatedPermissionContext>
       federated_permission_context_;
+#if !defined(USE_CBE)
   std::unique_ptr<ReduceAcceptLanguageControllerDelegate>
       reduce_accept_lang_controller_delegate_;
+#endif
 
  private:
   // Performs initialization of the ShellBrowserContext while IO is still

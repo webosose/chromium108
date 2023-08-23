@@ -147,6 +147,7 @@ void ExtensionSyncEventObserver::BroadcastOrDispatchEvent(
 }  // namespace api
 }  // namespace chrome_apps
 
+namespace extensions {
 template <>
 void extensions::BrowserContextKeyedAPIFactory<
     chrome_apps::api::ExtensionSyncEventObserver>::
@@ -155,3 +156,4 @@ void extensions::BrowserContextKeyedAPIFactory<
   DependsOn(
       extensions::ExtensionsBrowserClient::Get()->GetExtensionSystemFactory());
 }
+}  // namespace extensions

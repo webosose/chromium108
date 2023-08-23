@@ -363,6 +363,11 @@ const char kDisableOriginTrialControlledBlinkFeatures[] =
 const char kEnableGpuMemoryBufferVideoFrames[] =
     "enable-gpu-memory-buffer-video-frames";
 
+// Enable key event throttling, which sends next key event to renderer
+// only after receiving ack from previous event to avoid spamming renderer
+// with excessive key events that may cause application to choke on heavy
+// tasks which are triggered by key pressed.
+const char kEnableKeyEventThrottling[] = "enable-key-event-throttling";
 // Force logging to be enabled.  Logging is disabled by default in release
 // builds.
 const char kEnableLogging[]                 = "enable-logging";
@@ -406,6 +411,9 @@ const char kEnableSmoothScrolling[]         = "enable-smooth-scrolling";
 
 // Enable spatial navigation
 const char kEnableSpatialNavigation[]       = "enable-spatial-navigation";
+
+// Enable CSS3 UI sequential navigation order and directional focus navigation
+const char kEnableCSSNavigation[] = "enable-css-navigation";
 
 // Blocks all insecure requests from secure contexts, and prevents the user
 // from overriding that decision.
@@ -985,6 +993,12 @@ const char kRendererWaitForJavaDebugger[] = "renderer-wait-for-java-debugger";
 const char kDisableOoprDebugCrashDump[] = "disable-oopr-debug-crash-dump";
 #endif
 
+// Enable exploring by mouse feature for accessibility.
+// This feature read out describing the node under the mouse cursor on screen
+// when accessiblity is enabled.
+const char kEnableAccessibilityExploreByMouse[] =
+    "enable-accessibility-explore-by-mouse";
+
 // Enable the aggressive flushing of DOM Storage to minimize data loss.
 const char kEnableAggressiveDOMStorageFlushing[] =
     "enable-aggressive-domstorage-flushing";
@@ -1070,6 +1084,24 @@ const char kIpcDumpDirectory[] = "ipc-dump-directory";
 
 // Specifies the testcase used by the IPC fuzzer.
 const char kIpcFuzzerTestcase[] = "ipc-fuzzer-testcase";
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+// The command line parameter indicating that the maximum number of activated
+// media players is limited. That means only provided number of media players
+// can play media at the same time. Other media players will be suspended.
+// Note that some custom media players are allowed to play media at the same
+// time specially, when media state manager expects that these not use media
+// resource.
+const char kMaxActivatedMediaPlayers[] = "max-activated-media-players";
+
+const char kMaxTimeupdateEventFrequency[] = "max-timeupdate-event-frequency";
+#endif
+
+#if defined(USE_NEVA_APPRUNTIME)
+// Enabling v8 cache for specified webapp. This option is used for testing
+// purpose to test v8 cache is produced and used.
+const char kEnableV8CacheForWebappList[] = "enable-v8-cache-for-webapp-list";
 #endif
 
 // Don't dump stuff here, follow the same order as the header.

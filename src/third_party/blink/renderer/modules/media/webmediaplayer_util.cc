@@ -92,6 +92,12 @@ WebTimeRanges ConvertToWebTimeRanges(
 WebMediaPlayer::NetworkState PipelineErrorToNetworkState(
     media::PipelineStatus error) {
   switch (error.code()) {
+#if defined(USE_NEVA_MEDIA)
+    case media::PIPELINE_ERROR_RESOURCE_IS_RELEASED:
+    case media::PIPELINE_ERROR_DECRYPT:
+      return WebMediaPlayer::kNetworkStateFormatError;
+#endif
+
     case media::PIPELINE_ERROR_NETWORK:
     case media::PIPELINE_ERROR_READ:
     case media::CHUNK_DEMUXER_ERROR_EOS_STATUS_NETWORK_ERROR:

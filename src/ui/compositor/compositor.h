@@ -423,6 +423,9 @@ class COMPOSITOR_EXPORT Compositor : public base::PowerSuspendObserver,
 #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
   void OnCompleteSwapWithNewSize(const gfx::Size& size);
 #endif
+#if defined(USE_NEVA_APPRUNTIME)
+  void OnCompleteSwap();
+#endif
 
   bool IsLocked() { return lock_manager_.IsLocked(); }
 
@@ -449,6 +452,14 @@ class COMPOSITOR_EXPORT Compositor : public base::PowerSuspendObserver,
 
   // If true, all paint commands are recorded at pixel size instead of DIP.
   bool is_pixel_canvas() const { return is_pixel_canvas_; }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  void SuspendDrawing();
+  void ResumeDrawing();
+  void RenderProcessGone();
+  void SetDisplayVisibilityEnabled(bool enabled);
+  void SetDisplayFirstActivateTimeout(base::TimeDelta timeout);
+#endif
 
   ScrollInputHandler* scroll_input_handler() const {
     return scroll_input_handler_.get();
@@ -523,6 +534,12 @@ class COMPOSITOR_EXPORT Compositor : public base::PowerSuspendObserver,
   // The device scale factor of the monitor that this compositor is compositing
   // layers on.
   float device_scale_factor_ = 0.f;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  bool disable_drawing_ = true;
+  bool display_visibility_enabled_ = true;
+  absl::optional<base::TimeDelta> display_first_activate_timeout_;
+#endif
 
   LayerAnimatorCollection layer_animator_collection_;
   scoped_refptr<cc::AnimationTimeline> animation_timeline_;

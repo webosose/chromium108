@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import("//neva/neva.gni")
+
 # TODO(https://crbug.com/1198341): once this code is ported to Blink code
 # conventions, this target should be merged into
 # //third_party/blink/public:blink_headers and
@@ -34,4 +36,19 @@ source_set("media") {
   allow_circular_includes_from =
       [ "//third_party/blink/renderer/platform/media" ]
   deps = [ "//third_party/blink/renderer/platform/media" ]
+
+  if (use_neva_media) {
+    import("//third_party/blink/public/platform/media/neva/build.gni")
+    configs += neva.configs
+    if (!defined(public_configs)) {
+      public_configs = []
+    }
+    public_configs += neva.public_configs
+    deps += neva.deps
+    if (!defined(public_deps)) {
+      public_deps = []
+    }
+    public_deps += neva.public_deps
+    sources += rebase_path(neva.sources, ".")
+  }
 }

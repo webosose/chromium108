@@ -486,9 +486,15 @@ void ServiceWorkerContextWrapper::RegisterServiceWorker(
             blink::ServiceWorkerStatusCode::kErrorStartWorkerFailed));
     return;
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  blink::mojom::ServiceWorkerRegistrationOptions options_to_pass(
+      net::SimplifyUrlForRequest(options.scope), options.type,
+      options.update_via_cache, options.app_id);
+#else
   blink::mojom::ServiceWorkerRegistrationOptions options_to_pass(
       net::SimplifyUrlForRequest(options.scope), options.type,
       options.update_via_cache);
+#endif
 
   // TODO(https://crbug.com/1239551): initialize remaining fields
   PolicyContainerPolicies policy_container_policies;

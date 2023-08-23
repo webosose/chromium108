@@ -74,7 +74,12 @@ bool CreateInputStream(pa_threaded_mainloop* mainloop,
                        const AudioParameters& params,
                        const std::string& device_id,
                        pa_stream_notify_cb_t stream_callback,
+#if defined(USE_WEBOS_AUDIO)
+                       void* user_data,
+                       const std::string& preferred_device = std::string());
+#else
                        void* user_data);
+#endif
 
 // Create a playback stream for the threaded mainloop, return true if success,
 // otherwise false. This function will create a new Pulse threaded mainloop,
@@ -88,7 +93,12 @@ bool CreateOutputStream(pa_threaded_mainloop** mainloop,
                         const std::string& app_name,
                         pa_stream_notify_cb_t stream_callback,
                         pa_stream_request_cb_t write_callback,
+#if defined(USE_WEBOS_AUDIO)
+                        void* user_data,
+                        const std::string& preferred_device = std::string());
+#else
                         void* user_data);
+#endif
 
 // Utility functions to match up outputs and inputs.
 std::string GetBusOfInput(pa_threaded_mainloop* mainloop,

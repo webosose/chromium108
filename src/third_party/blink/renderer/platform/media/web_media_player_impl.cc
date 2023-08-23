@@ -101,6 +101,10 @@
 #include "media/base/android/media_codec_util.h"
 #endif
 
+#if defined(USE_NEVA_MEDIA)
+#include "media/base/media_switches_neva.h"
+#endif
+
 namespace blink {
 namespace {
 
@@ -125,6 +129,12 @@ bool IsBackgroundSuspendEnabled(const WebMediaPlayerImpl* wmpi) {
 }
 
 bool IsResumeBackgroundVideosEnabled() {
+#if defined(USE_NEVA_MEDIA)
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva)) {
+    return true;
+  }
+#endif
   return base::FeatureList::IsEnabled(media::kResumeBackgroundVideo);
 }
 
@@ -314,8 +324,16 @@ bool MediaPositionNeedsUpdate(
   // media position. We choose an arbitrary tolerance that is high enough to
   // eliminate a lot of MediaPosition updates and low enough not to make a
   // perceptible difference.
+#if defined(OS_WEBOS) && defined(USE_GST_MEDIA)
+  // GetPosition() method returns adjusted value based on TimeTicks::Now(), so
+  // drift's value is too low to update media position. So get_position() is
+  // introduced not to use TimeTicks::Now().
+  const auto drift =
+      (old_position.get_position() - new_position.get_position()).magnitude();
+#else
   const auto drift =
       (old_position.GetPosition() - new_position.GetPosition()).magnitude();
+#endif
   return drift > base::Milliseconds(100);
 }
 
@@ -1677,6 +1695,15 @@ void WebMediaPlayerImpl::SetCdmInternal(WebContentDecryptionModule* cdm) {
 
   auto* cdm_context = cdm_context_ref->GetCdmContext();
   DCHECK(cdm_context);
+
+#if defined(USE_NEVA_MEDIA)
+  // We give |key_system_| information to CdmContext. Usually(chromium)
+  // CdmContext doesn't need to know key system. But in webOS, sometimes we need
+  // to branch out according to current key system. Key system information in
+  // CdmContext is very useful because CdmContext is shared across all related
+  // components such as external renderer, decrypting demuxer stream, cdm, etc.
+  cdm_context->set_key_system(cdm_config_->key_system);
+#endif
 
   // Keep the reference to the CDM, as it shouldn't be destroyed until
   // after the pipeline is done with the `cdm_context`.
@@ -3067,6 +3094,11 @@ WebMediaPlayerImpl::GetCurrentFrameFromCompositor() const {
 void WebMediaPlayerImpl::UpdatePlayState() {
   DCHECK(main_task_runner_->BelongsToCurrentThread());
   bool can_auto_suspend = !disable_pipeline_auto_suspend_;
+#if defined(USE_NEVA_MEDIA)
+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva))
+    can_auto_suspend = false;
+#endif
   // For streaming videos, we only allow suspending at the very beginning of the
   // video, and only if we know the length of the video. (If we don't know
   // the length, it might be a dynamically generated video, and suspending
@@ -3457,6 +3489,15 @@ void WebMediaPlayerImpl::ScheduleIdlePauseTimer() {
     return;
 #endif
 
+#if defined(USE_NEVA_MEDIA)
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva) &&
+      IsHidden()) {
+    // In webOS resumeing playback whiile in background is not allowed
+    return;
+  }
+#endif
+
   // Idle timeout chosen arbitrarily.
   background_pause_timer_.Start(
       FROM_HERE, base::Seconds(5),
@@ -3623,12 +3664,25 @@ base::WeakPtr<WebMediaPlayer> WebMediaPlayerImpl::AsWeakPtr() {
   return weak_this_;
 }
 
+#if defined(USE_NEVA_MEDIA)
+bool WebMediaPlayerImpl::IsBackgroundMediaSuspendEnabled() const {
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva)) {
+    return !is_background_video_playback_enabled_;
+  }
+
+  return is_background_suspend_enabled_;
+}
+#endif
+
 bool WebMediaPlayerImpl::ShouldPausePlaybackWhenHidden() const {
+#if !defined(OS_WEBOS)
   // Audio only stream is allowed to play when in background.
   // TODO: We should check IsBackgroundOptimizationCandidate here. But we need
   // to move the logic of checking video frames out of that function.
   if (!HasVideo())
     return false;
+#endif
 
   if (using_media_player_renderer_ &&
       pipeline_metadata_.natural_size.IsEmpty()) {
@@ -3715,6 +3769,13 @@ bool WebMediaPlayerImpl::IsBackgroundOptimizationCandidate() const {
 }
 
 void WebMediaPlayerImpl::UpdateBackgroundVideoOptimizationState() {
+#if defined(USE_NEVA_MEDIA)
+  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva) &&
+      !is_background_video_optimization_enabled_)
+    return;
+#endif
+
   if (IsHidden()) {
     if (ShouldPausePlaybackWhenHidden()) {
       PauseVideoIfNeeded();

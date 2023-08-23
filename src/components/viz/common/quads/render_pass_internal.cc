@@ -41,7 +41,12 @@ SharedQuadState* RenderPassInternal::CreateAndAppendSharedQuadState() {
 void RenderPassInternal::ReplaceExistingQuadWithSolidColor(
     QuadList::Iterator at,
     SkColor4f color,
+#if defined(USE_NEVA_MEDIA)
+    SkBlendMode blend_mode,
+    bool force_draw_transparent) {
+#else
     SkBlendMode blend_mode) {
+#endif  // defined(USE_NEVA_MEDIA)
   const SharedQuadState* shared_quad_state = at->shared_quad_state;
   if (shared_quad_state->are_contents_opaque ||
       shared_quad_state->blend_mode != blend_mode) {
@@ -53,11 +58,20 @@ void RenderPassInternal::ReplaceExistingQuadWithSolidColor(
   }
 
   const gfx::Rect rect = at->rect;
+#if defined(USE_NEVA_MEDIA)
+  auto* replacement = quad_list.ReplaceExistingElement<SolidColorDrawQuad>(at);
+  replacement->SetAll(shared_quad_state, rect, /*visible_rect=*/rect,
+                      /*needs_blending=*/false, color,
+                      /*force_anti_aliasing_off=*/true);
+  if (force_draw_transparent)
+    replacement->SetForceDrawTransparentColor(true);
+#else
   // TODO(crbug.com/1308932) This function should be called with an SkColor4f
   quad_list.ReplaceExistingElement<SolidColorDrawQuad>(at)->SetAll(
       shared_quad_state, rect, /*visible_rect=*/rect,
       /*needs_blending=*/false, color,
       /*force_anti_aliasing_off=*/true);
+#endif  // defined(USE_NEVA_MEDIA)
 }
 
 void RenderPassInternal::AsValueInto(

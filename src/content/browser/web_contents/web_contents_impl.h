@@ -86,6 +86,12 @@
 #include "content/public/browser/android/child_process_importance.h"
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "content/public/browser/notification_observer.h"
+#include "content/public/browser/notification_registrar.h"
+#include "third_party/blink/public/mojom/peerconnection/peer_connection_tracker.mojom-shared.h"
+#endif
+
 namespace base {
 class FilePath;
 }  // namespace base
@@ -178,6 +184,9 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
                                        public RenderFrameHostManager::Delegate,
                                        public PageDelegate,
                                        public blink::mojom::ColorChooserFactory,
+#if defined(USE_NEVA_APPRUNTIME)
+                                       public NotificationObserver,
+#endif
                                        public NavigationControllerDelegate,
                                        public NavigatorDelegate,
                                        public ui::NativeThemeObserver,
@@ -336,6 +345,20 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   WebContentsDelegate* GetDelegate() override;
   void SetDelegate(WebContentsDelegate* delegate) override;
   NavigationControllerImpl& GetController() override;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Notify the process creation of currently active RenderProcessHost
+  void RenderProcessCreated(RenderProcessHost* render_process_host) override;
+  bool IsInspectablePage() const override;
+  void SetInspectablePage(bool inspectable) override;
+  void DropAllPeerConnections(
+      blink::mojom::DropPeerConnectionReason reason) override;
+  bool DecidePolicyForResponse(bool is_main_frame,
+                               int status_code,
+                               const std::string& url,
+                               const std::string& status_text) override;
+#endif
+
   BrowserContext* GetBrowserContext() override;
   base::WeakPtr<WebContents> GetWeakPtr() override;
   const GURL& GetURL() override;
@@ -923,6 +946,9 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
                              const gfx::Size& new_size) override;
   void OnVerticalScrollDirectionChanged(
       viz::VerticalScrollDirection scroll_direction) override;
+#if defined(USE_NEVA_APPRUNTIME)
+  void DidCompleteSwap() override;
+#endif
 
   double GetPendingPageZoomLevel() override;
 
@@ -1040,6 +1066,13 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   void NotifyPageChanged(PageImpl& page) override;
   int GetOuterDelegateFrameTreeNodeId() override;
   FrameTree* LoadingTree() override;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // NotificationObserver ------------------------------------------------------
+  void Observe(int type,
+               const NotificationSource& source,
+               const NotificationDetails& details) override;
+#endif
 
   // NavigationControllerDelegate ----------------------------------------------
 
@@ -1641,6 +1674,11 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   void OnUpdateZoomLimits(RenderViewHostImpl* source,
                           int minimum_percent,
                           int maximum_percent);
+#if defined(USE_NEVA_APPRUNTIME)
+  void OnDidDropAllPeerConnections(
+      blink::mojom::DropPeerConnectionReason reason,
+      int request_id);
+#endif
   void OnShowValidationMessage(RenderViewHostImpl* source,
                                const gfx::Rect& anchor_in_root_view,
                                const std::u16string& main_text,
@@ -2116,6 +2154,12 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   // NULL otherwise.
   std::unique_ptr<BrowserPluginGuest> browser_plugin_guest_;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // This must be at the end, or else we might get notifications and use other
+  // member variables that are gone.
+  NotificationRegistrar registrar_;
+#endif
+
   // All live RenderWidgetHostImpls that are created by this object and may
   // outlive it.
   std::set<RenderWidgetHostImpl*> created_widgets_;
@@ -2239,6 +2283,10 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
 
   bool showing_context_menu_;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  bool inspectable_page_ = true;
+#endif
+
   int currently_playing_video_count_ = 0;
   base::flat_map<MediaPlayerId, gfx::Size> cached_video_sizes_;
 
@@ -2326,6 +2374,11 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   // Indicates how many sources are currently suppressing the unresponsive
   // renderer dialog.
   int suppress_unresponsive_renderer_count_ = 0;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  int drop_peer_connection_request_id_ = 0;
+  int last_processed_drop_peer_connection_request_id_ = -1;
+#endif
 
   std::unique_ptr<PrerenderHostRegistry> prerender_host_registry_;
 

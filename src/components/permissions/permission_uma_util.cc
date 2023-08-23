@@ -556,6 +556,8 @@ void PermissionUmaUtil::PermissionPromptResolved(
     // ContentSettingsType, as otherwise they don't support GetGestureType.
     if (permission == ContentSettingsType::DEFAULT)
       continue;
+    if (!autoblocker)
+      continue;
 
     PermissionRequestGestureType gesture_type = request->GetGestureType();
     const GURL& requesting_origin = request->requesting_origin();

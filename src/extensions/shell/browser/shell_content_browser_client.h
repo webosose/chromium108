@@ -9,11 +9,16 @@
 
 #include "base/compiler_specific.h"
 #include "base/memory/raw_ptr.h"
+#include "components/performance_manager/embedder/performance_manager_registry.h"
 #include "content/public/browser/content_browser_client.h"
 #include "content/public/browser/web_contents.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "services/metrics/public/cpp/ukm_source_id.h"
+
+#if defined(USE_NEVA_APPRUNTIME)
+#include "third_party/blink/public/mojom/badging/badging.mojom.h"
+#endif
 
 class GURL;
 
@@ -27,6 +32,11 @@ class AssociatedInterfaceRegistry;
 
 namespace content {
 class BrowserContext;
+#if defined(USE_NEVA_APPRUNTIME)
+struct GlobalRequestID;
+class LoginDelegate;
+class WebContents;
+#endif
 }
 
 namespace service_manager {
@@ -57,7 +67,23 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
 
   // Returns the single browser context for app_shell.
   content::BrowserContext* GetBrowserContext();
-
+  // Returns true if the given page is allowed to open a window of the given
+  // type. If true is returned, |no_javascript_access| will indicate whether
+  // the window that is created should be scriptable/in the same process.
+  // This is called on the UI thread.
+  bool CanCreateWindow(content::RenderFrameHost* opener,
+                       const GURL& opener_url,
+                       const GURL& opener_top_level_frame_url,
+                       const url::Origin& source_origin,
+                       content::mojom::WindowContainerType container_type,
+                       const GURL& target_url,
+                       const content::Referrer& referrer,
+                       const std::string& frame_name,
+                       WindowOpenDisposition disposition,
+                       const blink::mojom::WindowFeatures& features,
+                       bool user_gesture,
+                       bool opener_suppressed,
+                       bool* no_javascript_access) override;
   // content::ContentBrowserClient overrides.
   std::unique_ptr<content::BrowserMainParts> CreateBrowserMainParts(
       bool is_integration_test) override;
@@ -118,6 +144,33 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
       bool* bypass_redirect_checks,
       bool* disable_secure_dns,
       network::mojom::URLLoaderFactoryOverridePtr* factory_override) override;
+#if defined(USE_NEVA_APPRUNTIME)
+  void RegisterBrowserInterfaceBindersForFrame(
+      content::RenderFrameHost* render_frame_host,
+      mojo::BinderMapWithContext<content::RenderFrameHost*>* map) override;
+  content::StoragePartitionConfig GetStoragePartitionConfigForSite(
+      content::BrowserContext* browser_context,
+      const GURL& site) override;
+  void OnNetworkServiceCreated(
+      network::mojom::NetworkService* network_service) override;
+  void ConfigureNetworkContextParams(
+      content::BrowserContext* context,
+      bool in_memory,
+      const base::FilePath& relative_partition_path,
+      network::mojom::NetworkContextParams* network_context_params,
+      cert_verifier::mojom::CertVerifierCreationParams*
+          cert_verifier_creation_params)
+      override;
+  std::unique_ptr<content::LoginDelegate> CreateLoginDelegate(
+      const net::AuthChallengeInfo& auth_info,
+      content::WebContents* web_contents,
+      const content::GlobalRequestID& request_id,
+      bool is_request_for_main_frame,
+      const GURL& url,
+      scoped_refptr<net::HttpResponseHeaders> response_headers,
+      bool first_auth_attempt,
+      LoginAuthRequiredCallback auth_required_callback) override;
+#endif
   bool HandleExternalProtocol(
       const GURL& url,
       content::WebContents::Getter web_contents_getter,
@@ -139,6 +192,28 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
       network::mojom::URLLoaderFactoryParams* factory_params) override;
   base::FilePath GetSandboxedStorageServiceDataDirectory() override;
   std::string GetUserAgent() override;
+#if defined(USE_NEVA_APPRUNTIME)
+  blink::UserAgentMetadata GetUserAgentMetadata() override;
+#endif  // defined(USE_NEVA_APPRUNTIME)
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  void OverrideWebkitPrefs(content::WebContents* web_contents,
+                           blink::web_pref::WebPreferences* prefs) override;
+  void set_override_web_preferences_callback(
+      base::RepeatingCallback<void(blink::web_pref::WebPreferences*)>
+          callback) {
+    override_web_preferences_callback_ = std::move(callback);
+  }
+
+  std::vector<std::unique_ptr<blink::URLLoaderThrottle>>
+  CreateURLLoaderThrottles(
+      const network::ResourceRequest& request,
+      content::BrowserContext* browser_context,
+      const base::RepeatingCallback<content::WebContents*()>& wc_getter,
+      content::NavigationUIData* navigation_ui_data,
+      int frame_tree_node_id) override;
+  scoped_refptr<network::SharedURLLoaderFactory>
+  GetSystemSharedURLLoaderFactory() override;
+#endif
 
  protected:
   // Subclasses may wish to provide their own ShellBrowserMainParts.
@@ -153,11 +228,28 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
   // Returns the extension or app associated with |site_instance| or NULL.
   const Extension* GetExtension(content::SiteInstance* site_instance);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  class StubBadgeService;
+
+  void BindBadgeServiceForFrame(
+      content::RenderFrameHost* render_frame_host,
+      mojo::PendingReceiver<blink::mojom::BadgeService> receiver);
+
+  std::unique_ptr<StubBadgeService> stub_badge_service_;
+
+  // Store the path of V8 snapshot blob for app_shell.
+  std::pair<int, std::string> v8_snapshot_path_;
+#endif
+
   // Owned by content::BrowserMainLoop.
   raw_ptr<ShellBrowserMainParts> browser_main_parts_;
 
   // Owned by ShellBrowserMainParts.
   raw_ptr<ShellBrowserMainDelegate> browser_main_delegate_;
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  base::RepeatingCallback<void(blink::web_pref::WebPreferences*)>
+      override_web_preferences_callback_;
+#endif
 };
 
 }  // namespace extensions

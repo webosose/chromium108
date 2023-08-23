@@ -78,4 +78,13 @@ struct CompositorFrameMetadata {
   // be replaced by corresponding live render passes or cached textures in the
   // Viz process.
   bool has_shared_element_resources;
+
+  [EnableIf=use_neva_appruntime]
+  bool is_first_contentful_paint;
+
+  [EnableIf=use_neva_appruntime]
+  bool did_reset_container_state;
+
+  [EnableIf=use_neva_appruntime]
+  bool seen_first_contentful_paint;
 };

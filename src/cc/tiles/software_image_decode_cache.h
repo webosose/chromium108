@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "base/containers/lru_cache.h"
+#include "base/memory/memory_pressure_listener.h"
 #include "base/memory/ref_counted.h"
 #include "base/numerics/safe_math.h"
 #include "base/thread_annotations.h"
@@ -110,6 +111,11 @@ class CC_EXPORT SoftwareImageDecodeCache
   void ReduceCacheUsageUntilWithinLimit(size_t limit)
       EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void OnMemoryPressure(
+      base::MemoryPressureListener::MemoryPressureLevel level);
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
   // Helper method to get the different tasks. Note that this should be used as
   // if it was public (ie, all of the locks need to be properly acquired).
   TaskResult GetTaskForImageAndRefInternal(const DrawImage& image,
@@ -141,6 +147,10 @@ class CC_EXPORT SoftwareImageDecodeCache
   // Decoded images and ref counts (predecode path).
   ImageLRUCache decoded_images_ GUARDED_BY(lock_);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  std::unique_ptr<base::MemoryPressureListener> memory_pressure_listener_;
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
   // A map of PaintImage::FrameKey to the ImageKeys for cached decodes of this
   // PaintImage.
   std::unordered_map<PaintImage::FrameKey,
@@ -156,7 +166,11 @@ class CC_EXPORT SoftwareImageDecodeCache
   const SkColorType color_type_;
   const PaintImage::GeneratorClientId generator_client_id_;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  size_t max_items_in_cache_;
+#else
   const size_t max_items_in_cache_;
+#endif  // defined(USE_NEVA_APPRUNTIME)
 };
 
 }  // namespace cc

@@ -51,6 +51,18 @@ class __thisIsHereToForceASemicolonAfterThisMacro;
   void* operator new(size_t, NotNullTag, void*) = delete; \
   void* operator new(size_t, void*) = delete
 
+// TODO(neva): Workaround to suppress the warnings flood for GCC build
+// because of [[maybe_unused]]
+#if !defined(__clang__)
+#define STACK_ALLOCATED()                                 \
+ public:                                                  \
+  using IsStackAllocatedTypeMarker = int;                 \
+                                                          \
+ private:                                                 \
+  void* operator new(size_t) = delete;                    \
+  void* operator new(size_t, NotNullTag, void*) = delete; \
+  void* operator new(size_t, void*) = delete
+#else
 #define STACK_ALLOCATED()                                  \
  public:                                                   \
   using IsStackAllocatedTypeMarker [[maybe_unused]] = int; \
@@ -59,6 +71,7 @@ class __thisIsHereToForceASemicolonAfterThisMacro;
   void* operator new(size_t) = delete;                     \
   void* operator new(size_t, NotNullTag, void*) = delete;  \
   void* operator new(size_t, void*) = delete
+#endif
 
 // Provides customizable overrides of fastMalloc/fastFree and operator
 // new/delete

@@ -33,4 +33,11 @@ GpuPlatformSupportHost* CreateStubGpuPlatformSupportHost() {
   return new StubGpuPlatformSupportHost;
 }
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+void GpuPlatformSupportHost::OnGpuProcessLaunched(
+    int host_id,
+    base::RepeatingCallback<void(IPC::Message*)> sender) {}
+void GpuPlatformSupportHost::OnMessageReceived(const IPC::Message& message) {}
+#endif
+
 }  // namespace ui

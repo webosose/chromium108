@@ -221,6 +221,8 @@ class CORE_EXPORT WebFrameWidgetImpl
                      base::OnceCallback<void(bool)>) override;
   void NotifyPresentationTimeInBlink(
       base::OnceCallback<void(base::TimeTicks)> presentation_callback) final;
+  void NotifyVizFMPSwap(bool is_first_contentful_paint,
+                        bool did_reset_container_state) final;
   void RequestBeginMainFrameNotExpected(bool request) final;
   int GetLayerTreeId() final;
   const cc::LayerTreeSettings& GetLayerTreeSettings() final;
@@ -379,6 +381,9 @@ class CORE_EXPORT WebFrameWidgetImpl
   void SetCursor(const ui::Cursor& cursor) override;
   bool HandlingInputEvent() override;
   void SetHandlingInputEvent(bool handling) override;
+#if defined(USE_NEVA_APPRUNTIME)
+  bool HasImeEventGuard() const override;
+#endif
   void ProcessInputEventSynchronouslyForTesting(
       const WebCoalescedInputEvent&) override;
   WebInputEventResult DispatchBufferedTouchEvents() override;
@@ -422,6 +427,11 @@ class CORE_EXPORT WebFrameWidgetImpl
                          const gfx::PointF& screen_point,
                          ui::mojom::blink::DragOperation,
                          base::OnceClosure callback) override;
+#if defined(USE_NEVA_APPRUNTIME)
+  // mojom::blink::FrameWidget overrides:
+  void ActivateCompositor() override;
+  void DeactivateCompositor() override;
+#endif  // USE_NEVA_APPRUNTIME
 
   // mojom::blink::FrameWidgetInputHandler overrides:
   void HandleStylusWritingGestureAction(

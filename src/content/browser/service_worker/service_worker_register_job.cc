@@ -60,6 +60,9 @@ ServiceWorkerRegisterJob::ServiceWorkerRegisterJob(
     : context_(context),
       job_type_(REGISTRATION_JOB),
       scope_(options.scope),
+#if defined(USE_NEVA_APPRUNTIME)
+      app_id_(options.app_id),
+#endif
       script_url_(script_url),
       key_(key),
       worker_script_type_(options.type),
@@ -396,8 +399,13 @@ void ServiceWorkerRegisterJob::OnUpdateCheckFinished(
 void ServiceWorkerRegisterJob::RegisterAndContinue() {
   SetPhase(REGISTER);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  blink::mojom::ServiceWorkerRegistrationOptions options(
+      scope_, worker_script_type_, update_via_cache_, app_id_);
+#else
   blink::mojom::ServiceWorkerRegistrationOptions options(
       scope_, worker_script_type_, update_via_cache_);
+#endif
   context_->registry()->CreateNewRegistration(
       options, key_, ancestor_frame_type_,
       base::BindOnce(&ServiceWorkerRegisterJob::ContinueWithNewRegistration,

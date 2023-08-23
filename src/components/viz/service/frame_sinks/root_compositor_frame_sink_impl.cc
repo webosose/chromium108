@@ -75,6 +75,10 @@ RootCompositorFrameSinkImpl::Create(
     FrameSinkManagerImpl* frame_sink_manager,
     OutputSurfaceProvider* output_surface_provider,
     uint32_t restart_id,
+#if defined(USE_NEVA_APPRUNTIME)
+    bool use_viz_fmp_with_timeout,
+    uint32_t viz_fmp_timeout,
+#endif
     bool run_all_compositor_stages_before_draw,
     const DebugRendererSettings* debug_settings,
     HintSessionFactory* hint_session_factory) {
@@ -170,7 +174,11 @@ RootCompositorFrameSinkImpl::Create(
   DCHECK_GT(capabilities.pending_swap_params.max_pending_swaps, 0);
   auto scheduler = std::make_unique<DisplayScheduler>(
       begin_frame_source, task_runner.get(), capabilities.pending_swap_params,
-      hint_session_factory, run_all_compositor_stages_before_draw);
+      hint_session_factory,
+#if defined(USE_NEVA_APPRUNTIME)
+      use_viz_fmp_with_timeout, viz_fmp_timeout,
+#endif
+      run_all_compositor_stages_before_draw);
 
 #if !BUILDFLAG(IS_APPLE)
   auto* output_surface_ptr = output_surface.get();
@@ -407,6 +415,17 @@ void RootCompositorFrameSinkImpl::SetStandaloneBeginFrameObserver(
                                                      begin_frame_source());
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+void RootCompositorFrameSinkImpl::RenderProcessGone() {
+  display_->RenderProcessGone();
+}
+
+void RootCompositorFrameSinkImpl::SetFirstActivateTimeout(
+    base::TimeDelta timeout) {
+  display_->SetFirstActivateTimeout(timeout);
+}
+#endif
+
 void RootCompositorFrameSinkImpl::SetNeedsBeginFrame(bool needs_begin_frame) {
   support_->SetNeedsBeginFrame(needs_begin_frame);
 }
@@ -572,6 +591,10 @@ void RootCompositorFrameSinkImpl::DisplayDidReceiveCALayerParams(
 
 void RootCompositorFrameSinkImpl::DisplayDidCompleteSwapWithSize(
     const gfx::Size& pixel_size) {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (display_client_)
+    display_client_->DidCompleteSwap();
+#endif
 #if BUILDFLAG(IS_ANDROID)
   if (display_client_ && enable_swap_competion_callback_)
     display_client_->DidCompleteSwapWithSize(pixel_size);

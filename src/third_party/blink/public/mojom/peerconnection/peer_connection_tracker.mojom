@@ -15,6 +15,13 @@ enum DeviceThermalState {
   kCritical,
 };
 
+[EnableIf=neva_appruntime]
+enum DropPeerConnectionReason {
+  kPageHidden = 0,
+  kUnknown,
+  kMax = kUnknown,
+};
+
 // This constant mirrors base::PowerThermalObserver::kSpeedLimitMax
 const int32 kSpeedLimitMax = 100;
 
@@ -59,6 +66,11 @@ interface PeerConnectionManager {
 
     // Requests legacy PeerConnection stats for webrtc-internals.
     GetLegacyStats();
+
+   // This interface collects data about each peer connection and sends it to the
+   // browser process.
+   [EnableIf=neva_appruntime]
+   DropAllConnections() => ();
 };
 
 // This interface allows forwarding PeerConnection events to WebRTCInternals in

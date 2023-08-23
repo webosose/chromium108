@@ -104,6 +104,7 @@ CONTENT_EXPORT extern const char kDisableZeroCopyDxgiVideo[];
 CONTENT_EXPORT extern const char kDomAutomationController[];
 extern const char kDisable2dCanvasClipAntialiasing[];
 CONTENT_EXPORT extern const char kDurableClientHintsCache[];
+CONTENT_EXPORT extern const char kEnableAccessibilityExploreByMouse[];
 CONTENT_EXPORT extern const char kEnableAggressiveDOMStorageFlushing[];
 CONTENT_EXPORT extern const char kEnableAutomation[];
 CONTENT_EXPORT extern const char kEnableBlinkFeatures[];
@@ -116,6 +117,7 @@ CONTENT_EXPORT extern const char kEnableExperimentalWebPlatformFeatures[];
 CONTENT_EXPORT extern const char kEnableFakeNoAllocDirectCallForTesting[];
 CONTENT_EXPORT extern const char kEnableBlinkTestFeatures[];
 CONTENT_EXPORT extern const char kEnableGpuMemoryBufferVideoFrames[];
+CONTENT_EXPORT extern const char kEnableKeyEventThrottling[];
 CONTENT_EXPORT extern const char kEnableLCDText[];
 CONTENT_EXPORT extern const char kEnableLogging[];
 CONTENT_EXPORT extern const char kEnableNetworkInformationDownlinkMax[];
@@ -127,6 +129,7 @@ CONTENT_EXPORT extern const char kEnableServiceBinaryLauncher[];
 extern const char kEnableSkiaBenchmarking[];
 CONTENT_EXPORT extern const char kEnableSmoothScrolling[];
 CONTENT_EXPORT extern const char kEnableSpatialNavigation[];
+CONTENT_EXPORT extern const char kEnableCSSNavigation[];
 CONTENT_EXPORT extern const char kEnableStrictMixedContentChecking[];
 CONTENT_EXPORT extern const char kEnableStrictPowerfulFeatureRestrictions[];
 CONTENT_EXPORT extern const char kEnableThreadedCompositing[];
@@ -296,6 +299,15 @@ CONTENT_EXPORT extern const char kAudioProcessHighPriority[];
 #if defined(ENABLE_IPC_FUZZER)
 extern const char kIpcDumpDirectory[];
 extern const char kIpcFuzzerTestcase[];
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+CONTENT_EXPORT extern const char kMaxActivatedMediaPlayers[];
+CONTENT_EXPORT extern const char kMaxTimeupdateEventFrequency[];
+#endif
+
+#if defined(USE_NEVA_APPRUNTIME)
+CONTENT_EXPORT extern const char kEnableV8CacheForWebappList[];
 #endif
 
 // DON'T ADD RANDOM STUFF HERE. Put it in the main section above in

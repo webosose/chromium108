@@ -1,0 +1,44 @@
+{
+    "exeName": "/usr/bin/app-shell/app_shell",
+    "type": "privileged",
+    "allowedNames": [
+        "com.webos.app.enactbrowser",
+        "com.webos.chromium.audio-*",
+        "com.webos.chromium.camera-*",
+        "com.webos.chromium.memory.*",
+        "com.webos.rm.client.*"
+    ],
+    "permissions": [
+        {
+            "service": "com.webos.app.enactbrowser",
+            "outbound": [
+                "com.palm.bus",
+                "com.webos.applicationManager",
+                "com.webos.settingsservice"
+            ]
+        },
+        {
+            "service":"com.webos.chromium.audio-*",
+            "outbound":[
+                "com.webos.service.audio"
+            ]
+        },
+        {
+            "service":"com.webos.chromium.camera-*",
+            "outbound":[
+                "com.webos.service.camera2"
+            ]
+        },
+        {
+            "service": "com.webos.chromium.memory.*",
+            "outbound": [
+                "com.palm.bus",
+                "com.webos.service.memorymanager"
+            ]
+        },
+        {
+            "service": "com.webos.rm.client.*",
+            "outbound": ["com.webos.media"]
+        }
+    ]
+}

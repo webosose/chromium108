@@ -120,7 +120,14 @@ void AudioRendererMixerInput::Flush() {}
 
 bool AudioRendererMixerInput::SetVolume(double volume) {
   base::AutoLock auto_lock(volume_lock_);
+#if defined(USE_WEBOS_AUDIO)
+  if (sink_)
+    sink_->SetVolume(volume);
+  else if (mixer_ && mixer_->audio_renderer_sink())
+    mixer_->audio_renderer_sink()->SetVolume(volume);
+#else
   volume_ = volume;
+#endif
   return true;
 }
 

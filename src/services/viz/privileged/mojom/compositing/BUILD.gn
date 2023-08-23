@@ -5,6 +5,7 @@
 import("//build/config/ui.gni")
 import("//components/viz/viz.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
+import("//neva/neva.gni")
 
 mojom("compositing") {
   sources = [
@@ -42,6 +43,9 @@ mojom("compositing") {
   }
   if (enable_cast_overlay_strategy) {
     enabled_features += [ "enable_cast_overlay_strategy" ]
+  }
+  if (use_neva_appruntime) {
+    enabled_features += [ "use_neva_appruntime" ]
   }
 
   cpp_typemaps = [

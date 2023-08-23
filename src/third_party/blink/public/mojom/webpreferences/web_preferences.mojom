@@ -65,6 +65,13 @@ enum AutoplayPolicy {
   kDocumentUserActivationRequired,
 };
 
+// Policy for when to display the first frame when launching a webapp.
+// Should match the class in first_frame_policy.h.
+enum FirstFramePolicy {
+  kImmediate,
+  kContents,
+};
+
 enum EffectiveConnectionType {
   // Effective connection type reported when the network quality is unknown.
   kEffectiveConnectionUnknownType,
@@ -96,6 +103,17 @@ enum EffectiveConnectionType {
   // Last value of the effective connection type. This value is unused.
   kEffectiveConnectionTypeLast,
 };
+
+
+///@name USE_NEVA_APPRUNTIME
+///@{
+// Third party cookies policy. As optional is not allowed, use an enum.
+enum ThirdPartyCookiesPolicy {
+  kDefault,
+  kAllow,
+  kDeny,
+};
+///@}
 
 struct WebPreferences {
   map<string, mojo_base.mojom.String16> standard_font_family_map;
@@ -264,6 +282,8 @@ struct WebPreferences {
   // Representation of the Web App Manifest scope if any.
   url.mojom.Url web_app_scope;
 
+  bool accessibility_explore_by_mouse_enabled;
+
   [EnableIf=is_android]
   float font_scale_factor;
 
@@ -376,6 +396,33 @@ struct WebPreferences {
   // TODO(changwan): remove this once we no longer support Android N.
   bool do_not_update_selection_on_mutating_selection_range;
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  // Defines the cross origin policy.
+  [EnableIf=neva_appruntime]
+  bool x_frame_options_cross_origin_allowed;
+
+  // Policy for when to display the first frame when launching a webapp.
+  [EnableIf=neva_appruntime]
+  FirstFramePolicy first_frame_policy;
+
+  // Keep alive webapp.
+  [EnableIf=neva_appruntime]
+  bool keep_alive_webapp;
+
+  // Third party cookies policy
+  [EnableIf=neva_appruntime]
+  ThirdPartyCookiesPolicy third_party_cookies_policy;
+  ///@}
+
+  ///@name USE_NEVA_MEDIA
+  ///@{
+  // The spec says to fire periodic timeupdate events (those sent while playing)
+  // every "15 to 250ms"
+  [EnableIf=neva_media]
+  int32 max_timeupdate_event_frequency;
+  ///@}
+
   // Defines the current autoplay policy.
   AutoplayPolicy autoplay_policy;
 
@@ -441,4 +488,9 @@ struct WebPreferences {
   bool renderer_wide_named_frame_lookup;
 
   bool strict_mime_type_check_for_worker_scripts_enabled = true;
+
+  // CSS UI keyboard control properties (‘nav-index’, ‘nav-up’, ‘nav-down’,
+  // ‘nav-right’, ‘nav-left’) support.
+  // See https://www.w3.org/TR/2021/WD-css-ui-4-20210316/#nav-dir
+  bool css_navigation_enabled;
 };

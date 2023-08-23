@@ -23,6 +23,47 @@ clang_toolchain("clang_arm") {
   }
 }
 
+clang_toolchain("clang_webos_arm") {
+  extra_cxxflags = clang_extra_cxxflags
+  toolchain_args = {
+    current_cpu = "arm"
+    current_os = "linux"
+    is_clang = true
+    use_custom_libcxx = true
+  }
+}
+
+clang_toolchain("clang_webos_x86") {
+  extra_cxxflags = clang_extra_cxxflags
+  toolchain_args = {
+    current_cpu = "arm"
+    current_os = "linux"
+    is_clang = true
+    use_custom_libcxx = true
+  }
+}
+
+
+clang_toolchain("clang_webos_arm64") {
+  extra_cxxflags = clang_extra_cxxflags
+  toolchain_args = {
+    current_cpu = "arm64"
+    current_os = "linux"
+    is_clang = true
+    use_custom_libcxx = true
+  }
+}
+
+clang_toolchain("clang_webos_x64") {
+  extra_cxxflags = clang_extra_cxxflags
+  toolchain_args = {
+    current_cpu = "arm"
+    current_os = "linux"
+    is_clang = true
+    use_custom_libcxx = true
+  }
+}
+
 clang_toolchain("clang_arm64") {
   toolchain_args = {
     current_cpu = "arm64"

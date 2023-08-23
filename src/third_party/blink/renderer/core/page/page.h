@@ -548,6 +548,8 @@ class CORE_EXPORT Page final : public GarbageCollected<Page>,
   mojom::blink::TextAutosizerPageInfo web_text_autosizer_page_info_;
 
   WebScopedVirtualTimePauser history_navigation_virtual_time_pauser_;
+
+  bool is_destroying_ = false;
 };
 
 extern template class CORE_EXTERN_TEMPLATE_EXPORT Supplement<Page>;

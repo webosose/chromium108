@@ -27,8 +27,14 @@ enum class AudioDecoderType : int {
   kMediaFoundation = 8,  // MediaFoundationAudioDecoder
   kPassthroughDTS = 9,   // Passthrough DTS audio
 
+#if defined(USE_NEVA_MEDIA)
+  kNeva = 50,
+  // Keep this at the end and equal to the last entry.
+  kMaxValue = kNeva
+#else
   // Keep this at the end and equal to the last entry.
   kMaxValue = kPassthroughDTS,
+#endif  // defined(USE_NEVA_MEDIA)
 };
 
 // List of known VideoDecoder implementations; recorded to UKM, always add new
@@ -50,12 +56,18 @@ enum class VideoDecoderType : int {
   kBroker = 13,     // VideoDecoderBroker (Webcodecs)
   kVda = 14,        // VDAVideoDecoder
   // kChromeOs = 15,  // DEPRECATED, should be kVaapi or kV4L2 instead.
-  kV4L2 = 16,       // V4L2VideoDecoder
+  kV4L2 = 16,  // V4L2VideoDecoder
 
   kTesting = 17,  // Never send this to UKM, for tests only.
 
+#if defined(USE_NEVA_MEDIA)
+  kNeva = 50,
+  // Keep this at the end and equal to the last entry.
+  kMaxValue = kNeva
+#else
   // Keep this at the end and equal to the last entry.
   kMaxValue = kTesting
+#endif  // defined(USE_NEVA_MEDIA)
 };
 
 MEDIA_EXPORT std::string GetDecoderName(AudioDecoderType type);

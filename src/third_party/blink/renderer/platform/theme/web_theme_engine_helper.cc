@@ -15,6 +15,15 @@
 #include "third_party/blink/renderer/platform/theme/web_theme_engine_default.h"
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+// TODO(neva, 92.0.4515.0): Read the comment below
+#include "third_party/blink/public/platform/web_security_origin.h"
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+#include "media/neva/media_preferences.h"
+#endif
+
 namespace blink {
 
 namespace {
@@ -57,6 +66,17 @@ void WebThemeEngineHelper::DidUpdateRendererPreferences(
       renderer_prefs.arrow_bitmap_height_vertical_scroll_bar_in_dips,
       renderer_prefs.arrow_bitmap_width_horizontal_scroll_bar_in_dips);
 #endif
+
+#if defined(USE_NEVA_MEDIA)
+  std::string media_codec_capability = renderer_prefs.media_codec_capability;
+  if (!media_codec_capability.empty())
+    media::MediaPreferences::Get()->SetMediaCodecCapabilities(
+        media_codec_capability);
+
+  std::string media_preferences = renderer_prefs.media_preferences;
+  if (!media_preferences.empty())
+    media::MediaPreferences::Get()->Update(media_preferences);
+#endif  // defined(USE_NEVA_MEDIA)
 }
 
 }  // namespace blink

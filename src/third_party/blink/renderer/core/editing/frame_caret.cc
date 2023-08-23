@@ -178,6 +178,10 @@ void FrameCaret::InvalidatePaint(const LayoutBlock& block,
   display_item_client_->InvalidatePaint(block, context);
 }
 
+float FrameCaret::GetCaretWidth() const {
+  return display_item_client_->CaretWidth();
+}
+
 gfx::Rect FrameCaret::AbsoluteCaretBounds() const {
   DCHECK_NE(frame_->GetDocument()->Lifecycle().GetState(),
             DocumentLifecycle::kInPrePaint);

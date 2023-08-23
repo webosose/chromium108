@@ -86,6 +86,9 @@ class CONTENT_EXPORT ServiceWorkerRegistration
 
   int64_t id() const { return registration_id_; }
   const GURL& scope() const { return scope_; }
+#if defined(USE_NEVA_APPRUNTIME)
+  const std::string& app_id() const { return app_id_; }
+#endif
   const blink::StorageKey& key() const { return key_; }
   blink::mojom::ServiceWorkerUpdateViaCache update_via_cache() const {
     return update_via_cache_;
@@ -269,6 +272,9 @@ class CONTENT_EXPORT ServiceWorkerRegistration
   };
 
   const GURL scope_;
+#if defined(USE_NEVA_APPRUNTIME)
+  const std::string app_id_;
+#endif
   const blink::StorageKey key_;
   blink::mojom::ServiceWorkerUpdateViaCache update_via_cache_;
   const int64_t registration_id_;

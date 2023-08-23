@@ -60,6 +60,13 @@ WaylandBufferManagerHost::BindInterface() {
   return buffer_manager_host;
 }
 
+#if defined(USE_NEVA_MEDIA)
+void WaylandBufferManagerHost::BindVideoWindowProviderClient(
+    mojo::Remote<mojom::VideoWindowProviderClient> remote) {
+  connection_->BindVideoWindowProviderClient(std::move(remote));
+}
+#endif  // defined(USE_NEVA_MEDIA)
+
 void WaylandBufferManagerHost::OnChannelDestroyed() {
   DCHECK(base::CurrentUIThread::IsSet());
 

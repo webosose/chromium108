@@ -211,6 +211,9 @@ NET_EXPORT extern const base::FeatureParam<std::string>
 // Changes the timeout after which unused sockets idle sockets are cleaned up.
 NET_EXPORT BASE_DECLARE_FEATURE(kNetUnusedIdleSocketTimeout);
 
+// When enabled, cookies are more immediately written to the media.
+NET_EXPORT extern const base::Feature kAggressiveFlushing;
+
 // When enabled, the time threshold for Lax-allow-unsafe cookies will be lowered
 // from 2 minutes to 10 seconds. This time threshold refers to the age cutoff
 // for which cookies that default into SameSite=Lax, which are newer than the

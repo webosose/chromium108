@@ -108,6 +108,17 @@ InputStream::InputStream(
                                     params.AsHumanReadableString());
   SendLogMessage("%s", GetCtorLogString(device_id, params, enable_agc).c_str());
 
+#if defined(USE_WEBOS_AUDIO)
+  // Input stream need to be created in task runner provided by Audio
+  // Manager WebOS in order to be able to communicate with Luna async
+  audio_manager->GetTaskRunner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(&InputStream::CreateStreamAsync, base::Unretained(this),
+                     audio_manager, activity_monitor, params, device_id,
+                     enable_agc));
+  return;
+#endif
+
   // |this| owns these objects, so unretained is safe.
   base::RepeatingClosure error_handler =
       base::BindRepeating(&InputStream::OnStreamError, base::Unretained(this),
@@ -190,6 +201,26 @@ void InputStream::Record() {
   if (log_)
     log_->OnStarted();
 }
+
+#if defined(USE_NEVA_SUSPEND_MEDIA_CAPTURE)
+void InputStream::Pause() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(owning_sequence_);
+  DCHECK(controller_);
+  TRACE_EVENT_NESTABLE_ASYNC_INSTANT0("audio", "Pause", this);
+  controller_->Pause();
+  if (log_)
+    log_->OnPaused();
+}
+
+void InputStream::Resume() {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(owning_sequence_);
+  DCHECK(controller_);
+  TRACE_EVENT_NESTABLE_ASYNC_INSTANT0("audio", "Resume", this);
+  controller_->Resume();
+  if (log_)
+    log_->OnResumed();
+}
+#endif
 
 void InputStream::SetVolume(double volume) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(owning_sequence_);
@@ -319,5 +350,42 @@ void InputStream::SendLogMessage(const char* format, ...) {
                      base::StringPrintf(" [id=%s]", id_.ToString().c_str()));
   va_end(args);
 }
+
+#if defined(USE_WEBOS_AUDIO)
+void InputStream::CreateStreamAsync(
+    media::AudioManager* audio_manager,
+    InputStreamActivityMonitor* activity_monitor,
+    const media::AudioParameters& params,
+    const std::string& device_id,
+    bool enable_agc) {
+  VLOG(1) << __func__ << " device_id=" << device_id;
+
+  base::RepeatingClosure error_handler =
+      base::BindRepeating(&InputStream::OnStreamError, base::Unretained(this),
+                          absl::optional<DisconnectReason>());
+  receiver_.set_disconnect_handler(error_handler);
+  client_.set_disconnect_handler(error_handler);
+
+  if (observer_)
+    observer_.set_disconnect_handler(std::move(error_handler));
+
+  if (log_)
+    log_->OnCreated(params, device_id);
+
+  if (params.channels() > kMaxInputChannels) {
+    OnStreamPlatformError();
+    return;
+  }
+
+  if (!writer_) {
+    OnStreamPlatformError();
+    return;
+  }
+
+  controller_ = InputController::Create(
+      audio_manager, this, writer_.get(), user_input_monitor_.get(),
+      activity_monitor, params, device_id, enable_agc);
+}
+#endif
 
 }  // namespace audio

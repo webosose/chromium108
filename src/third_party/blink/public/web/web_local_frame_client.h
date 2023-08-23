@@ -772,6 +772,11 @@ class BLINK_EXPORT WebLocalFrameClient {
       const absl::optional<WebPictureInPictureWindowOptions>& pip_options) {
     return nullptr;
   }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // APPRUNTIME has own procedure for regulating access to local resources.
+  virtual bool IsAccessAllowedForURL(const blink::WebURL& url) { return true; }
+#endif
 };
 
 }  // namespace blink

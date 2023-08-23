@@ -19,6 +19,7 @@
 #include "net/http/http_request_headers.h"
 #include "net/http/http_util.h"
 #include "services/network/public/cpp/is_potentially_trustworthy.h"
+#include "services/network/public/cpp/neva/cors_corb_exception.h"
 #include "services/network/public/cpp/request_mode.h"
 #include "url/gurl.h"
 #include "url/origin.h"
@@ -229,10 +230,17 @@ base::expected<void, CorsErrorStatus> CheckAccessAndReportMetrics(
     const absl::optional<std::string>& allow_origin_header,
     const absl::optional<std::string>& allow_credentials_header,
     mojom::CredentialsMode credentials_mode,
-    const url::Origin& origin) {
+    const url::Origin& origin,
+    bool non_strict_mode) {
   auto check_result =
       CheckAccess(response_url, allow_origin_header, allow_credentials_header,
                   credentials_mode, origin);
+
+  if (non_strict_mode && !check_result.has_value() &&
+      neva::CorsCorbException::ApplyException(check_result.error())) {
+    check_result = base::expected<void, CorsErrorStatus>();
+  }
+
   cors::AccessCheckResult result = check_result.has_value()
                                        ? cors::AccessCheckResult::kPermitted
                                        : cors::AccessCheckResult::kNotPermitted;

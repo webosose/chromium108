@@ -65,6 +65,17 @@
 #include "extensions/browser/pref_names.h"
 #endif
 
+#if defined(OS_WEBOS)
+#include "base/command_line.h"
+#include "base/files/file_util.h"
+#include "base/neva/neva_paths.h"
+#include "base/path_service.h"
+#include "extensions/common/switches.h"
+#include "ui/aura/window.h"
+#include "ui/aura/window_tree_host.h"
+#include "ui/compositor/compositor.h"
+#endif
+
 using blink::mojom::ConsoleMessageLevel;
 using content::BrowserContext;
 using content::WebContents;
@@ -252,6 +263,24 @@ void AppWindow::Init(const GURL& url,
                      std::unique_ptr<AppWindowContents> app_window_contents,
                      content::RenderFrameHost* creator_frame,
                      const CreateParams& params) {
+#if defined(OS_WEBOS)
+  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(switches::kWebOSAppId)) {
+    std::string app_id = command_line->GetSwitchValueASCII(switches::kWebOSAppId);
+    SetApplicationId(app_id);
+  }
+
+  if (command_line->HasSwitch(switches::kWebOSDisplayId)) {
+    std::string display_id =
+        command_line->GetSwitchValueASCII(switches::kWebOSDisplayId);
+    SetDisplayId(display_id);
+  }
+
+  base::FilePath path;
+  base::PathService::Get(base::FILE_MEDIA_CODEC_CAPABILITIES, &path);
+  ReadMediaCapabilityFromPath(path);
+#endif
+
   // Initialize the render interface and web contents
   app_window_contents_ = std::move(app_window_contents);
   app_window_contents_->Initialize(browser_context(), creator_frame, url);
@@ -293,6 +322,12 @@ void AppWindow::Init(const GURL& url,
   AppWindowClient* app_window_client = AppWindowClient::Get();
   native_app_window_ =
       app_window_client->CreateNativeAppWindow(this, &new_params);
+
+#if defined(OS_WEBOS)
+  ui::Compositor* compositor = GetNativeWindow()->GetHost()->compositor();
+  if (compositor)
+    compositor->SetVisible(false);
+#endif
 
   helper_ = std::make_unique<AppWebContentsHelper>(
       browser_context_, extension_id_, web_contents(), app_delegate_.get());
@@ -462,6 +497,28 @@ bool AppWindow::OnMessageReceived(const IPC::Message& message,
 void AppWindow::RenderFrameCreated(content::RenderFrameHost* frame_host) {
   app_delegate_->RenderFrameCreated(frame_host);
 }
+
+#if defined(OS_WEBOS)
+void AppWindow::DidFirstVisuallyNonEmptyPaint() {
+  ui::Compositor* compositor = GetNativeWindow()->GetHost()->compositor();
+  if (compositor && !compositor->IsVisible())
+    compositor->SetVisible(true);
+}
+
+void AppWindow::ReadMediaCapabilityFromPath(const base::FilePath& path) {
+  VLOG(1) << __func__ << " path: " << path.MaybeAsASCII();
+
+  if (!base::PathExists(path)) {
+    LOG(ERROR) << "File does not exist: " << path.MaybeAsASCII();
+    return;
+  }
+
+  if (!base::ReadFileToString(path, &media_codec_capability_)) {
+    LOG(ERROR) << "Error reading file: " << path.MaybeAsASCII();
+    media_codec_capability_.clear();
+  }
+}
+#endif
 
 void AppWindow::AddOnDidFinishFirstNavigationCallback(
     DidFinishFirstNavigationCallback callback) {

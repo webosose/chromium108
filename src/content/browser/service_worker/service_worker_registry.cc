@@ -389,6 +389,9 @@ void ServiceWorkerRegistry::StoreRegistration(
   auto data = storage::mojom::ServiceWorkerRegistrationData::New();
   data->registration_id = registration->id();
   data->scope = registration->scope();
+#if defined(USE_NEVA_APPRUNTIME)
+  data->app_id = registration->app_id();
+#endif
   data->key = registration->key();
   data->script = version->script_url();
   data->script_type = version->script_type();
@@ -889,8 +892,13 @@ ServiceWorkerRegistry::GetOrCreateRegistration(
   if (registration)
     return registration;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  blink::mojom::ServiceWorkerRegistrationOptions options(
+      data.scope, data.script_type, data.update_via_cache, data.app_id);
+#else
   blink::mojom::ServiceWorkerRegistrationOptions options(
       data.scope, data.script_type, data.update_via_cache);
+#endif
   registration = base::MakeRefCounted<ServiceWorkerRegistration>(
       options, data.key, data.registration_id, context_->AsWeakPtr(),
       data.ancestor_frame_type);

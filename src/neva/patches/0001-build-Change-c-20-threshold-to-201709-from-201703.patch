@@ -1,0 +1,50 @@
+From 9e29edc3eab760494b25dc493ec4dde50d6e4b34 Mon Sep 17 00:00:00 2001
+From: Yunsik Jung <yunsik.jung@lge.com>
+Date: Wed, 23 Nov 2022 17:20:29 +0900
+Subject: [PATCH] [build] Change c++ 20 threshold to 201709 from 201703
+
+:Release Notes:
+Changed c++ 20 threshold to 201709 from 201703 for GCC in Neva
+
+:Detailed Notes:
+In the CL https://crrev.com/c/3932022, 'std=c++17' flag is changed to
+'std=c++2a' to enable c++ 20 on Linux.
+GCC 9.3 on webOS, 9.4 on PC used in Neva does not fully support
+c++ 20 functions although 'std=c++2a' is set.
+In case of the GCC used in Neva, '__cplusplus' value is 201709L
+if it is 'std=c++2a' and 201703L if 'std=c++17'.
+If '__cplusplus' is larger than 201703L, Eigen regards it as c++ 20
+supoported compiler and uses c++ 20 function 'std::construct_at' which
+is not supported by the GCC used in Neva.
+For this reason, it causes build error when 'std=c++2a' is set.
+To fix this build error, c++ 20 threshold needs to be changed to
+201709L for the GCC in Neva with 'std=c++2a'.
+
+:Issues Addressed:
+[NEVA-7531] Upgrade neva-master-rolling up to 5350 BUILD
+---
+ Eigen/src/Core/util/Macros.h | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/Eigen/src/Core/util/Macros.h b/Eigen/src/Core/util/Macros.h
+index 7c4e4971d..c7e513eea 100644
+--- a/Eigen/src/Core/util/Macros.h
++++ b/Eigen/src/Core/util/Macros.h
+@@ -650,7 +650,13 @@
+ // The macro EIGEN_COMP_CXXVER defines the c++ version expected by the compiler.
+ // For instance, if compiling with gcc and -std=c++17, then EIGEN_COMP_CXXVER
+ // is defined to 17.
+-#if EIGEN_CPLUSPLUS > 201703L
++// TODO(neva): GCC 9.3 on webOS, 9.4 on PC uses c++ 201709 if '-std=c++2a' is set.
++// CEIGEN_COMP_CXXVER is regarded as 20 if c++ version is greater than 201703L.
++// 'std::construct_at' which is c++ 20 function is used if CEIGEN_COMP_CXXVER is 20.
++// However, the current GCC with '-std=c++2a' doesn't support this c++ 20 function.
++// Thus, threshold needs to be set to 201709L for the current GCC.
++// #if EIGEN_CPLUSPLUS > 201703L
++#if EIGEN_CPLUSPLUS > 201709L
+   #define EIGEN_COMP_CXXVER 20
+ #elif EIGEN_CPLUSPLUS > 201402L
+   #define EIGEN_COMP_CXXVER 17
+-- 
+2.38.0
+

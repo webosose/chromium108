@@ -544,7 +544,12 @@ bool V4L2VideoEncodeAccelerator::InitInputMemoryType(const Config& config) {
   } else {
     switch (config.storage_type.value_or(Config::StorageType::kShmem)) {
       case Config::StorageType::kShmem:
+#if defined(USE_NEVA_V4L2_CODEC)
+        // Raspberry Pi 4 doesn't support V4L2_MEMORY_USERPTR.
+        input_memory_type_ = V4L2_MEMORY_MMAP;
+#else
         input_memory_type_ = V4L2_MEMORY_USERPTR;
+#endif
         break;
       case Config::StorageType::kGpuMemoryBuffer:
         input_memory_type_ = V4L2_MEMORY_DMABUF;
@@ -1241,6 +1246,19 @@ void V4L2VideoEncodeAccelerator::PumpBitstreamBuffers() {
     auto output_buf = std::move(output_buffer_queue_.front());
     output_buffer_queue_.pop_front();
 
+#if defined(USE_NEVA_V4L2_CODEC)
+    frames_per_sec_++;
+    base::TimeTicks curr_time = base::TimeTicks::Now();
+    base::TimeDelta time_past = curr_time - old_time_;
+    if (time_past >= base::TimeDelta::FromSeconds(1)) {
+      LOG(INFO) << "--------------------------------------------------";
+      LOG(INFO) << __func__ << " encoded frames_per_sec: " << frames_per_sec_;
+      LOG(INFO) << "--------------------------------------------------";
+      old_time_ = curr_time;
+      frames_per_sec_ = 0;
+    }
+#endif
+
     size_t bitstream_size = base::checked_cast<size_t>(
         output_buf->GetPlaneBytesUsed(0) - output_buf->GetPlaneDataOffset(0));
     if (bitstream_size > 0) {
@@ -1378,6 +1396,16 @@ bool V4L2VideoEncodeAccelerator::EnqueueInputRecord(
             i, device_input_layout_->planes()[i].size + planes[i].offset);
         break;
       }
+#if defined(USE_NEVA_V4L2_CODEC)
+      case V4L2_MEMORY_MMAP: {
+        size_t plane_size = input_buf.GetPlaneSize(i);
+        size_t bytes_used = input_buf.GetPlaneBytesUsed(i);
+        void* mapping = input_buf.GetPlaneMapping(i);
+        memcpy(reinterpret_cast<uint8_t*>(mapping) + bytes_used, frame->data(i),
+               plane_size);
+        break;
+      }
+#endif
       default:
         NOTREACHED();
         return false;
@@ -1428,6 +1456,12 @@ bool V4L2VideoEncodeAccelerator::EnqueueInputRecord(
           [](gfx::GpuMemoryBufferHandle) {}, std::move(gmb_handle)));
       break;
     }
+#if defined(USE_NEVA_V4L2_CODEC)
+    case V4L2_MEMORY_MMAP: {
+      std::move(input_buf).QueueMMap();
+      break;
+    }
+#endif
     default:
       NOTREACHED() << "Unknown input memory type: "
                    << static_cast<int>(input_buf.Memory());
@@ -1634,7 +1668,12 @@ bool V4L2VideoEncodeAccelerator::SetOutputFormat(
   // Sets 0 to width and height in CAPTURE queue, which should be ignored by the
   // driver.
   absl::optional<struct v4l2_format> format = output_queue_->SetFormat(
+#if defined(USE_NEVA_V4L2_CODEC)
+      output_format_fourcc_, encoder_input_visible_rect_.size(),
+      output_buffer_byte_size_);
+#else
       output_format_fourcc_, gfx::Size(), output_buffer_byte_size_);
+#endif
   if (!format) {
     return false;
   }
@@ -1791,6 +1830,7 @@ bool V4L2VideoEncodeAccelerator::InitControls(const Config& config) {
   CHECK(output_format_fourcc_ == V4L2_PIX_FMT_H264 ||
         output_format_fourcc_ == V4L2_PIX_FMT_VP8);
 
+#if !defined(USE_NEVA_V4L2_CODEC)
   // Enable frame-level bitrate control. This is the only mandatory control.
   if (!device_->SetExtCtrls(
           V4L2_CTRL_CLASS_MPEG,
@@ -1799,6 +1839,7 @@ bool V4L2VideoEncodeAccelerator::InitControls(const Config& config) {
     NOTIFY_ERROR(kPlatformFailureError);
     return false;
   }
+#endif
 
   switch (output_format_fourcc_) {
     case V4L2_PIX_FMT_H264:

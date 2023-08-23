@@ -221,6 +221,9 @@ class CORE_EXPORT WebViewImpl final : public WebView,
   int32_t HistoryListLength() const { return history_list_length_; }
   const SessionStorageNamespaceId& GetSessionStorageNamespaceId() override;
   bool IsFencedFrameRoot() const override;
+#if defined(USE_NEVA_APPRUNTIME)
+  void SetKeepAliveWebApp(bool keep_alive) override;
+#endif
 
   // Functions to add and remove observers for this object.
   void AddObserver(WebViewObserver* observer);

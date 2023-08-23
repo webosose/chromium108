@@ -50,6 +50,35 @@ class WaylandWindowManager {
     return located_events_grabber_;
   }
 
+#if defined(OS_WEBOS)
+  // Stores the |device_id| and |grabber| that should grab the keyboard events.
+  void GrabKeyboardEvents(int device_id, WaylandWindow* grabber);
+
+  // Removes the |device_id| and |grabber| that should grab the keyboard events.
+  void UngrabKeyboardEvents(int device_id, WaylandWindow* grabber);
+
+  // Returns current keyboard events grabber by |device_id|.
+  WaylandWindow* keyboard_events_grabber(int device_id) const;
+
+  // Stores the |device_id| and |grabber| that should grab the touch events.
+  void GrabTouchEvents(int device_id, WaylandWindow* grabber);
+
+  // Removes the |device_id| and |grabber| that should grab the touch events.
+  void UngrabTouchEvents(int device_id, WaylandWindow* grabber);
+
+  // Returns current touch events grabber by |device_id|.
+  WaylandWindow* touch_events_grabber(int device_id) const;
+
+  // Stores the |device_id| and |grabber| that should grab the pointer events.
+  void GrabPointerEvents(int device_id, WaylandWindow* grabber);
+
+  // Removes the |device_id| and |grabber| that should grab the pointer events.
+  void UngrabPointerEvents(int device_id, WaylandWindow* grabber);
+
+  // Returns current pointer events grabber by |device_id|.
+  WaylandWindow* pointer_events_grabber(int device_id) const;
+#endif  // defined(OS_WEBOS)
+
   // Returns a window found by |widget|.
   WaylandWindow* GetWindow(gfx::AcceleratedWidget widget) const;
 
@@ -122,6 +151,20 @@ class WaylandWindowManager {
   base::flat_map<gfx::AcceleratedWidget, WaylandWindow*> window_map_;
 
   raw_ptr<WaylandWindow> located_events_grabber_ = nullptr;
+
+#if defined(OS_WEBOS)
+  // Stores keyboard device (e.g., virtual keyboard) identifiers and related
+  // events grabbers (windows).
+  base::flat_map<int, WaylandWindow*> keyboard_events_grabber_map_;
+
+  // Stores touch device (e.g., touchscreen) identifiers and related events
+  // grabbers (windows).
+  base::flat_map<int, WaylandWindow*> touch_events_grabber_map_;
+
+  // Stores pointer device (e.g., mouse HID) identifiers and related
+  // events grabbers (windows).
+  base::flat_map<int, WaylandWindow*> pointer_events_grabber_map_;
+#endif  // defined(OS_WEBOS)
 
   // Stores strictly monotonically increasing counter for allocating unique
   // AccelerateWidgets.

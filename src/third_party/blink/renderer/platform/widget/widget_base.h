@@ -269,6 +269,13 @@ class PLATFORM_EXPORT WidgetBase : public mojom::blink::Widget,
   void set_handling_select_range(bool value) { handling_select_range_ = value; }
   bool handling_select_range() const { return handling_select_range_; }
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // Returns whether produce graphical output or not
+  bool never_composited() { return never_composited_; }
+  bool HasImeEventGuard() const { return ime_event_guard_ != nullptr; }
+
+#endif
+
   bool ComputePreferCompositingToLCDText();
 
   const viz::LocalSurfaceId& local_surface_id_from_parent() {

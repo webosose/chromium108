@@ -22,6 +22,7 @@
 #include "base/files/file_util.h"
 #include "base/lazy_instance.h"
 #include "base/logging.h"
+#include "base/neva/neva_paths.h"
 #include "base/path_service.h"
 #include "base/strings/stringprintf.h"
 #include "base/threading/scoped_blocking_call.h"
@@ -35,13 +36,21 @@ namespace crypto {
 
 namespace {
 
+static const char kNevaCertificateTokenDescription[] = "NevaCertificates";
+
 #if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
 
 // Fake certificate authority database used for testing.
 static const base::FilePath::CharType kReadOnlyCertDB[] =
     FILE_PATH_LITERAL("/etc/fake_root_ca/nssdb");
 
-#else
+#elif defined(OS_WEBOS) && defined(USE_READ_ONLY_NSSDB)
+static const base::FilePath::CharType kReadOnlyCertDB[] =
+    FILE_PATH_LITERAL("/etc/pki/nssdb");
+
+#endif  // BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
+
+#if !BUILDFLAG(IS_CHROMEOS_ASH) && !BUILDFLAG(IS_CHROMEOS_LACROS)
 
 base::FilePath GetDefaultConfigDirectory() {
   base::FilePath dir;
@@ -59,7 +68,7 @@ base::FilePath GetDefaultConfigDirectory() {
   return dir;
 }
 
-#endif  // BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#endif  // !BUILDFLAG(IS_CHROMEOS_ASH) && !BUILDFLAG(IS_CHROMEOS_LACROS)
 
 // On non-Chrome OS platforms, return the default config directory. On Chrome OS
 // test images, return a read-only directory with fake root CA certs (which are
@@ -67,7 +76,8 @@ base::FilePath GetDefaultConfigDirectory() {
 // code). On Chrome OS non-test images (where the read-only directory doesn't
 // exist), return an empty path.
 base::FilePath GetInitialConfigDirectory() {
-#if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS) || \
+    (defined(OS_WEBOS) && defined(USE_READ_ONLY_NSSDB))
   base::FilePath database_dir = base::FilePath(kReadOnlyCertDB);
   if (!base::PathExists(database_dir))
     database_dir.clear();
@@ -223,7 +233,8 @@ class NSSInitSingleton {
       // Use "sql:" which can be shared by multiple processes safely.
       std::string nss_config_dir =
           base::StringPrintf("sql:%s", database_dir.value().c_str());
-#if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS)
+#if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_CHROMEOS_LACROS) || \
+    (defined(OS_WEBOS) && defined(USE_READ_ONLY_NSSDB))
       status = NSS_Init(nss_config_dir.c_str());
 #else
       status = NSS_InitReadWrite(nss_config_dir.c_str());
@@ -268,6 +279,8 @@ class NSSInitSingleton {
     NSS_SetAlgorithmPolicy(SEC_OID_MD5, 0, NSS_USE_ALG_IN_CERT_SIGNATURE);
     NSS_SetAlgorithmPolicy(SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION, 0,
                            NSS_USE_ALG_IN_CERT_SIGNATURE);
+
+    LoadNSSNevaCertificatesPath();
   }
 
   // Stores opened software NSS databases.
@@ -364,6 +377,29 @@ std::string GetNSSErrorMessage() {
     result = base::StringPrintf("NSS error code: %d", PR_GetError());
   }
   return result;
+}
+
+void LoadNSSNevaCertificatesPath() {
+  base::FilePath neva_certificates_path;
+  base::PathService::Get(base::DIR_NEVA_CERTIFICATES, &neva_certificates_path);
+  if (neva_certificates_path.empty()) {
+    VLOG(2) << "Neva certificates path is empty";
+    return;
+  }
+
+  const std::string modspec = base::StringPrintf(
+      "configDir='sql:%s' tokenDescription='%s'",
+      neva_certificates_path.value().c_str(), kNevaCertificateTokenDescription);
+  PK11SlotInfo* db_slot = SECMOD_OpenUserDB(modspec.c_str());
+  if (db_slot) {
+    if (PK11_NeedUserInit(db_slot))
+      PK11_InitPin(db_slot, nullptr, nullptr);
+    VLOG(2) << "Neva certificates database (" << modspec
+            << ") loaded successfully";
+  } else {
+    LOG(ERROR) << "Error opening persistent database (" << modspec
+               << "): " << GetNSSErrorMessage();
+  }
 }
 
 }  // namespace crypto

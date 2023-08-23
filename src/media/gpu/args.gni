@@ -4,6 +4,7 @@
 
 import("//build/config/chromeos/ui_mode.gni")
 import("//build/config/ozone.gni")
+import("//neva/neva.gni")
 
 declare_args() {
   # Indicates if X11 VA-API-based hardware acceleration is to be used.
@@ -19,7 +20,8 @@ declare_args() {
   # Indicates if Video4Linux2 codec is used. This is used for all CrOS
   # platforms which have v4l2 hardware encoder / decoder.
   use_v4l2_codec =
-      is_chromeos_lacros && (target_cpu == "arm" || target_cpu == "arm64")
+      use_neva_v4l2_codec ||
+      (is_chromeos_lacros && (target_cpu == "arm" || target_cpu == "arm64"))
 
   # Indicates if Video4Linux2 AML encoder is used. This is used for AML
   # platforms which have v4l2 hardware encoder

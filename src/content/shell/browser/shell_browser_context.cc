@@ -31,8 +31,11 @@
 #include "content/shell/browser/shell_paths.h"
 #include "content/shell/browser/shell_permission_manager.h"
 #include "content/shell/common/shell_switches.h"
-#include "content/test/mock_background_sync_controller.h"
 #include "content/test/mock_reduce_accept_language_controller_delegate.h"
+
+#if !defined(USE_CBE)
+#include "content/test/mock_background_sync_controller.h"
+#endif
 
 namespace content {
 
@@ -178,11 +181,15 @@ BackgroundFetchDelegate* ShellBrowserContext::GetBackgroundFetchDelegate() {
 }
 
 BackgroundSyncController* ShellBrowserContext::GetBackgroundSyncController() {
+#if !defined(USE_CBE)
   if (!background_sync_controller_) {
     background_sync_controller_ =
         std::make_unique<MockBackgroundSyncController>();
   }
   return background_sync_controller_.get();
+#else
+  return nullptr;
+#endif
 }
 
 BrowsingDataRemoverDelegate*
@@ -222,12 +229,16 @@ ShellBrowserContext::GetFederatedIdentityActiveSessionPermissionContext() {
 
 ReduceAcceptLanguageControllerDelegate*
 ShellBrowserContext::GetReduceAcceptLanguageControllerDelegate() {
+#if !defined(USE_CBE)
   if (!reduce_accept_lang_controller_delegate_) {
     reduce_accept_lang_controller_delegate_ =
         std::make_unique<MockReduceAcceptLanguageControllerDelegate>(
             GetShellLanguage());
   }
   return reduce_accept_lang_controller_delegate_.get();
+#else
+  return nullptr;
+#endif
 }
 
 }  // namespace content

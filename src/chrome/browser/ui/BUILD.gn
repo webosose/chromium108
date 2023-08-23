@@ -20,6 +20,7 @@ import("//components/signin/features.gni")
 import("//crypto/features.gni")
 import("//device/vr/buildflags/buildflags.gni")
 import("//extensions/buildflags/buildflags.gni")
+import("//neva/neva.gni")
 import("//pdf/features.gni")
 import("//ppapi/buildflags/buildflags.gni")
 import("//printing/buildflags/buildflags.gni")
@@ -4091,6 +4092,18 @@ static_library("ui") {
         "views/frame/browser_desktop_window_tree_host_linux.h",
       ]
     }
+
+    #@name USE_NEVA_APPRUNTIME
+    #@{
+    if (use_ozone && ozone_platform_wayland_external) {
+      sources += [
+        "views/frame/browser_desktop_window_tree_host_ozone_wayland_external.cc",
+        "views/frame/browser_desktop_window_tree_host_ozone_wayland_external.h",
+      ]
+      deps += [ "//ozone/ui/webui" ]
+    }
+    #@}
+
     if (is_chromeos_lacros) {
       sources += [
         "views/frame/browser_desktop_window_tree_host_lacros.cc",

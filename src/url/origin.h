@@ -438,6 +438,10 @@ class COMPONENT_EXPORT(URL) Origin {
   // origin).
   SchemeHostPort tuple_;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  static bool file_origin_changed_;
+#endif
+
   // The nonce is used for maintaining identity of an opaque origin. This
   // nonce is preserved when an opaque origin is copied or moved. An Origin
   // is considered opaque if and only if |nonce_| holds a value.

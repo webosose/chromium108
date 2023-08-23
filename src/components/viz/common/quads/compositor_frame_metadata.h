@@ -179,6 +179,12 @@ class VIZ_COMMON_EXPORT CompositorFrameMetadata {
   // be replaced with ResourceIds in the Viz process.
   bool has_shared_element_resources = false;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  bool is_first_contentful_paint = false;
+  bool did_reset_container_state = false;
+  bool seen_first_contentful_paint = false;
+#endif
+
  private:
   CompositorFrameMetadata(const CompositorFrameMetadata& other);
   CompositorFrameMetadata operator=(const CompositorFrameMetadata&) = delete;

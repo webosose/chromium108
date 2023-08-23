@@ -66,12 +66,21 @@ void WaylandPointer::Enter(void* data,
       wl::SerialType::kMouseEnter, serial);
 
   WaylandWindow* window = wl::RootWindowFromWlSurface(surface);
+#if defined(OS_WEBOS)
+  if (auto* window_manager = pointer->connection_->wayland_window_manager())
+    window_manager->GrabPointerEvents(pointer->id(), window);
+#endif  // defined(OS_WEBOS)
   gfx::PointF location{static_cast<float>(wl_fixed_to_double(surface_x)),
                        static_cast<float>(wl_fixed_to_double(surface_y))};
 
   pointer->delegate_->OnPointerFocusChanged(
       window, pointer->connection_->MaybeConvertLocation(location, window),
-      EventDispatchPolicyForPlatform());
+      EventDispatchPolicyForPlatform()
+#if defined(OS_WEBOS)
+          ,
+      pointer->id()
+#endif  // defined(OS_WEBOS)
+  );
 }
 
 // static
@@ -80,6 +89,11 @@ void WaylandPointer::Leave(void* data,
                            uint32_t serial,
                            wl_surface* surface) {
   auto* pointer = static_cast<WaylandPointer*>(data);
+#if defined(OS_WEBOS)
+  WaylandWindow* window = wl::RootWindowFromWlSurface(surface);
+  if (auto* window_manager = pointer->connection_->wayland_window_manager())
+    window_manager->UngrabPointerEvents(pointer->id(), window);
+#endif  // defined(OS_WEBOS)
   pointer->connection_->serial_tracker().ResetSerial(
       wl::SerialType::kMouseEnter);
 
@@ -90,7 +104,12 @@ void WaylandPointer::Leave(void* data,
           : wl::EventDispatchPolicy::kImmediate;
 
   pointer->delegate_->OnPointerFocusChanged(
-      nullptr, pointer->delegate_->GetPointerLocation(), event_dispatch_policy);
+      nullptr, pointer->delegate_->GetPointerLocation(), event_dispatch_policy
+#if defined(OS_WEBOS)
+      ,
+      pointer->id()
+#endif  // defined(OS_WEBOS)
+  );
 }
 
 // static
@@ -106,7 +125,12 @@ void WaylandPointer::Motion(void* data,
 
   pointer->delegate_->OnPointerMotionEvent(
       pointer->connection_->MaybeConvertLocation(location, target),
-      EventDispatchPolicyForPlatform());
+      EventDispatchPolicyForPlatform()
+#if defined(OS_WEBOS)
+          ,
+      pointer->id()
+#endif  // defined(OS_WEBOS)
+  );
 }
 
 // static
@@ -148,7 +172,12 @@ void WaylandPointer::Button(void* data,
   }
   pointer->delegate_->OnPointerButtonEvent(type, changed_button,
                                            /*window=*/nullptr,
-                                           EventDispatchPolicyForPlatform());
+                                           EventDispatchPolicyForPlatform()
+#if defined(OS_WEBOS)
+                                               ,
+                                           pointer->id()
+#endif  // defined(OS_WEBOS)
+  );
 }
 
 // static

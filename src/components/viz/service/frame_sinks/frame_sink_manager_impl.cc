@@ -77,12 +77,19 @@ FrameSinkManagerImpl::FrameSinkManagerImpl(const InitParams& params)
                        params.max_uncommitted_frames),
       hit_test_manager_(surface_manager()),
       restart_id_(params.restart_id),
+#if defined(USE_NEVA_APPRUNTIME)
+      use_viz_fmp_with_timeout_(params.use_viz_fmp_with_timeout),
+      viz_fmp_timeout_(params.viz_fmp_timeout),
+#endif
       run_all_compositor_stages_before_draw_(
           params.run_all_compositor_stages_before_draw),
       log_capture_pipeline_in_webrtc_(params.log_capture_pipeline_in_webrtc),
       debug_settings_(params.debug_renderer_settings),
       host_process_id_(params.host_process_id),
       hint_session_factory_(params.hint_session_factory) {
+#if defined(USE_NEVA_APPRUNTIME)
+  surface_manager_.set_use_viz_fmp_with_timeout(use_viz_fmp_with_timeout_);
+#endif
   surface_manager_.AddObserver(&hit_test_manager_);
   surface_manager_.AddObserver(this);
 }
@@ -192,6 +199,9 @@ void FrameSinkManagerImpl::CreateRootCompositorFrameSink(
   // Creating RootCompositorFrameSinkImpl can fail and return null.
   auto root_compositor_frame_sink = RootCompositorFrameSinkImpl::Create(
       std::move(params), this, output_surface_provider_, restart_id_,
+#if defined(USE_NEVA_APPRUNTIME)
+      use_viz_fmp_with_timeout_, viz_fmp_timeout_,
+#endif
       run_all_compositor_stages_before_draw_, &debug_settings_,
       hint_session_factory_);
 

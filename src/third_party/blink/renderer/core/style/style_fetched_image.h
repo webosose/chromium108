@@ -26,11 +26,16 @@
 
 #include "third_party/blink/renderer/core/loader/resource/image_resource_observer.h"
 #include "third_party/blink/renderer/core/style/style_image.h"
+#include "third_party/blink/renderer/platform/graphics/paint/ignore_paint_timing_scope.h"
 #include "third_party/blink/renderer/platform/heap/garbage_collected.h"
 #include "third_party/blink/renderer/platform/heap/member.h"
 #include "third_party/blink/renderer/platform/heap/prefinalizer.h"
 #include "third_party/blink/renderer/platform/weborigin/kurl.h"
 #include "third_party/blink/renderer/platform/wtf/casting.h"
+
+#if defined(OS_WEBOS)
+#include "third_party/abseil-cpp/absl/types/optional.h"
+#endif
 
 namespace blink {
 
@@ -100,6 +105,11 @@ class CORE_EXPORT StyleFetchedImage final : public StyleImage,
 
   // Whether this was created by an ad-related CSSParserContext.
   const bool is_ad_related_;
+
+#if defined(OS_WEBOS)
+  bool commit_deferred_ = false;
+  absl::optional<IgnorePaintTimingScope> ignore_paint_timing_;
+#endif
 };
 
 template <>

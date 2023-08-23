@@ -15,6 +15,7 @@ ScrollOffsetAnimationCurve::DurationBehavior GetDurationBehaviorFromScrollType(
     ScrollOffsetAnimationCurveFactory::ScrollType scroll_type) {
   switch (scroll_type) {
     case ScrollOffsetAnimationCurveFactory::ScrollType::kProgrammatic:
+    case ScrollOffsetAnimationCurveFactory::ScrollType::kContinueProgrammatic:
       return ScrollOffsetAnimationCurve::DurationBehavior::DELTA_BASED;
     case ScrollOffsetAnimationCurveFactory::ScrollType::kKeyboard:
       return ScrollOffsetAnimationCurve::DurationBehavior::CONSTANT;
@@ -38,8 +39,11 @@ ScrollOffsetAnimationCurveFactory::CreateAnimation(
   if (features::IsImpulseScrollAnimationEnabled())
     return CreateImpulseAnimation(target_value);
 
+  bool is_continuation = scroll_type == ScrollType::kContinueProgrammatic;
+
   return CreateEaseInOutAnimation(
-      target_value, GetDurationBehaviorFromScrollType(scroll_type));
+      target_value, is_continuation,
+      GetDurationBehaviorFromScrollType(scroll_type));
 }
 
 // static
@@ -47,7 +51,7 @@ std::unique_ptr<ScrollOffsetAnimationCurve>
 ScrollOffsetAnimationCurveFactory::CreateEaseInOutAnimationForTesting(
     const gfx::PointF& target_value,
     ScrollOffsetAnimationCurve::DurationBehavior duration_behavior) {
-  return CreateEaseInOutAnimation(target_value, duration_behavior);
+  return CreateEaseInOutAnimation(target_value, false, duration_behavior);
 }
 
 // static
@@ -68,9 +72,12 @@ ScrollOffsetAnimationCurveFactory::CreateImpulseAnimationForTesting(
 std::unique_ptr<ScrollOffsetAnimationCurve>
 ScrollOffsetAnimationCurveFactory::CreateEaseInOutAnimation(
     const gfx::PointF& target_value,
+    bool is_continuation,
     ScrollOffsetAnimationCurve::DurationBehavior duration_behavior) {
   return base::WrapUnique(new ScrollOffsetAnimationCurve(
-      target_value, ScrollOffsetAnimationCurve::AnimationType::kEaseInOut,
+      target_value,
+      is_continuation ? ScrollOffsetAnimationCurve::AnimationType::kEaseOut
+                      : ScrollOffsetAnimationCurve::AnimationType::kEaseInOut,
       duration_behavior));
 }
 

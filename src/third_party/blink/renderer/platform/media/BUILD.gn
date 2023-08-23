@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import("//media/media_options.gni")
+import("//neva/neva.gni")
 
 # TODO(https://crbug.com/1198341): use blink_platform_sources once the code is
 # ported to Blink code conventions.
@@ -103,6 +104,21 @@ component("media") {
       "//media/remoting:remoting_constants",
       "//third_party/blink/public/strings:strings_grit",
     ]
+  }
+
+  if (use_neva_media) {
+    import("//third_party/blink/renderer/platform/media/neva/build.gni")
+    configs += neva.configs
+    if (!defined(public_configs)) {
+      public_configs = []
+    }
+    public_configs += neva.public_configs
+    deps += neva.deps
+    if (!defined(public_deps)) {
+      public_deps = []
+    }
+    public_deps += neva.public_deps
+    sources += rebase_path(neva.sources, ".")
   }
 }
 

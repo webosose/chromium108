@@ -642,7 +642,8 @@ base::WeakPtr<RenderWidgetHostViewBase> RenderWidgetHostViewBase::GetWeakPtr() {
 }
 
 display::ScreenInfo RenderWidgetHostViewBase::GetScreenInfo() const {
-  return screen_infos_.current();
+  auto screen_info = screen_infos_.current();
+  return screen_info;
 }
 
 display::ScreenInfos RenderWidgetHostViewBase::GetScreenInfos() const {
@@ -700,6 +701,13 @@ void RenderWidgetHostViewBase::OnFrameTokenChangedForView(
   if (host())
     host()->DidProcessFrame(frame_token, activation_time);
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+void RenderWidgetHostViewBase::OnSwapCompleted() {
+  if (host())
+    host()->DidCompleteSwap();
+}
+#endif
 
 bool RenderWidgetHostViewBase::ScreenRectIsUnstableFor(
     const blink::WebInputEvent& event) {
@@ -855,6 +863,12 @@ void RenderWidgetHostViewBase::SynchronizeVisualProperties() {
   if (host())
     host()->SynchronizeVisualProperties();
 }
+
+#if defined(USE_NEVA_MEDIA)
+gfx::AcceleratedWidget RenderWidgetHostViewBase::GetAcceleratedWidget() {
+  return gfx::kNullAcceleratedWidget;
+}
+#endif
 
 display::ScreenInfos RenderWidgetHostViewBase::GetNewScreenInfosForUpdate() {
   // RWHVChildFrame gets its ScreenInfos from the CrossProcessFrameConnector.

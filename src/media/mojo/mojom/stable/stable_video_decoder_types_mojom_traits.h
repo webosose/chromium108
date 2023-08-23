@@ -1140,6 +1140,9 @@ struct EnumTraits<media::stable::mojom::VideoDecoderType,
       case ::media::VideoDecoderType::kGav1:
       case ::media::VideoDecoderType::kD3D11:
       case ::media::VideoDecoderType::kBroker:
+#if defined(USE_NEVA_MEDIA)
+      case ::media::VideoDecoderType::kNeva:
+#endif
         return media::stable::mojom::VideoDecoderType::kUnknown;
     }
 

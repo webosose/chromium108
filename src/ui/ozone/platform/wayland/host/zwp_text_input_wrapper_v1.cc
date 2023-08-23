@@ -18,6 +18,20 @@
 #include "ui/ozone/platform/wayland/host/wayland_seat.h"
 #include "ui/ozone/platform/wayland/host/wayland_window.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+namespace {
+
+void OnInputPanelVisibilityChanged(ui::WaylandConnection* conn, bool state) {
+  ui::WaylandWindow* window =
+      conn->wayland_window_manager()->GetCurrentKeyboardFocusedWindow();
+  if (!window)
+    return;
+  window->OnInputPanelVisibilityChanged(state);
+}
+
+}  // namespace
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 namespace ui {
 namespace {
 
@@ -154,16 +168,29 @@ void ZWPTextInputWrapperV1::Reset() {
 }
 
 void ZWPTextInputWrapperV1::Activate(WaylandWindow* window) {
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(connection_->wlseat());
+
+  zwp_text_input_v1_activate(obj_.get(), connection_->wlseat(),
+                             window->root_surface()->surface());
+#else   // defined(USE_NEVA_APPRUNTIME)
   DCHECK(connection_->seat());
 
   zwp_text_input_v1_activate(obj_.get(), connection_->seat()->wl_object(),
                              window->root_surface()->surface());
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 }
 
 void ZWPTextInputWrapperV1::Deactivate() {
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(connection_->wlseat());
+
+  zwp_text_input_v1_deactivate(obj_.get(), connection_->wlseat());
+#else   // defined(USE_NEVA_APPRUNTIME)
   DCHECK(connection_->seat());
 
   zwp_text_input_v1_deactivate(obj_.get(), connection_->seat()->wl_object());
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 }
 
 void ZWPTextInputWrapperV1::ShowInputPanel() {
@@ -270,13 +297,23 @@ bool ZWPTextInputWrapperV1::SupportsFinalizeVirtualKeyboardChanges() {
 void ZWPTextInputWrapperV1::OnEnter(void* data,
                                     struct zwp_text_input_v1* text_input,
                                     struct wl_surface* surface) {
+#if defined(USE_NEVA_APPRUNTIME)
+  ZWPTextInputWrapperV1* wti = static_cast<ZWPTextInputWrapperV1*>(data);
+  OnInputPanelVisibilityChanged(wti->connection_, true);
+#else   // defined(USE_NEVA_APPRUNTIME)
   NOTIMPLEMENTED_LOG_ONCE();
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 // static
 void ZWPTextInputWrapperV1::OnLeave(void* data,
                                     struct zwp_text_input_v1* text_input) {
+#if defined(USE_NEVA_APPRUNTIME)
+  ZWPTextInputWrapperV1* wti = static_cast<ZWPTextInputWrapperV1*>(data);
+  OnInputPanelVisibilityChanged(wti->connection_, false);
+#else   // defined(USE_NEVA_APPRUNTIME)
   NOTIMPLEMENTED_LOG_ONCE();
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 // static

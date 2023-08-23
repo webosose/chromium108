@@ -44,8 +44,15 @@ bool IsSameKeyEvent(const ui::KeyEvent& lhs, const ui::KeyEvent& rhs) {
 namespace ui {
 
 InputMethodAuraLinux::InputMethodAuraLinux(
-    ImeKeyEventDispatcher* ime_key_event_dispatcher)
+    ImeKeyEventDispatcher* ime_key_event_dispatcher
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+    , unsigned handle
+#endif
+    )
     : InputMethodBase(ime_key_event_dispatcher),
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+      handle_(handle),
+#endif
       text_input_type_(TEXT_INPUT_TYPE_NONE),
       is_sync_mode_(false),
       composition_changed_(false) {
@@ -443,6 +450,13 @@ bool InputMethodAuraLinux::IsCandidatePopupOpen() const {
   return false;
 }
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+LinuxInputMethodContext* InputMethodAuraLinux::GetInputMethodContext() {
+  return context_.get();
+}
+///@}
+
 VirtualKeyboardController*
 InputMethodAuraLinux::GetVirtualKeyboardController() {
   // This should only be not null when set via testing.
@@ -639,5 +653,16 @@ void InputMethodAuraLinux::ConfirmCompositionText(bool keep_selection) {
   composition_changed_ = false;
   result_text_.reset();
 }
+
+///@name USE_NEVA_APPRUNTIME
+///@{
+bool InputMethodAuraLinux::SystemKeyboardDisabled() {
+  // returns true if VKB is explicitly disabled by client, false otherwise
+  if (!GetTextInputClient())
+    return false;
+  else
+    return GetTextInputClient()->SystemKeyboardDisabled();
+}
+///@}
 
 }  // namespace ui

@@ -73,6 +73,7 @@
 #include "services/network/public/cpp/initiator_lock_compatibility.h"
 #include "services/network/public/cpp/load_info_util.h"
 #include "services/network/public/cpp/network_switches.h"
+#include "services/network/public/cpp/neva/cors_corb_exception.h"
 #include "services/network/public/cpp/parsed_headers.h"
 #include "services/network/public/mojom/key_pinning.mojom.h"
 #include "services/network/public/mojom/network_service_test.mojom.h"
@@ -653,6 +654,26 @@ void NetworkService::OnCertDBChanged() {
 void NetworkService::SetEncryptionKey(const std::string& encryption_key) {
   OSCrypt::SetRawEncryptionKey(encryption_key);
 }
+
+#if defined(OS_WEBOS)
+void NetworkService::AddCorsCorbExceptionForProcess(uint32_t process_id) {
+  DCHECK_NE(mojom::kBrowserProcessId, process_id);
+  neva::CorsCorbException::AddForProcess(process_id);
+}
+
+void NetworkService::RemoveCorsCorbExceptionForProcess(uint32_t process_id) {
+  DCHECK_NE(mojom::kBrowserProcessId, process_id);
+  neva::CorsCorbException::RemoveForProcess(process_id);
+}
+
+void NetworkService::AddCorsCorbExceptionForURL(const GURL& url) {
+  neva::CorsCorbException::AddForURL(url);
+}
+
+void NetworkService::RemoveCorsCorbExceptionForURL(const GURL& url) {
+  neva::CorsCorbException::RemoveForURL(url);
+}
+#endif
 
 void NetworkService::OnMemoryPressure(
     base::MemoryPressureListener::MemoryPressureLevel memory_pressure_level) {

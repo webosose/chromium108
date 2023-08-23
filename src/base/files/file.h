@@ -43,7 +43,7 @@ namespace base {
 // obvious non-modifying way are marked as const. Any method that forward calls
 // to the OS is not considered const, even if there is no apparent change to
 // member variables.
-class BASE_EXPORT File {
+class CBE_BASE_EXPORT BASE_EXPORT File {
  public:
   // FLAG_(OPEN|CREATE).* are mutually exclusive. You should specify exactly one
   // of the five (possibly combining with other flags) when opening or creating

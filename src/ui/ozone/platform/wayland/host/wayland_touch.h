@@ -93,19 +93,43 @@ class WaylandTouch::Delegate {
                                  const gfx::PointF& location,
                                  base::TimeTicks timestamp,
                                  PointerId id,
-                                 wl::EventDispatchPolicy dispatch_policy) = 0;
+                                 wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                                 ,
+                                 int device_id = -1
+#endif  // defined(OS_WEBOS)
+                                 ) = 0;
   virtual void OnTouchReleaseEvent(base::TimeTicks timestamp,
                                    PointerId id,
-                                   wl::EventDispatchPolicy dispatch_policy) = 0;
+                                   wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                                   ,
+                                   int device_id = -1
+#endif  // defined(OS_WEBOS)
+                                   ) = 0;
   virtual void OnTouchMotionEvent(const gfx::PointF& location,
                                   base::TimeTicks timestamp,
                                   PointerId id,
-                                  wl::EventDispatchPolicy dispatch_policy) = 0;
-  virtual void OnTouchCancelEvent() = 0;
+                                  wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+                                  ,
+                                  int device_id = -1
+#endif  // defined(OS_WEBOS)
+                                  ) = 0;
+  virtual void OnTouchCancelEvent(
+#if defined(OS_WEBOS)
+      int device_id = -1
+#endif  // defined(OS_WEBOS)
+      ) = 0;
   virtual void OnTouchFrame() = 0;
   virtual void OnTouchFocusChanged(WaylandWindow* window) = 0;
   virtual std::vector<PointerId> GetActiveTouchPointIds() = 0;
+#if defined(OS_WEBOS)
+  virtual const WaylandWindow* GetTouchTarget(PointerId id,
+                                              int device_id = -1) const = 0;
+#else
   virtual const WaylandWindow* GetTouchTarget(PointerId id) const = 0;
+#endif  // defined(OS_WEBOS)
   virtual void OnTouchStylusToolChanged(PointerId pointer_id,
                                         EventPointerType pointer_type) = 0;
   virtual void OnTouchStylusForceChanged(PointerId pointer_id, float force) = 0;

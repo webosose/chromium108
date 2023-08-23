@@ -281,6 +281,20 @@ interface NetworkService {
   // Send the encryption key to the network service to use for AES encryption.
   SetEncryptionKey(mojo_base.mojom.ByteString encryption_key);
 
+  // Allow the process id to request resources with the security exception
+  // for CORS/CORB
+  [EnableIf=is_webos]
+  AddCorsCorbExceptionForProcess(uint32 process_id);
+
+  [EnableIf=is_webos]
+  RemoveCorsCorbExceptionForProcess(uint32 process_id);
+
+  [EnableIf=is_webos]
+  AddCorsCorbExceptionForURL(url.mojom.Url url);
+
+  [EnableIf=is_webos]
+  RemoveCorsCorbExceptionForURL(url.mojom.Url url);
+
   // Called when the system is low on memory.
   OnMemoryPressure(mojo_base.mojom.MemoryPressureLevel memory_pressure_level);
 

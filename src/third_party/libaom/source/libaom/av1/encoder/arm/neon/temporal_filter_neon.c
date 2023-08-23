@@ -230,6 +230,16 @@ static void apply_temporal_filter(
          ((block_height == 16) || (block_height == 32)));
 
   uint32_t acc_5x5_neon[BH][BW];
+
+// NEVA: Exclude usage of vld1q_u16_x4 when it is not available.
+// Support for these xN intrinsics is lacking in older compilers.
+#if (defined(_MSC_VER) && !defined(__clang__) && !defined(_M_ARM64)) || \
+     (defined(__GNUC__) &&                                               \
+      ((!defined(__clang__) && (__GNUC__ < 8 || defined(__arm__))) ||    \
+       (defined(__clang__) && defined(__arm__) &&                        \
+        (__clang_major__ <= 6 ||                                         \
+         (defined(__ANDROID__) && __clang_major__ <= 7)))))
+
   const uint16x8x4_t vmask = vld1q_u16_x4(kSlidingWindowMask);
 
   // Traverse 4 columns at a time - first and last two columns need padding.
@@ -271,6 +281,7 @@ static void apply_temporal_filter(
       }
     }
   }
+#endif
 
   // Perform filtering.
   for (unsigned int i = 0, k = 0; i < block_height; i++) {

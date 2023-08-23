@@ -50,6 +50,11 @@ namespace mojom {
 class FileChooserParams;
 class WindowFeatures;
 }
+#if defined(USE_NEVA_APPRUNTIME)
+namespace web_pref {
+struct WebPreferences;
+}
+#endif
 }  // namespace blink
 
 namespace content {
@@ -635,6 +640,20 @@ class CONTENT_EXPORT WebContentsDelegate {
                                                  bool allowed_per_prefs,
                                                  const url::Origin& origin,
                                                  const GURL& resource_url);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Added for neva app-runtime frame focused notification
+  // Notify that the frame was focused
+  virtual void DidFrameFocused() {}
+  virtual bool GetAllowLocalResourceLoad() const;
+  virtual void OverrideWebkitPrefs(blink::web_pref::WebPreferences* prefs) {}
+  virtual bool DecidePolicyForResponse(bool is_main_frame,
+                                       int status_code,
+                                       const std::string& url,
+                                       const std::string& status_text);
+  virtual bool AudioCaptureAllowed() { return false; }
+  virtual bool VideoCaptureAllowed() { return false; }
+#endif
 
   virtual void SetTopControlsShownRatio(WebContents* web_contents,
                                         float ratio) {}

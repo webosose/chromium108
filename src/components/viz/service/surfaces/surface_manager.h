@@ -74,6 +74,15 @@ class VIZ_SERVICE_EXPORT SurfaceManager {
     return activation_deadline_in_frames_;
   }
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void set_use_viz_fmp_with_timeout(bool use_viz_fmp_with_timeout) {
+    use_viz_fmp_with_timeout_ = use_viz_fmp_with_timeout;
+  }
+  bool use_viz_fmp_with_timeout() const { return use_viz_fmp_with_timeout_; }
+  bool IsOrContainsFrameSink(const FrameSinkId& parent_frame_sink_id,
+                             const FrameSinkId& child_frame_sink_id) const;
+#endif
+
   // Sets an alternative base::TickClock to pass into surfaces for surface
   // synchronization deadlines. This allows unit tests to mock the wall clock.
   void SetTickClockForTesting(const base::TickClock* tick_clock);
@@ -117,6 +126,13 @@ class VIZ_SERVICE_EXPORT SurfaceManager {
 
   // Called when a CompositorFrame within |surface| has activated.
   void SurfaceActivated(Surface* surface);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  void SurfaceActivatedEx(Surface* surface,
+                          bool is_first_contentful_paint,
+                          bool did_reset_container_state,
+                          bool seen_first_contentful_paint);
+#endif
 
   // Called when |surface| is being destroyed.
   void SurfaceDestroyed(Surface* surface);
@@ -345,6 +361,9 @@ class VIZ_SERVICE_EXPORT SurfaceManager {
   // Maximum length of uncommitted queue, zero means all frames are committed
   // automatically.
   const size_t max_uncommitted_frames_;
+#if defined(USE_NEVA_APPRUNTIME)
+  bool use_viz_fmp_with_timeout_ = false;
+#endif
 
   base::WeakPtrFactory<SurfaceManager> weak_factory_{this};
 };

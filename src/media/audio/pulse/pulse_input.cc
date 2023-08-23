@@ -161,6 +161,10 @@ void PulseAudioInputStream::Close() {
     }
   }
 
+#if defined(USE_WEBOS_AUDIO)
+  return;
+#endif
+
   // Signal to the manager that we're closed and can be removed.
   // This should be the last call in the function as it deletes "this".
   audio_manager_->ReleaseInputStream(this);

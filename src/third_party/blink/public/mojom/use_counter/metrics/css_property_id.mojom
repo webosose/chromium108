@@ -785,6 +785,12 @@ enum CSSSampleId {
     kToggleVisibility = 732,
     kInitialLetter = 733,
     kHyphenateLimitChars = 734,
+    kNavRight = 735,
+    kNavLeft = 736,
+    kNavUp = 737,
+    kNavDown = 738,
+    kNavIndex = 739,
+    kCaretWidth = 740,
     // 1. Add new features above this line (don't change the assigned numbers of
     //    the existing items).
     // 2. Run the src/tools/metrics/histograms/update_use_counter_css.py script

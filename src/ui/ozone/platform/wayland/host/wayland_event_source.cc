@@ -35,9 +35,30 @@
 #include "ui/ozone/platform/wayland/host/wayland_window.h"
 #include "ui/ozone/platform/wayland/host/wayland_window_manager.h"
 
+#if defined(OS_WEBOS)
+#include "ui/events/ozone/evdev/touch_evdev_types.h"
+#include "ui/gfx/sequential_id_generator.h"
+#endif  // defined(OS_WEBOS)
+
 namespace ui {
 
 namespace {
+
+#if defined(OS_WEBOS)
+static SequentialIDGenerator g_touch_point_id_generator(0);
+
+PointerId GetTouchPointID(int device_id, PointerId id) {
+  // We need to make the touch point ID unique to system, not only to device.
+  // Otherwise gesture recognizer touch lock will fail. To achieve this we copy
+  // the algorithm used in EventFactoryEvdev.
+  return g_touch_point_id_generator.GetGeneratedID(
+      device_id * kNumTouchEvdevSlots + id);
+}
+
+void ReleaseTouchPointID(PointerId touch_point_id) {
+  g_touch_point_id_generator.ReleaseNumber(touch_point_id);
+}
+#endif  // defined(OS_WEBOS)
 
 bool HasAnyPointerButtonFlag(int flags) {
   return (flags & (EF_LEFT_MOUSE_BUTTON | EF_MIDDLE_MOUSE_BUTTON |
@@ -250,7 +271,12 @@ uint32_t WaylandEventSource::OnKeyboardKeyEvent(
 void WaylandEventSource::OnPointerFocusChanged(
     WaylandWindow* window,
     const gfx::PointF& location,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
   bool focused = !!window;
   if (focused) {
     // Save new pointer location.
@@ -270,8 +296,14 @@ void WaylandEventSource::OnPointerFocusChanged(
     EventType type = focused ? ET_MOUSE_ENTERED : ET_MOUSE_EXITED;
     MouseEvent event(type, pointer_location_, pointer_location_,
                      EventTimeForNow(), pointer_flags_, 0);
+#if defined(OS_WEBOS)
+    event.set_source_device_id(device_id);
+#endif  // defined(OS_WEBOS)
     if (dispatch_policy == wl::EventDispatchPolicy::kImmediate) {
       SetTargetAndDispatchEvent(&event, target);
+#if defined(OS_WEBOS)
+      return;
+#endif  // defined(OS_WEBOS)
     } else {
       pointer_frames_.push_back(
           std::make_unique<FrameData>(event, std::move(closure)));
@@ -287,7 +319,12 @@ void WaylandEventSource::OnPointerButtonEvent(
     EventType type,
     int changed_button,
     WaylandWindow* window,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
   DCHECK(type == ET_MOUSE_PRESSED || type == ET_MOUSE_RELEASED);
   DCHECK(HasAnyPointerButtonFlag(changed_button));
 
@@ -312,6 +349,9 @@ void WaylandEventSource::OnPointerButtonEvent(
     int flags = pointer_flags_ | keyboard_modifiers_ | changed_button;
     MouseEvent event(type, pointer_location_, pointer_location_,
                      EventTimeForNow(), flags, changed_button);
+#if defined(OS_WEBOS)
+    event.set_source_device_id(device_id);
+#endif  // defined(OS_WEBOS)
     if (dispatch_policy == wl::EventDispatchPolicy::kImmediate) {
       SetTargetAndDispatchEvent(&event, target);
     } else {
@@ -336,7 +376,12 @@ void WaylandEventSource::OnPointerButtonEventInternal(WaylandWindow* window,
 
 void WaylandEventSource::OnPointerMotionEvent(
     const gfx::PointF& location,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
   pointer_location_ = location;
 
   int flags = pointer_flags_ | keyboard_modifiers_;
@@ -348,6 +393,9 @@ void WaylandEventSource::OnPointerMotionEvent(
   if (!target)
     return;
 
+#if defined(OS_WEBOS)
+  event.set_source_device_id(device_id);
+#endif  // defined(OS_WEBOS)
   if (dispatch_policy == wl::EventDispatchPolicy::kImmediate) {
     SetTargetAndDispatchEvent(&event, target);
   } else {
@@ -359,6 +407,16 @@ void WaylandEventSource::OnPointerMotionEvent(
 void WaylandEventSource::OnPointerAxisEvent(const gfx::Vector2dF& offset) {
   EnsurePointerScrollData().dx += offset.x();
   EnsurePointerScrollData().dy += offset.y();
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Workaround for LSM & weston 3.0.0 not emitting wl_pointer.axis_source event
+  OnPointerAxisSourceEvent(WL_POINTER_AXIS_SOURCE_WHEEL);
+#if defined(OS_WEBOS)
+  // Workaround for LSM not emitting wl_pointer.frame event
+  // See wayland core protocol wl_pointer v5 additions
+  OnPointerFrameEvent();
+#endif  // defined(OS_WEBOS)
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 void WaylandEventSource::OnResetPointerFlags() {
@@ -429,10 +487,18 @@ void WaylandEventSource::OnTouchPressEvent(
     const gfx::PointF& location,
     base::TimeTicks timestamp,
     PointerId id,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
   DCHECK(window);
   HandleTouchFocusChange(window, true);
 
+#if defined(OS_WEBOS)
+  id = GetTouchPointID(device_id, id);
+#endif  // defined(OS_WEBOS)
   // Make sure this touch point wasn't present before.
   auto success = touch_points_.try_emplace(
       id, std::make_unique<TouchPoint>(location, window));
@@ -444,6 +510,9 @@ void WaylandEventSource::OnTouchPressEvent(
   PointerDetails details(EventPointerType::kTouch, id);
   TouchEvent event(ET_TOUCH_PRESSED, location, location, timestamp, details,
                    keyboard_modifiers_);
+#if defined(OS_WEBOS)
+  event.set_source_device_id(device_id);
+#endif  // defined(OS_WEBOS)
   touch_frames_.push_back(
       std::make_unique<FrameData>(event, base::NullCallback()));
 }
@@ -451,7 +520,15 @@ void WaylandEventSource::OnTouchPressEvent(
 void WaylandEventSource::OnTouchReleaseEvent(
     base::TimeTicks timestamp,
     PointerId id,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
+#if defined(OS_WEBOS)
+  id = GetTouchPointID(device_id, id);
+#endif  // defined(OS_WEBOS)
   // Make sure this touch point was present before.
   const auto it = touch_points_.find(id);
   if (it == touch_points_.end()) {
@@ -465,6 +542,10 @@ void WaylandEventSource::OnTouchReleaseEvent(
 
   TouchEvent event(ET_TOUCH_RELEASED, location, location, timestamp, details,
                    keyboard_modifiers_);
+#if defined(OS_WEBOS)
+  event.set_source_device_id(device_id);
+  ReleaseTouchPointID(id);
+#endif  // defined(OS_WEBOS)
   if (dispatch_policy == wl::EventDispatchPolicy::kImmediate) {
     SetTouchTargetAndDispatchTouchEvent(&event);
     OnTouchReleaseInternal(id);
@@ -528,7 +609,15 @@ void WaylandEventSource::OnTouchMotionEvent(
     const gfx::PointF& location,
     base::TimeTicks timestamp,
     PointerId id,
-    wl::EventDispatchPolicy dispatch_policy) {
+    wl::EventDispatchPolicy dispatch_policy
+#if defined(OS_WEBOS)
+    ,
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
+#if defined(OS_WEBOS)
+  id = GetTouchPointID(device_id, id);
+#endif  // defined(OS_WEBOS)
   const auto it = touch_points_.find(id);
   // Make sure this touch point was present before.
   if (it == touch_points_.end()) {
@@ -539,6 +628,9 @@ void WaylandEventSource::OnTouchMotionEvent(
   PointerDetails details(EventPointerType::kTouch, id);
   TouchEvent event(ET_TOUCH_MOVED, location, location, timestamp, details,
                    keyboard_modifiers_);
+#if defined(OS_WEBOS)
+  event.set_source_device_id(device_id);
+#endif  // defined(OS_WEBOS)
   if (dispatch_policy == wl::EventDispatchPolicy::kImmediate) {
     SetTouchTargetAndDispatchTouchEvent(&event);
   } else {
@@ -547,7 +639,11 @@ void WaylandEventSource::OnTouchMotionEvent(
   }
 }
 
-void WaylandEventSource::OnTouchCancelEvent() {
+void WaylandEventSource::OnTouchCancelEvent(
+#if defined(OS_WEBOS)
+    int device_id
+#endif  // defined(OS_WEBOS)
+) {
   // Some compositors emit a TouchCancel event when a drag'n drop
   // session is started on the server, eg Exo.
   // On Chrome, this event would actually abort the whole drag'n drop
@@ -558,13 +654,29 @@ void WaylandEventSource::OnTouchCancelEvent() {
   gfx::PointF location;
   base::TimeTicks timestamp = base::TimeTicks::Now();
   for (auto& touch_point : touch_points_) {
-    PointerId id = touch_point.first;
-    TouchEvent event(ET_TOUCH_CANCELLED, location, location, timestamp,
-                     PointerDetails(EventPointerType::kTouch, id));
-    SetTouchTargetAndDispatchTouchEvent(&event);
-    HandleTouchFocusChange(touch_point.second->window, false);
+#if defined(OS_WEBOS)
+    if (touch_point.second->window->touch_device_id() == device_id) {
+#endif  // defined(OS_WEBOS)
+      PointerId id = touch_point.first;
+      TouchEvent event(ET_TOUCH_CANCELLED, location, location, timestamp,
+                       PointerDetails(EventPointerType::kTouch, id));
+#if defined(OS_WEBOS)
+      event.set_source_device_id(device_id);
+      ReleaseTouchPointID(id);
+#endif  // defined(OS_WEBOS)
+      SetTouchTargetAndDispatchTouchEvent(&event);
+      HandleTouchFocusChange(touch_point.second->window, false);
+#if defined(OS_WEBOS)
+    }
+#endif  // defined(OS_WEBOS)
   }
+#if defined(OS_WEBOS)
+  base::EraseIf(touch_points_, [device_id](const auto& point) {
+    return point.second->window->touch_device_id() == device_id;
+  });
+#else   // !defined(OS_WEBOS)
   touch_points_.clear();
+#endif  // defined(OS_WEBOS)
   last_touch_stylus_data_.clear();
 }
 
@@ -624,8 +736,13 @@ void WaylandEventSource::OnTouchStylusTiltChanged(PointerId pointer_id,
   DCHECK(last_touch_stylus_data_[pointer_id].has_value());
   last_touch_stylus_data_[pointer_id]->tilt = tilt;
 }
-
+#if defined(OS_WEBOS)
+const WaylandWindow* WaylandEventSource::GetTouchTarget(PointerId id,
+                                                        int device_id) const {
+  id = GetTouchPointID(device_id, id);
+#else
 const WaylandWindow* WaylandEventSource::GetTouchTarget(PointerId id) const {
+#endif  // defined(OS_WEBOS)
   const auto it = touch_points_.find(id);
   return it == touch_points_.end() ? nullptr : it->second->window.get();
 }
@@ -838,9 +955,15 @@ void WaylandEventSource::ProcessPointerScrollData() {
     pointer_frames_.push_back(
         std::make_unique<FrameData>(event, base::NullCallback()));
   } else if (pointer_scroll_data_->axis_source) {
+#if defined(OS_WEBOS)
+    // FIXME(neva): WL_POINTER_AXIS_SOURCE_WHEEL_TILT is unrecognized by
+    // libwayland version supplied by webOS
+    if (*pointer_scroll_data_->axis_source == WL_POINTER_AXIS_SOURCE_WHEEL) {
+#else
     if (*pointer_scroll_data_->axis_source == WL_POINTER_AXIS_SOURCE_WHEEL ||
         *pointer_scroll_data_->axis_source ==
             WL_POINTER_AXIS_SOURCE_WHEEL_TILT) {
+#endif
       MouseWheelEvent event(
           gfx::Vector2d(pointer_scroll_data_->dx, pointer_scroll_data_->dy),
           pointer_location_, pointer_location_, EventTimeForNow(), flags, 0);

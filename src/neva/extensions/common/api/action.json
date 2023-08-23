@@ -1,0 +1,23 @@
+// Copyright 2017 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+// (This file was partially copied from //chrome/common/extensions/api.)
+
+[
+  {
+    "namespace": "action",
+    "description": "Use the <code>chrome.action</code> API to control the extension's icon in the Google Chrome toolbar.",
+    "compiler_options": {
+      "implemented_in": "neva/extensions/browser/api/extension_action/extension_action_api.h"
+    },
+    "events": [{
+      "name": "onClicked",
+      "type": "function",
+      "description": "Fired when an action icon is clicked.  This event will not fire if the action has a popup.",
+      "parameters": [{
+        "name": "tab",
+        "$ref": "tabs.Tab"
+      }]
+    }]
+  }
+]

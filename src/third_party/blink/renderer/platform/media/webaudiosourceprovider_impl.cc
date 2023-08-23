@@ -275,7 +275,9 @@ void WebAudioSourceProviderImpl::Flush() {
 
 bool WebAudioSourceProviderImpl::SetVolume(double volume) {
   base::AutoLock auto_lock(sink_lock_);
+#if !defined(USE_WEBOS_AUDIO)
   volume_ = volume;
+#endif
   if (!client_ && sink_)
     sink_->SetVolume(volume);
   return true;

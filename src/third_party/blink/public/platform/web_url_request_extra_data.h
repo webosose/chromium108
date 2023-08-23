@@ -87,6 +87,17 @@ class BLINK_PLATFORM_EXPORT WebURLRequestExtraData
   void set_allow_cross_origin_auth_prompt(bool allow_cross_origin_auth_prompt) {
     allow_cross_origin_auth_prompt_ = allow_cross_origin_auth_prompt;
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  absl::optional<bool> allow_third_party_cookies() const {
+    return allow_third_party_cookies_;
+  }
+  void set_allow_third_party_cookies(bool allow) {
+    allow_third_party_cookies_ = allow;
+  }
+  void reset_allow_third_party_cookies() {
+    allow_third_party_cookies_ = absl::nullopt;
+  }
+#endif  // defined(USE_NEVA_APPRUNTIME)
 
   void CopyToResourceRequest(network::ResourceRequest* request) const;
 
@@ -103,6 +114,9 @@ class BLINK_PLATFORM_EXPORT WebURLRequestExtraData
   WebVector<std::unique_ptr<URLLoaderThrottle>> url_loader_throttles_;
   scoped_refptr<WebFrameRequestBlocker> frame_request_blocker_;
   bool allow_cross_origin_auth_prompt_ = false;
+#if defined(USE_NEVA_APPRUNTIME)
+  absl::optional<bool> allow_third_party_cookies_;
+#endif
 
   // The origin of the top most frame. Only applicable for frames.
   url::Origin top_frame_origin_;

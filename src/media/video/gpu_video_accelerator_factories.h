@@ -209,6 +209,11 @@ class MEDIA_EXPORT GpuVideoAcceleratorFactories {
   virtual void SetRenderingColorSpace(const gfx::ColorSpace& color_space) = 0;
   virtual const gfx::ColorSpace& GetRenderingColorSpace() const = 0;
 
+#if defined(USE_NEVA_MEDIA)
+  virtual void SetUseVideoDecodeAccelerator(bool use) {}
+  virtual bool UseVideoDecodeAccelerator() const { return false; }
+#endif
+
   virtual ~GpuVideoAcceleratorFactories() = default;
 };
 

@@ -11,6 +11,7 @@ declare_args() {
   # If set, build lacros with Chromium's toolchain instead of with Chrome OS's.
   # TODO(thakis): Set this to `= chromeos_is_browser_only` once that works.
   lacros_use_chromium_toolchain = false
+  cros_host_is_clang = true
 }
 
 # This is mostly identical to gcc_toolchain, but handles relativizing toolchain
@@ -176,6 +177,8 @@ cros_toolchain("nacl_helper_arm32") {
 
 cros_toolchain("host") {
   toolchain_args = {
+    # RP: prevent the use of clang parameters in the gcc host build
+    is_clang = false
     current_cpu = host_cpu
     current_os = "linux"
     sysroot = cros_host_sysroot
@@ -301,5 +304,26 @@ if (also_build_lacros_chrome_for_architecture != "") {
 
       toolchain_args.needs_gomacc_path_arg = true
     }
+  }
+}
+
+clang_toolchain("v8_snapshot_clang_${target_cpu}") {
+  extra_cflags = cros_v8_snapshot_extra_cflags
+  extra_cppflags = cros_v8_snapshot_extra_cppflags
+  extra_cxxflags = cros_v8_snapshot_extra_cxxflags
+  extra_ldflags = cros_v8_snapshot_extra_ldflags
+
+  toolchain_args = {
+    is_clang = true
+    use_custom_libcxx = true
+    if (target_cpu == "x86" || target_cpu == "arm" || target_cpu == "mipsel") {
+      current_cpu = "x86"
+    } else {
+      current_cpu = "x64"
+    }
+    v8_current_cpu = v8_target_cpu
+    current_os = "linux"
+    use_sysroot = use_sysroot
+    target_sysroot = ""
   }
 }

@@ -78,8 +78,10 @@ class WaylandBufferFactory {
   friend class WaylandShm;
   friend class WaylandZwpLinuxDmabuf;
 
+#if !defined(OS_WEBOS)
   // A wrapper around wl_drm.
   std::unique_ptr<WaylandDrm> wayland_drm_;
+#endif
   // A wrapper around wl_shm.
   std::unique_ptr<WaylandShm> wayland_shm_;
   // A wrapper around zwp_linux_dmabuf.

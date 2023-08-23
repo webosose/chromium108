@@ -1,0 +1,68 @@
+# Copyright 2022 LG Electronics, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+import("//build/config/chromeos/ui_mode.gni")
+import("//build/config/features.gni")
+import("//build/config/linux/pkg_config.gni")
+import("//build/config/ui.gni")
+import("//media/media_options.gni")
+import("//neva/neva.gni")
+import("//testing/test.gni")
+
+assert(use_webos_camera)
+
+pkg_config("webos_camera_buffer_config") {
+  packages = [
+    "camera-buffer",
+  ]
+}
+
+source_set("webos") {
+  defines = [ "CAPTURE_IMPLEMENTATION" ]
+
+  sources = [
+    "video_capture_device_factory_webos.cc",
+    "video_capture_device_factory_webos.h",
+    "video_capture_device_webos.cc",
+    "video_capture_device_webos.h",
+    "webos_camera_constants.cc",
+    "webos_camera_constants.h",
+    "webos_camera_service.cc",
+    "webos_camera_service.h",
+    "webos_capture_delegate.cc",
+    "webos_capture_delegate.h",
+  ]
+
+  configs += [
+    ":webos_camera_buffer_config",
+    "//third_party/libyuv:libyuv_config",
+  ]
+
+  deps = [
+    "//base",
+    "//base:i18n",
+    "//build:chromeos_buildflags",
+    "//media",
+    "//media/capture/mojom:image_capture",
+    "//media/capture/mojom:image_capture_types",
+    "//media/capture/mojom:video_capture",
+    "//media/mojo/mojom",
+    "//services/service_manager/public/cpp",
+    "//third_party/libyuv",
+    "//ui/display",
+    "//ui/gfx",
+  ]
+}

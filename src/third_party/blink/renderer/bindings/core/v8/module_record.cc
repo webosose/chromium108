@@ -77,9 +77,16 @@ v8::Local<v8::Module> ModuleRecord::Compile(
         params.GetSourceText());
   }
   std::tie(compile_options, produce_cache_options, no_cache_reason) =
+#if defined(USE_FILESCHEME_CODECACHE)
+      V8CodeCache::GetCompileOptions(v8_cache_options, params.CacheHandler(),
+                                     params.GetSourceText().length(),
+                                     params.SourceLocationType(),
+                                     params.SourceURL().IsLocalFile());
+#else
       V8CodeCache::GetCompileOptions(v8_cache_options, params.CacheHandler(),
                                      params.GetSourceText().length(),
                                      params.SourceLocationType());
+#endif
 
   if (!V8ScriptRunner::CompileModule(
            isolate, params, text_position, compile_options, no_cache_reason,

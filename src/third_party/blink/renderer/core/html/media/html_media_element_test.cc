@@ -185,6 +185,13 @@ class TestMediaPlayerObserver final
 
   void OnAudioOutputSinkChangingDisabled() override {}
 
+#if defined(USE_NEVA_MEDIA)
+  void OnMediaCreated(bool will_use_media_resource) override {}
+  void OnMediaActivated() override {}
+  void OnMediaActivationNeeded() override {}
+  void OnMediaSuspended() override {}
+#endif  // defined(USE_NEVA_MEDIA)
+
   void OnRemotePlaybackMetadataChange(
       media_session::mojom::blink::RemotePlaybackMetadataPtr
           remote_playback_metadata) override {
@@ -579,7 +586,18 @@ TEST_P(HTMLMediaElementTest, preloadType) {
       {false, true, TestURLScheme::kHttp, "scheme", "metadata"},
       {false, true, TestURLScheme::kHttp, "none", "none"},
       // Tests that the preload is overriden to "metadata".
+#if defined(USE_NEVA_MEDIA)
+      // "The attribute's missing value default is user-agent defined"
+      // The W3C spec does not define an invalid value default,
+      // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28950
+      // and on webOS, this function is expected to return
+      // WebMediaPlayer::kPreloadAuto as default instead of kPreloadMetaData.
+      {false, false, TestURLScheme::kHttp, "foo",
+       RuntimeEnabledFeatures::PreloadDefaultIsAutoEnabled()? "auto"
+                                                            : "metadata"},
+#else
       {false, false, TestURLScheme::kHttp, "foo", "metadata"},
+#endif
   };
 
   int index = 0;

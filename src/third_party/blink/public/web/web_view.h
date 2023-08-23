@@ -470,6 +470,12 @@ class BLINK_EXPORT WebView {
   // Returns the number of live WebView instances in this process.
   static size_t GetWebViewCount();
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // Set WebSettingsImpl::m_keepAliveWebApp to meet timing.
+  // The injection calls this function directly
+  virtual void SetKeepAliveWebApp(bool keep_alive) = 0;
+#endif
+
  protected:
   ~WebView() = default;
 };

@@ -26,6 +26,13 @@
 #include "third_party/blink/public/web/web_local_frame.h"
 #include "third_party/blink/renderer/platform/media/web_media_player_impl.h"
 
+#if defined(USE_NEVA_MEDIA)
+#include "base/command_line.h"
+#include "media/audio/null_audio_sink.h"
+#include "media/base/media_switches_neva.h"
+#include "third_party/blink/renderer/platform/media/neva/web_media_player_neva_factory.h"
+#endif
+
 namespace blink {
 
 // static
@@ -60,7 +67,45 @@ WebMediaPlayer* WebMediaPlayerBuilder::Build(
     bool is_background_video_playback_enabled,
     bool is_background_video_track_optimization_supported,
     std::unique_ptr<media::Demuxer> demuxer_override,
+#if defined(USE_NEVA_MEDIA)
+    scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces,
+    CreateVideoWindowCallback create_video_window_callback,
+    const WebString& application_id,
+    const WebString& file_security_origin,
+    bool use_unlimited_media_policy,
+    media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
+    media::CreateMediaPlatformAPICB create_media_platform_api_cb) {
+#else
     scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces) {
+#endif
+#if defined(USE_NEVA_MEDIA)
+  bool use_neva_media = !base::CommandLine::ForCurrentProcess()->HasSwitch(
+                            switches::kDisableWebMediaPlayerNeva) &&
+                        client->ContentTypeDecoder() != "sw";
+
+  if (use_neva_media && WebMediaPlayerNevaFactory::Playable(client)) {
+    return WebMediaPlayerNevaFactory::CreateWebMediaPlayerNeva(
+        frame, client, encrypted_client, delegate, std::move(factory_selector),
+        url_index, std::move(compositor), std::move(media_log), player_id,
+        std::move(defer_load_cb),
+        scoped_refptr(new media::NullAudioSink(media_task_runner)),
+        std::move(media_task_runner), std::move(worker_task_runner),
+        std::move(compositor_task_runner),
+        std::move(video_frame_compositor_task_runner),
+        std::move(adjust_allocated_memory_cb), initial_cdm,
+        std::move(request_routing_token_cb), std::move(media_observer),
+        enable_instant_source_buffer_gc, embedded_media_experience_enabled,
+        std::move(metrics_provider), std::move(create_bridge_callback),
+        std::move(raster_context_provider), use_surface_layer,
+        is_background_suspend_enabled, is_background_video_playback_enabled,
+        is_background_video_track_optimization_supported,
+        std::move(demuxer_override), std::move(remote_interfaces),
+        std::move(create_video_window_callback), application_id,
+        file_security_origin, use_unlimited_media_policy,
+        std::move(create_media_player_neva_cb),
+        std::move(create_media_platform_api_cb));
+  }
+#endif
   return new WebMediaPlayerImpl(
       frame, client, encrypted_client, delegate, std::move(factory_selector),
       url_index, std::move(compositor), std::move(media_log), player_id,

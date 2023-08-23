@@ -825,6 +825,10 @@ absl::optional<FirstPartySetMetadata> ComputeFirstPartySetMetadataMaybeAsync(
   return FirstPartySetMetadata();
 }
 
+bool IsAggressiveFlushingEnabled() {
+  return base::FeatureList::IsEnabled(features::kAggressiveFlushing);
+}
+
 CookieSamePartyStatus GetSamePartyStatus(
     const CanonicalCookie& cookie,
     const CookieOptions& options,

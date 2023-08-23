@@ -204,6 +204,9 @@ class ServiceWorkerRegisterJob : public ServiceWorkerRegisterJobBase {
 
   RegistrationJobType job_type_;
   const GURL scope_;
+#if defined(USE_NEVA_APPRUNTIME)
+  std::string app_id_;
+#endif
   GURL script_url_;
   const blink::StorageKey key_;
   // "A job has a worker type ("classic" or "module")."

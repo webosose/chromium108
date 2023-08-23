@@ -115,6 +115,10 @@
 #include "ui/display/display_switches.h"
 #include "ui/gfx/switches.h"
 
+#if defined(USE_LTTNG)
+#include "content/common/neva/lttng/lttng_init.h"
+#endif
+
 #if BUILDFLAG(IS_WIN)
 #include <malloc.h>
 #include <cstring>
@@ -939,6 +943,11 @@ int ContentMainRunnerImpl::Initialize(ContentMainParams params) {
 
   RegisterPathProvider();
 
+#if defined(USE_LTTNG)
+    if (process_type.empty())
+      lttng_native_library_ = neva::LttngInit();
+#endif
+
 #if BUILDFLAG(IS_ANDROID) && (ICU_UTIL_DATA_IMPL == ICU_UTIL_DATA_FILE)
   if (process_type.empty()) {
     TRACE_EVENT0("startup", "InitializeICU");
@@ -1278,6 +1287,11 @@ void ContentMainRunnerImpl::Shutdown() {
 
   delegate_ = nullptr;
   is_shutdown_ = true;
+
+#if defined(USE_LTTNG)
+  if (lttng_native_library_)
+    base::UnloadNativeLibrary(lttng_native_library_);
+#endif
 }
 
 // static

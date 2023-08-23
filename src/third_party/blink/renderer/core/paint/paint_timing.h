@@ -160,7 +160,7 @@ class CORE_EXPORT PaintTiming final : public GarbageCollected<PaintTiming>,
     return *fmp_detector_;
   }
 
-  void RegisterNotifyPresentationTime(ReportTimeCallback);
+  void RegisterNotifyPresentationTime(PaintEvent, ReportTimeCallback);
   void ReportPresentationTime(PaintEvent,
                               base::TimeTicks timestamp);
   void ReportFirstPaintAfterBackForwardCacheRestorePresentationTime(

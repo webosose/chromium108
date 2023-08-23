@@ -2501,6 +2501,22 @@ void WebFrameWidgetImpl::SetHandlingInputEvent(bool handling) {
   widget_base_->input_handler().set_handling_input_event(handling);
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+void WebFrameWidgetImpl::ActivateCompositor() {
+  if (widget_base_ && !widget_base_->never_composited())
+    widget_base_->SetCompositorVisible(!widget_base_->is_hidden());
+}
+
+void WebFrameWidgetImpl::DeactivateCompositor() {
+  if (widget_base_)
+    widget_base_->SetCompositorVisible(false);
+}
+
+bool WebFrameWidgetImpl::HasImeEventGuard() const {
+  return widget_base_->HasImeEventGuard();
+}
+#endif
+
 void WebFrameWidgetImpl::ProcessInputEventSynchronouslyForTesting(
     const WebCoalescedInputEvent& event,
     WidgetBaseInputHandler::HandledEventCallback callback) {
@@ -2849,7 +2865,7 @@ void WebFrameWidgetImpl::AutoscrollEnd() {
 
 void WebFrameWidgetImpl::DidMeaningfulLayout(WebMeaningfulLayout layout_type) {
   if (layout_type == blink::WebMeaningfulLayout::kVisuallyNonEmpty) {
-    NotifyPresentationTime(WTF::BindOnce(
+    NotifyPresentationTimeInBlink(WTF::BindOnce(
         &WebFrameWidgetImpl::PresentationCallbackForMeaningfulLayout,
         WrapWeakPersistent(this)));
   }
@@ -3124,10 +3140,60 @@ void WebFrameWidgetImpl::NotifySwapAndPresentationTimeForTesting(
   NotifySwapAndPresentationTime(std::move(callbacks));
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+// Lets call this Viz First Meaninful Paint promise for now
+class VizFMPPromise : public cc::SwapPromise {
+ public:
+  VizFMPPromise(bool is_first_contentful_paint, bool did_reset_container_state)
+      : is_first_contentful_paint_(is_first_contentful_paint),
+        did_reset_container_state_(did_reset_container_state) {}
+
+  void DidActivate() override {}
+
+  void WillSwap(viz::CompositorFrameMetadata* metadata) override {
+    metadata->is_first_contentful_paint |= is_first_contentful_paint_;
+    metadata->did_reset_container_state |= did_reset_container_state_;
+  }
+  void DidSwap() override {}
+
+  cc::SwapPromise::DidNotSwapAction DidNotSwap(
+      DidNotSwapReason reason) override {
+    // Keep promise active since we need to pass metadata
+    // to viz once swap happens
+    return DidNotSwapAction::KEEP_ACTIVE;
+  }
+
+  int64_t GetTraceId() const override { return 0; }
+
+ private:
+  bool is_first_contentful_paint_;
+  bool did_reset_container_state_;
+};
+
+void WebFrameWidgetImpl::NotifyVizFMPSwap(bool is_first_contentful_paint,
+                                          bool did_reset_container_state) {
+  widget_base_->LayerTreeHost()->QueueSwapPromise(
+      std::make_unique<VizFMPPromise>(is_first_contentful_paint,
+                                      did_reset_container_state));
+}
+#endif  // defined(USE_NEVA_APPRUNTIME)
+
 void WebFrameWidgetImpl::NotifyPresentationTimeInBlink(
     base::OnceCallback<void(base::TimeTicks)> presentation_callback) {
+  VLOG(1) << __func__;
+#if defined(OS_WEBOS)
+  // Splash screen detection in webOS depends on FMP, but FMP is
+  // now happening after first presentation has happened (so it
+  // will not actually dismiss splash as expected). As we are
+  // not using the histograms, this change just makes
+  // the swap events (and FMP) be emitted immediately,
+  // unbreaking splash.
+  NotifySwapAndPresentationTime(
+      {.swap_time_callback = std::move(presentation_callback)});
+#else
   NotifySwapAndPresentationTime(
       {.presentation_time_callback = std::move(presentation_callback)});
+#endif
 }
 
 void WebFrameWidgetImpl::NotifyPresentationTime(

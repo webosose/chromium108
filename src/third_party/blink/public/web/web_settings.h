@@ -39,6 +39,7 @@
 #include "third_party/blink/public/mojom/webpreferences/web_preferences.mojom-forward.h"
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/public/platform/web_effective_connection_type.h"
+#include "third_party/blink/public/web/neva/web_settings_neva.h"
 
 namespace blink {
 
@@ -48,7 +49,7 @@ class WebString;
 // for the WebView's page without any knowledge of WebCore itself.  For the most
 // part, these functions have a 1:1 mapping with the methods in
 // WebCore/page/Settings.h.
-class WebSettings {
+class WebSettings : public WebSettingsNeva {
  public:
   // Selection strategy defines how the selection granularity changes when the
   // selection extent is moved.
@@ -90,6 +91,7 @@ class WebSettings {
 
   virtual bool ShrinksViewportContentToFit() const = 0;
   virtual bool ViewportEnabled() const = 0;
+  virtual bool GetAccessibilityExploreByMouseEnabled() = 0;
   virtual void SetAccelerated2dCanvasMSAASampleCount(int) = 0;
   virtual void SetPreferCompositingToLCDTextEnabled(bool) = 0;
   // Not implemented yet, see http://crbug.com/178119
@@ -99,6 +101,7 @@ class WebSettings {
   // LocalFrameClient set to the frame may override the value set by this
   // method.
   virtual void SetAccessibilityPasswordValuesEnabled(bool) = 0;
+  virtual void SetAccessibilityExploreByMouseEnabled(bool) = 0;
   virtual void SetAllowFileAccessFromFileURLs(bool) = 0;
   virtual void SetAllowCustomScrollbarInMainFrame(bool) = 0;
   virtual void SetAllowGeolocationOnInsecureOrigins(bool) = 0;
@@ -253,6 +256,13 @@ class WebSettings {
   virtual void SetWideViewportQuirkEnabled(bool) = 0;
   virtual void SetMediaControlsEnabled(bool) = 0;
   virtual void SetDoNotUpdateSelectionOnMutatingSelectionRange(bool) = 0;
+#if defined(USE_NEVA_MEDIA)
+  virtual void SetMaxTimeupdateEventFrequency(int) = 0;
+#endif
+#if defined(USE_NEVA_APPRUNTIME)
+  virtual void SetDisallowScrollbarsInMainFrame(bool) = 0;
+  virtual void SetWebOSNativeScrollEnabled(bool) = 0;
+#endif
   virtual void SetLowPriorityIframesThreshold(WebEffectiveConnectionType) = 0;
   virtual void SetLazyLoadEnabled(bool) = 0;
   virtual void SetLazyFrameLoadingDistanceThresholdPxUnknown(int) = 0;

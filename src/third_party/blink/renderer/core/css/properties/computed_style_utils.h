@@ -298,6 +298,10 @@ class CORE_EXPORT ComputedStyleUtils {
                                                const ComputedStyle&,
                                                const LayoutObject* = nullptr);
 
+  static CSSValue* ValueForNavigationDataList(const ComputedStyle&,
+                                              CSSPropertyID);
+  static CSSValue* ValueForNavigationIndex(const ComputedStyle&, CSSPropertyID);
+
  private:
   // Returns the CSSValueID for a scale transform operation.
   static CSSValueID CSSValueIDForScaleOperation(

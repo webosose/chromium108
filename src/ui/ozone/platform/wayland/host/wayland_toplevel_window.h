@@ -53,6 +53,9 @@ class WaylandToplevelWindow : public WaylandWindow,
   // PlatformWindow:
   void Show(bool inactive) override;
   void Hide() override;
+#if defined(USE_NEVA_MEDIA)
+  void Close() override;
+#endif  // defined(USE_NEVA_MEDIA)
   bool IsVisible() const override;
   void SetTitle(const std::u16string& title) override;
   void ToggleFullscreen() override;
@@ -83,6 +86,12 @@ class WaylandToplevelWindow : public WaylandWindow,
 
   // Sets the window's origin.
   void SetOrigin(const gfx::Point& origin);
+
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  void HandleStateChanged(PlatformWindowState state) override;
+  void HandleActivationChanged(bool is_activated) override;
+  ///@}
 
   // WaylandWindow overrides:
   bool IsScreenCoordinatesEnabled() const override;

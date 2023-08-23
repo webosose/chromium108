@@ -11,6 +11,7 @@
 #include "base/memory/ref_counted.h"
 #include "base/memory/weak_ptr.h"
 #include "build/build_config.h"
+#include "components/viz/common/gpu/gpu_vsync_callback.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/delegated_ink_metadata.h"
@@ -348,6 +349,8 @@ class GL_EXPORT GLSurface : public base::RefCounted<GLSurface>,
   static GpuPreference AdjustGpuPreference(GpuPreference gpu_preference);
 
   virtual void SetCALayerErrorCode(gfx::CALayerResult ca_layer_error_code) {}
+
+  virtual void SetVSyncCallback(viz::GpuVSyncCallback callback){};
 
  protected:
   virtual ~GLSurface();

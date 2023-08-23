@@ -49,7 +49,8 @@ void PlatformNotificationServiceProxy::DoDisplayNotification(
     notification_service_->DisplayPersistentNotification(
         data.notification_id, service_worker_scope, data.origin,
         data.notification_data,
-        data.notification_resources.value_or(blink::NotificationResources()));
+        data.notification_resources.value_or(blink::NotificationResources()),
+        data.service_worker_registration_id);
     notifications::LogNotificationDisplayedEventToDevTools(browser_context_,
                                                            data);
   }

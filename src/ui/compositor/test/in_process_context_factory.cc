@@ -117,6 +117,10 @@ class InProcessContextFactory::PerCompositorData
   void SetStandaloneBeginFrameObserver(
       mojo::PendingRemote<viz::mojom::BeginFrameObserver> observer) override {}
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void RenderProcessGone() override {}
+#endif
+
   void SetSurfaceHandle(gpu::SurfaceHandle surface_handle) {
     surface_handle_ = surface_handle;
   }

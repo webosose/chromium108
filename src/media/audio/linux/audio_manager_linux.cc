@@ -26,6 +26,10 @@
 #include "media/audio/pulse/pulse_util.h"
 #endif
 
+#if defined(USE_WEBOS_AUDIO)
+#include "media/audio/webos/audio_manager_webos.h"
+#endif
+
 namespace media {
 
 std::unique_ptr<media::AudioManager> CreateAudioManager(
@@ -54,8 +58,13 @@ std::unique_ptr<media::AudioManager> CreateAudioManager(
   pa_threaded_mainloop* pa_mainloop = nullptr;
   pa_context* pa_context = nullptr;
   if (pulse::InitPulse(&pa_mainloop, &pa_context)) {
+#if defined(USE_WEBOS_AUDIO)
+    return std::make_unique<AudioManagerWebOS>(
+        std::move(audio_thread), audio_log_factory, pa_mainloop, pa_context);
+#else
     return std::make_unique<AudioManagerPulse>(
         std::move(audio_thread), audio_log_factory, pa_mainloop, pa_context);
+#endif
   }
   LOG(WARNING) << "Falling back to ALSA for audio output. PulseAudio is not "
                   "available or could not be initialized.";

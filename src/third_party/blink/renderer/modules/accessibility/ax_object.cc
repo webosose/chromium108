@@ -6058,6 +6058,20 @@ LayoutObject* AXObject::GetLayoutObjectForNativeScrollAction() const {
   return node->GetLayoutObject();
 }
 
+// TODO(neva): GCC 8.x.x
+#if !defined(__clang__)
+bool AXObject::IsAnyOfGrid() const {
+  for (auto ancestor = UnignoredAncestorsBegin();
+       ancestor != UnignoredAncestorsEnd();
+       ++ancestor) {
+    if (ancestor->RoleValue() == ax::mojom::blink::Role::kGrid ||
+        ancestor->RoleValue() == ax::mojom::blink::Role::kTreeGrid)
+      return true;
+  }
+  return false;
+}
+#endif
+
 bool AXObject::OnNativeScrollToMakeVisibleAction() const {
   LayoutObject* layout_object = GetLayoutObjectForNativeScrollAction();
   if (!layout_object)

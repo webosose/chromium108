@@ -15,6 +15,10 @@
 #include "third_party/blink/renderer/platform/scheduler/public/frame_scheduler.h"
 #include "third_party/blink/renderer/platform/scheduler/public/page_scheduler.h"
 #include "third_party/blink/renderer/platform/scheduler/public/thread_scheduler.h"
+// NOTE(neva) GCC: Include "web_scheduling_task_queue.h" to fix build error:
+// unique_ptr.h:79:16: error: invalid application of 'sizeof' to incomplete type
+// 'blink::WebSchedulingTaskQueue'
+#include "third_party/blink/renderer/platform/scheduler/public/web_scheduling_task_queue.h"
 #include "third_party/blink/renderer/platform/scheduler/test/fake_task_runner.h"
 #include "third_party/blink/renderer/platform/testing/scoped_scheduler_overrider.h"
 

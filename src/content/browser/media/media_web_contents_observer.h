@@ -215,6 +215,13 @@ class CONTENT_EXPORT MediaWebContentsObserver
         media_session::mojom::RemotePlaybackMetadataPtr
             remote_playback_metadata) override;
 
+#if defined(USE_NEVA_MEDIA)
+    void OnMediaCreated(bool will_use_media_resource) override;
+    void OnMediaActivated() override;
+    void OnMediaActivationNeeded() override;
+    void OnMediaSuspended() override;
+#endif  // defined(USE_NEVA_MEDIA)
+
    private:
     PlayerInfo* GetPlayerInfo();
     void NotifyAudioStreamMonitorIfNeeded();

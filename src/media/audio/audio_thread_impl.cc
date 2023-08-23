@@ -35,7 +35,7 @@ AudioThreadImpl::AudioThreadImpl()
 #endif
   worker_task_runner_ = thread_.task_runner();
 
-#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_MAC) && !BUILDFLAG(IS_ANDROID) && !defined(USE_WEBOS_AUDIO)
   // Since we run on the main thread on Mac, we don't need a hang monitor.
   // https://crbug.com/946968: The hang monitor possibly causes crashes on
   // Android

@@ -3805,6 +3805,37 @@
       ]
     },
     {
+      "id": 9997,
+      "description": "Disable EXT_draw_buffers on webOS emulator due to driver bugs",
+      "gl_vendor": "VMware.*",
+      "driver_vendor": "Mesa",
+      "gl_type": "gles",
+      "features": [
+        "disable_ext_draw_buffers"
+      ]
+    },
+    {
+      "id": 9998,
+      "description": "Invalid return value when getting GL_TIMESTAMP on O22",
+      "os": {
+        "type": "linux"
+      },
+      "gl_vendor": "ARM",
+      "gl_renderer": "Mali-G52",
+      "disabled_extensions": [
+        "GL_EXT_disjoint_timer_query"
+      ]
+    },
+    {
+      "id": 9999,
+      "description": "The Mali-Gxx driver fails with glCopyTexSubImage2D using GL_R8",
+      "gl_vendor": "ARM.*",
+      "gl_renderer": "Mali-G.*",
+      "features": [
+        "disable_texture_rg"
+      ]
+    },
+    {
       "id": 386,
       "cr_bugs": [1253962],
       "description": "Older Adreno 4xx drivers drop draws sometimes with oop-c",

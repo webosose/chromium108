@@ -42,6 +42,15 @@ AudioSystemHelper::~AudioSystemHelper() = default;
 void AudioSystemHelper::GetInputStreamParameters(
     const std::string& device_id,
     AudioSystem::OnAudioParamsCallback on_params_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE, base::BindOnce(&AudioSystemHelper::GetInputStreamParameters,
+                                  base::Unretained(this), device_id,
+                                  std::move(on_params_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   std::move(on_params_cb).Run(ComputeInputParameters(device_id));
 }
@@ -49,18 +58,45 @@ void AudioSystemHelper::GetInputStreamParameters(
 void AudioSystemHelper::GetOutputStreamParameters(
     const std::string& device_id,
     AudioSystem::OnAudioParamsCallback on_params_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE, base::BindOnce(&AudioSystemHelper::GetOutputStreamParameters,
+                                  base::Unretained(this), device_id,
+                                  std::move(on_params_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   std::move(on_params_cb).Run(ComputeOutputParameters(device_id));
 }
 
 void AudioSystemHelper::HasInputDevices(
     AudioSystem::OnBoolCallback on_has_devices_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&AudioSystemHelper::HasInputDevices,
+                       base::Unretained(this), std::move(on_has_devices_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   std::move(on_has_devices_cb).Run(audio_manager_->HasAudioInputDevices());
 }
 
 void AudioSystemHelper::HasOutputDevices(
     AudioSystem::OnBoolCallback on_has_devices_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&AudioSystemHelper::HasOutputDevices,
+                       base::Unretained(this), std::move(on_has_devices_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   std::move(on_has_devices_cb).Run(audio_manager_->HasAudioOutputDevices());
 }
@@ -68,6 +104,15 @@ void AudioSystemHelper::HasOutputDevices(
 void AudioSystemHelper::GetDeviceDescriptions(
     bool for_input,
     AudioSystem::OnDeviceDescriptionsCallback on_descriptions_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE, base::BindOnce(&AudioSystemHelper::GetDeviceDescriptions,
+                                  base::Unretained(this), for_input,
+                                  std::move(on_descriptions_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   AudioDeviceDescriptions descriptions;
   if (for_input)
@@ -80,6 +125,16 @@ void AudioSystemHelper::GetDeviceDescriptions(
 void AudioSystemHelper::GetAssociatedOutputDeviceID(
     const std::string& input_device_id,
     AudioSystem::OnDeviceIdCallback on_device_id_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&AudioSystemHelper::GetAssociatedOutputDeviceID,
+                       base::Unretained(this), input_device_id,
+                       std::move(on_device_id_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   const std::string associated_output_device_id =
       audio_manager_->GetAssociatedOutputDeviceID(input_device_id);
@@ -91,6 +146,15 @@ void AudioSystemHelper::GetAssociatedOutputDeviceID(
 void AudioSystemHelper::GetInputDeviceInfo(
     const std::string& input_device_id,
     AudioSystem::OnInputDeviceInfoCallback on_input_device_info_cb) {
+#if defined(USE_WEBOS_AUDIO)
+  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
+    audio_manager_->GetTaskRunner()->PostTask(
+        FROM_HERE, base::BindOnce(&AudioSystemHelper::GetInputDeviceInfo,
+                                  base::Unretained(this), input_device_id,
+                                  std::move(on_input_device_info_cb)));
+    return;
+  }
+#endif
   DCHECK(audio_manager_->GetTaskRunner()->BelongsToCurrentThread());
   const std::string associated_output_device_id =
       audio_manager_->GetAssociatedOutputDeviceID(input_device_id);

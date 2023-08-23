@@ -136,6 +136,10 @@ extern const char kPrefContentSettings[];
 // Extension-set incognito content settings.
 extern const char kPrefIncognitoContentSettings[];
 
+#if defined(USE_NEVA_APPRUNTIME)
+extern const char kPrefPdfJsEnableScripting[];
+#endif
+
 }  // namespace pref_names
 }  // namespace extensions
 

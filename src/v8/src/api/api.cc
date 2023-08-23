@@ -782,6 +782,19 @@ void ResourceConstraints::ConfigureDefaults(uint64_t physical_memory,
   }
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+void ResourceConstraints::ConfigureDetails(
+    size_t min_allocation_limit_growing_step_size,
+    size_t high_fragmentation_slack, int external_allocation_hard_limit,
+    int external_allocation_soft_limit) {
+  set_min_allocation_limit_growing_step_size(
+      min_allocation_limit_growing_step_size);
+  set_high_fragmentation_slack(high_fragmentation_slack);
+  set_external_allocation_hard_limit(external_allocation_hard_limit);
+  set_external_allocation_soft_limit(external_allocation_soft_limit);
+}
+#endif
+
 namespace internal {
 
 i::Address* GlobalizeTracedReference(i::Isolate* i_isolate, i::Address* obj,
@@ -8820,6 +8833,15 @@ void Isolate::Initialize(Isolate* v8_isolate,
   i_isolate->set_allow_atomics_wait(params.allow_atomics_wait);
 
   i_isolate->heap()->ConfigureHeap(params.constraints);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  i_isolate->heap()->ConfigureHeapDetails(
+      params.constraints.min_allocation_limit_growing_step_size(),
+      params.constraints.high_fragmentation_slack(),
+      params.constraints.external_allocation_hard_limit(),
+      params.constraints.external_allocation_soft_limit());
+#endif
+
   if (params.constraints.stack_limit() != nullptr) {
     uintptr_t limit =
         reinterpret_cast<uintptr_t>(params.constraints.stack_limit());
@@ -9677,8 +9699,15 @@ void v8::Isolate::DateTimeConfigurationChangeNotification(
   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
   API_RCS_SCOPE(i_isolate, Isolate, DateTimeConfigurationChangeNotification);
   ENTER_V8_NO_SCRIPT_NO_EXCEPTION(i_isolate);
+#if !defined(OS_WEBOS)
   i_isolate->date_cache()->ResetDateCache(
       static_cast<base::TimezoneCache::TimeZoneDetection>(time_zone_detection));
+#else   // defined(OS_WEBOS)
+  // Due to in webOS non-standard timezones and DST can be used, timezone
+  // detection shall be disabled and date caches for all zones shall be reset.
+  i_isolate->date_cache()->ResetDateCache(
+      base::TimezoneCache::TimeZoneDetection::kSkip);
+#endif  // !defined(OS_WEBOS)
 #ifdef V8_INTL_SUPPORT
   i_isolate->clear_cached_icu_object(
       i::Isolate::ICUObjectCacheType::kDefaultSimpleDateFormat);

@@ -2246,6 +2246,14 @@ void WebContentsImpl::OnVerticalScrollDirectionChanged(
       &WebContentsObserver::DidChangeVerticalScrollDirection, scroll_direction);
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+void WebContentsImpl::DidCompleteSwap() {
+  // This is notified in two stages. First stage is for WebView side, to
+  // acknowledge a frame has been swapped.
+  observers_.NotifyObservers(&WebContentsObserver::DidCompleteSwap);
+}
+#endif
+
 void WebContentsImpl::OnAudioStateChanged() {
   // This notification can come from any embedded contents or from this
   // WebContents' stream monitor. Aggregate these signals to get the actual
@@ -2709,7 +2717,6 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
       *base::CommandLine::ForCurrentProcess();
 
   SetSlowWebPreferences(command_line, &prefs);
-
   prefs.web_security_enabled =
       !command_line.HasSwitch(switches::kDisableWebSecurity);
 
@@ -2809,6 +2816,9 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
 
   prefs.stylus_handwriting_enabled = stylus_handwriting_enabled_;
 
+  prefs.css_navigation_enabled =
+      command_line.HasSwitch(switches::kEnableCSSNavigation);
+
   prefs.disable_reading_from_canvas =
       command_line.HasSwitch(switches::kDisableReadingFromCanvas);
 
@@ -2817,6 +2827,13 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
 
   prefs.strict_powerful_feature_restrictions = command_line.HasSwitch(
       switches::kEnableStrictPowerfulFeatureRestrictions);
+
+#if defined(USE_NEVA_MEDIA)
+  if (command_line.HasSwitch(switches::kMaxTimeupdateEventFrequency))
+    prefs.max_timeupdate_event_frequency = atoi(
+        command_line.GetSwitchValueASCII(switches::kMaxTimeupdateEventFrequency)
+            .c_str());
+#endif
 
   prefs.fake_no_alloc_direct_call_for_testing_enabled =
       command_line.HasSwitch(switches::kEnableFakeNoAllocDirectCallForTesting);
@@ -2833,8 +2850,27 @@ const blink::web_pref::WebPreferences WebContentsImpl::ComputeWebPreferences() {
 
   prefs.v8_cache_options = GetV8CacheOptions();
 
+#if defined(USE_NEVA_APPRUNTIME)
+  if (command_line.HasSwitch(switches::kEnableV8CacheForWebappList)) {
+    std::string whitelist =
+        command_line.GetSwitchValueASCII(switches::kEnableV8CacheForWebappList);
+    std::vector<base::StringPiece> webapps = base::SplitStringPiece(
+        whitelist, ",", base::TRIM_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
+    if (base::Contains(webapps, GetRendererPrefs().application_id)) {
+      prefs.v8_cache_options = blink::mojom::V8CacheOptions::kCode;
+    } else {
+      prefs.v8_cache_options = blink::mojom::V8CacheOptions::kNone;
+    }
+    VLOG(1) << __func__ << " " << GetRendererPrefs().application_id
+            << " v8-cache-options=" << prefs.v8_cache_options;
+  }
+#endif
+
   prefs.user_gesture_required_for_presentation = !command_line.HasSwitch(
       switches::kDisableGestureRequirementForPresentation);
+
+  prefs.accessibility_explore_by_mouse_enabled =
+      command_line.HasSwitch(switches::kEnableAccessibilityExploreByMouse);
 
   if (is_overlay_content_)
     prefs.hide_download_ui = true;
@@ -3032,6 +3068,25 @@ std::unique_ptr<WebContents> WebContentsImpl::Clone() {
   return tc;
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+void WebContentsImpl::Observe(int type,
+                              const NotificationSource& source,
+                              const NotificationDetails& details) {
+  OPTIONAL_TRACE_EVENT1("content", "WebContentsImpl::Observe", "type", type);
+  switch (type) {
+
+    case NOTIFICATION_RENDERER_PROCESS_CREATED: {
+      RenderProcessHost* process_host = Source<RenderProcessHost>(source).ptr();
+      if (process_host)
+        RenderProcessCreated(process_host);
+      break;
+    }
+    default:
+      NOTREACHED();
+  }
+}
+#endif
+
 WebContents* WebContentsImpl::DeprecatedGetWebContents() {
   return this;
 }
@@ -3098,6 +3153,12 @@ void WebContentsImpl::Init(const WebContents::CreateParams& params,
   CHECK(view_.get());
 
   view_->CreateView(params.context);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  registrar_.Add(this,
+                 NOTIFICATION_RENDERER_PROCESS_CREATED,
+                 NotificationService::AllBrowserContextsAndSources());
+#endif
 
   screen_orientation_provider_ =
       std::make_unique<ScreenOrientationProvider>(this);
@@ -7893,6 +7954,12 @@ void WebContentsImpl::SetFocusedFrame(FrameTreeNode* node,
     // frames).
     SetFocusedFrameTree(node->frame_tree());
   }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Added for neva app-runtime frame focused notification
+  if (delegate_)
+    delegate_->DidFrameFocused();
+#endif
 }
 
 void WebContentsImpl::DidCallFocus() {
@@ -9243,6 +9310,63 @@ void WebContentsImpl::SetVisibilityForChildViews(bool visible) {
                         "visible", visible);
   GetPrimaryMainFrame()->SetVisibilityForChildViews(visible);
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+bool WebContentsImpl::IsInspectablePage() const {
+  return inspectable_page_;
+}
+
+void WebContentsImpl::SetInspectablePage(bool inspectable) {
+  inspectable_page_ = inspectable;
+}
+
+void WebContentsImpl::RenderProcessCreated(
+    RenderProcessHost* render_process_host) {
+  observers_.NotifyObservers(&WebContentsObserver::RenderProcessCreated,
+                             render_process_host->GetProcess().Handle());
+}
+
+bool WebContentsImpl::DecidePolicyForResponse(bool is_main_frame,
+                                              int status_code,
+                                              const std::string& url,
+                                              const std::string& status_text) {
+  if (!delegate_)
+    return false;
+  return delegate_->DecidePolicyForResponse(is_main_frame, status_code, url,
+                                            status_text);
+}
+
+void WebContentsImpl::DropAllPeerConnections(
+    blink::mojom::DropPeerConnectionReason reason) {
+  LOG(INFO) << "WebContentsImpl::DropAllPeerConnections()";
+
+  drop_peer_connection_request_id_++;
+  auto cb = base::BindRepeating(&WebContentsImpl::OnDidDropAllPeerConnections,
+                                weak_factory_.GetWeakPtr(), reason,
+                                drop_peer_connection_request_id_);
+  ForEachRenderFrameHost([cb](RenderFrameHost* render_frame_host) {
+    render_frame_host->DropAllPeerConnections(cb);
+  });
+}
+
+void WebContentsImpl::OnDidDropAllPeerConnections(
+    blink::mojom::DropPeerConnectionReason reason,
+    int request_id) {
+  LOG(INFO) << "WebContentsImpl::OnDidDropAllPeerConnections()";
+
+  // TODO(neva, sync-to-91):
+  // We only notify once per each request. Previously PeerConnectionTracker
+  // resides in RenderProcessHost, which means single instance per renderer
+  // process. But now PeerConnectionTracker reside in each RenderFrameHost.
+  // So this callback may run multiple times. To make backwark compatible,
+  // we notify only for first response from any render frame.
+  if (request_id != last_processed_drop_peer_connection_request_id_) {
+    last_processed_drop_peer_connection_request_id_ = request_id;
+    observers_.NotifyObservers(&WebContentsObserver::DidDropAllPeerConnections,
+                               reason);
+  }
+}
+#endif  // defined(USE_NEVA_APPRUNTIME)
 
 void WebContentsImpl::OnNativeThemeUpdated(ui::NativeTheme* observed_theme) {
   OPTIONAL_TRACE_EVENT0("content", "WebContentsImpl::OnNativeThemeUpdated");

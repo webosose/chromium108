@@ -1007,14 +1007,17 @@ bool SQLitePersistentCookieStore::Backend::MakeCookiesFromSQLStatement(
     std::string value;
     std::string encrypted_value = statement.ColumnString(13);
     if (!encrypted_value.empty() && crypto_) {
+      VLOG(1) << "v7 Read Decrypt Cookie String started";
       bool decrypt_ok = crypto_->DecryptString(encrypted_value, &value);
       if (!decrypt_ok) {
         RecordCookieLoadProblem(COOKIE_LOAD_PROBLEM_DECRYPT_FAILED);
         ok = false;
         continue;
       }
+      VLOG(1) << "v7 Read Decrypt Cookie String completed";
     } else {
       value = statement.ColumnString(4);
+      VLOG(1) << "v6 Read Decrypt Cookie String completed";
     }
 
     absl::optional<CookiePartitionKey> cookie_partition_key;
@@ -1440,6 +1443,8 @@ void SQLitePersistentCookieStore::Backend::BatchOperation(
     const CanonicalCookie& cc) {
   // Commit every 30 seconds.
   static const int kCommitIntervalMs = 30 * 1000;
+  // Aggressive commit is done every second.
+  static const int kCommitAggressiveIntervalMs = 1000;
   // Commit right away if we have more than 512 outstanding operations.
   static const size_t kCommitAfterBatchSize = 512;
   DCHECK(!background_task_runner()->RunsTasksInCurrentSequence());
@@ -1447,6 +1452,9 @@ void SQLitePersistentCookieStore::Backend::BatchOperation(
   // We do a full copy of the cookie here, and hopefully just here.
   auto po = std::make_unique<PendingOperation>(op, cc);
 
+  int commit_interval_ms = cookie_util::IsAggressiveFlushingEnabled()
+                               ? kCommitAggressiveIntervalMs
+                               : kCommitIntervalMs;
   PendingOperationsMap::size_type num_pending;
   {
     base::AutoLock locked(lock_);
@@ -1488,7 +1496,7 @@ void SQLitePersistentCookieStore::Backend::BatchOperation(
     // We've gotten our first entry for this batch, fire off the timer.
     if (!background_task_runner()->PostDelayedTask(
             FROM_HERE, base::BindOnce(&Backend::Commit, this),
-            base::Milliseconds(kCommitIntervalMs))) {
+            base::Milliseconds(commit_interval_ms))) {
       NOTREACHED() << "background_task_runner() is not running.";
     }
   } else if (num_pending == kCommitAfterBatchSize) {
@@ -1556,6 +1564,7 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
           add_statement.BindString(2, top_frame_site_key);
           add_statement.BindString(3, po->cc().Name());
           if (crypto_ && crypto_->ShouldEncrypt()) {
+            VLOG(1) << "v7 Write Encrypt Cookie String started";
             std::string encrypted_value;
             if (!crypto_->EncryptString(po->cc().Value(), &encrypted_value)) {
               DLOG(WARNING) << "Could not encrypt a cookie, skipping add.";
@@ -1563,12 +1572,14 @@ void SQLitePersistentCookieStore::Backend::DoCommit() {
               continue;
             }
             add_statement.BindCString(4, "");  // value
+            VLOG(1) << "v7 Write Encrypt Cookie String completed";
             // BindBlob() immediately makes an internal copy of the data.
             add_statement.BindBlob(5, encrypted_value);
           } else {
             add_statement.BindString(4, po->cc().Value());
             add_statement.BindBlob(5,
                                    base::span<uint8_t>());  // encrypted_value
+            VLOG(1) << "v6 Write Non-encrypt Cookie String completed";
           }
           add_statement.BindString(6, po->cc().Path());
           add_statement.BindTime(7, po->cc().ExpiryDate());

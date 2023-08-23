@@ -120,6 +120,7 @@
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
 #include "net/base/net_errors.h"
 #include "net/ssl/client_cert_store.h"
+#include "neva/pal_service/os_crypt.h"
 #include "ppapi/buildflags/buildflags.h"
 #include "services/cert_verifier/public/mojom/cert_verifier_service_factory.mojom.h"
 #include "services/network/public/cpp/cors/origin_access_list.h"
@@ -2947,6 +2948,14 @@ void StoragePartitionImpl::GetQuotaSettings(
     return;
   }
 
+#if defined(USE_NEVA_APPRUNTIME)
+  if (GetContentClient()->browser()->HasQuotaSettings()) {
+    GetContentClient()->browser()->GetQuotaSettings(browser_context_, this,
+                                                    std::move(callback));
+    return;
+  }
+#endif
+
   storage::GetNominalDynamicSettings(
       GetPath(), browser_context_->IsOffTheRecord(),
       storage::GetDefaultDeviceInfoHelper(), std::move(callback));
@@ -3009,6 +3018,10 @@ void StoragePartitionImpl::InitNetworkContext() {
     cookie_manager.Bind(std::move(cookie_manager_remote));
     cookie_manager->GetAllCookies(base::NullCallback());
   }
+
+  os_crypt_impl_ = std::make_unique<pal::OSCryptImpl>();
+  if (os_crypt_impl_->IsEncryptionAvailable())
+    network_context_->SetOSCrypt(os_crypt_impl_->CreatePendingRemoteAndBind());
 }
 
 network::mojom::URLLoaderFactoryParamsPtr

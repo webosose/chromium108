@@ -10,4 +10,8 @@ struct AudioDeviceDescription {
   string device_name;
   string unique_id;
   string group_id;
+  ///@name USE_WEBOS_AUDIO
+  ///@{
+  string display_id;
+  ///@}
 };

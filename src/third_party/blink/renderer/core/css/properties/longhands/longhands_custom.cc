@@ -1463,6 +1463,33 @@ void CaretColor::ApplyValue(StyleResolverState& state,
       StyleBuilderConverter::ConvertStyleAutoColor(state, value));
 }
 
+const CSSValue* CaretWidth::ParseSingleValue(
+    CSSParserTokenRange& range,
+    const CSSParserContext& context,
+    const CSSParserLocalContext&) const {
+  return css_parsing_utils::ConsumeCaretWidth(range, context);
+}
+
+const CSSValue* CaretWidth::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (style.HasAutoCaretWidth())
+    return CSSIdentifierValue::Create(CSSValueID::kAuto);
+  return ZoomAdjustedPixelValue(style.CaretWidth(), style);
+}
+
+void CaretWidth::ApplyValue(StyleResolverState& state,
+                            const CSSValue& value) const {
+  const CSSIdentifierValue& identifier_value = To<CSSIdentifierValue>(value);
+
+  if (identifier_value.GetValueID() == CSSValueID::kAuto)
+    state.Style()->SetHasAutoCaretWidth();
+  else
+    state.Style()->SetCaretWidth(
+        StyleBuilderConverter::ConvertComputedLength<float>(state, value));
+}
+
 const CSSValue* Clear::CSSValueFromComputedStyleInternal(
     const ComputedStyle& style,
     const LayoutObject*,
@@ -5044,6 +5071,96 @@ const CSSValue* MixBlendMode::CSSValueFromComputedStyleInternal(
     const LayoutObject*,
     bool allow_visited_style) const {
   return CSSIdentifierValue::Create(style.GetBlendMode());
+}
+
+const CSSValue* NavIndex::ParseSingleValue(CSSParserTokenRange& range,
+                                           const CSSParserContext& context,
+                                           const CSSParserLocalContext&) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return css_parsing_utils::ConsumeNavigationIndex(range, context);
+}
+
+const CSSValue* NavIndex::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return ComputedStyleUtils::ValueForNavigationIndex(style,
+                                                     CSSPropertyID::kNavIndex);
+}
+
+const CSSValue* NavUp::ParseSingleValue(CSSParserTokenRange& range,
+                                        const CSSParserContext& context,
+                                        const CSSParserLocalContext&) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return css_parsing_utils::ConsumeNavigationDirection(range);
+}
+
+const CSSValue* NavUp::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return ComputedStyleUtils::ValueForNavigationDataList(style,
+                                                        CSSPropertyID::kNavUp);
+}
+
+const CSSValue* NavDown::ParseSingleValue(CSSParserTokenRange& range,
+                                          const CSSParserContext& context,
+                                          const CSSParserLocalContext&) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return css_parsing_utils::ConsumeNavigationDirection(range);
+}
+
+const CSSValue* NavDown::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return ComputedStyleUtils::ValueForNavigationDataList(
+      style, CSSPropertyID::kNavDown);
+}
+
+const CSSValue* NavLeft::ParseSingleValue(CSSParserTokenRange& range,
+                                          const CSSParserContext& context,
+                                          const CSSParserLocalContext&) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return css_parsing_utils::ConsumeNavigationDirection(range);
+}
+
+const CSSValue* NavLeft::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return ComputedStyleUtils::ValueForNavigationDataList(
+      style, CSSPropertyID::kNavLeft);
+}
+
+const CSSValue* NavRight::ParseSingleValue(CSSParserTokenRange& range,
+                                           const CSSParserContext& context,
+                                           const CSSParserLocalContext&) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return css_parsing_utils::ConsumeNavigationDirection(range);
+}
+
+const CSSValue* NavRight::CSSValueFromComputedStyleInternal(
+    const ComputedStyle& style,
+    const LayoutObject*,
+    bool allow_visited_style) const {
+  if (!RuntimeEnabledFeatures::CSSNavigationEnabled())
+    return nullptr;
+  return ComputedStyleUtils::ValueForNavigationDataList(
+      style, CSSPropertyID::kNavRight);
 }
 
 const CSSValue* ObjectFit::CSSValueFromComputedStyleInternal(

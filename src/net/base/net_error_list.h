@@ -130,6 +130,14 @@ NET_ERROR(H2_OR_QUIC_REQUIRED, -31)
 // The request was blocked by CORB or ORB.
 NET_ERROR(BLOCKED_BY_ORB, -32)
 
+#if defined(USE_NEVA_BROWSER_SERVICE)
+// Blocked the navigation by the Site filter feature
+NET_ERROR(BLOCKED_BY_SITEFILTER, -33)
+
+// Blocked the navigation by the malware sites detection
+NET_ERROR(BLOCKED_BY_MALWARE_SITES, -34)
+#endif
+
 // A connection was closed (corresponding to a TCP FIN).
 NET_ERROR(CONNECTION_CLOSED, -100)
 

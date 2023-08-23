@@ -20,6 +20,12 @@
 #include "third_party/blink/public/platform/web_common.h"
 #include "third_party/blink/public/platform/web_media_player.h"
 
+#if defined(USE_NEVA_MEDIA)
+#include "media/neva/media_platform_api.h"
+#include "media/neva/media_player_neva_factory.h"
+#include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
+#endif
+
 namespace base {
 class SingleThreadTaskRunner;
 class TaskRunner;
@@ -97,7 +103,17 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerBuilder {
       bool is_background_video_playback_enabled,
       bool is_background_video_track_optimization_supported,
       std::unique_ptr<media::Demuxer> demuxer_override,
+#if defined(USE_NEVA_MEDIA)
+      scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces,
+      CreateVideoWindowCallback create_video_window_callback,
+      const WebString& application_id,
+      const WebString& file_security_origin,
+      bool use_unlimited_media_policy,
+      media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
+      media::CreateMediaPlatformAPICB create_media_platform_api_cb);
+#else
       scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces);
+#endif
 };
 
 }  // namespace blink

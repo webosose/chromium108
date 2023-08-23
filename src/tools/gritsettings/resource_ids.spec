@@ -29,6 +29,16 @@
   # this file to the base of your checkout.
   "SRCDIR": "../..",
 
+  # START app_runtime/ section.
+  "neva/app_runtime/browser/resources/app_runtime_inspector_resources.grd": {
+    "includes": [100],
+  },
+
+  "neva/injection/renderer/resources/injection_resources.grd": {
+    "includes": [400],
+  },
+  # END app_runtime/ section.
+
   # START chrome/app section.
   # Previous versions of this file started with resource id 400, so stick with
   # that.

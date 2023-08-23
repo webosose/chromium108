@@ -190,6 +190,10 @@ std::unique_ptr<VideoDecoder> VideoDecoderPipeline::Create(
   DCHECK(frame_pool);
   DCHECK(frame_converter);
 
+#if defined(USE_NEVA_V4L2_CODEC)
+  // VideoDecoderPipeline is not supported for neva.
+  return nullptr;
+#else
   CreateDecoderFunctionCB create_decoder_function_cb;
   if (oop_video_decoder) {
     create_decoder_function_cb =
@@ -210,6 +214,7 @@ std::unique_ptr<VideoDecoder> VideoDecoderPipeline::Create(
       std::move(create_decoder_function_cb));
   return std::make_unique<AsyncDestroyVideoDecoder<VideoDecoderPipeline>>(
       base::WrapUnique(pipeline));
+#endif  // defined(USE_NEVA_V4L2_CODEC)
 }
 
 // static
@@ -217,6 +222,9 @@ absl::optional<SupportedVideoDecoderConfigs>
 VideoDecoderPipeline::GetSupportedConfigs(
     const gpu::GpuDriverBugWorkarounds& workarounds) {
   absl::optional<SupportedVideoDecoderConfigs> configs =
+#if defined(USE_NEVA_V4L2_CODEC)
+      absl::nullopt;
+#else
   // TODO(b/195769334): figure out the best way to query the supported
   // configurations when using an out-of-process video decoder.
 #if BUILDFLAG(USE_VAAPI)
@@ -224,6 +232,7 @@ VideoDecoderPipeline::GetSupportedConfigs(
 #elif BUILDFLAG(USE_V4L2_CODEC)
       V4L2VideoDecoder::GetSupportedConfigs();
 #endif
+#endif  // defined(USE_NEVA_V4L2_CODEC)
 
   if (!configs)
     return absl::nullopt;
@@ -315,7 +324,7 @@ VideoDecoderType VideoDecoderPipeline::GetDecoderType() const {
   // TODO(mcasas): query |decoder_| instead.
 #if BUILDFLAG(USE_VAAPI)
   return VideoDecoderType::kVaapi;
-#elif BUILDFLAG(USE_V4L2_CODEC)
+#elif BUILDFLAG(USE_V4L2_CODEC) && !defined(USE_NEVA_V4L2_CODEC)
   return VideoDecoderType::kV4L2;
 #else
   return VideoDecoderType::kUnknown;

@@ -54,6 +54,15 @@ interface MediaPlayer {
 
   // Suspends the media player when the host frame is closed.
   SuspendForFrameClosed();
+
+  ///@name USE_NEVA_MEDIA
+  ///@{
+  [EnableIf=use_neva_media]
+  RequestActivation();
+
+  [EnableIf=use_neva_media]
+  RequestSuspend();
+  ///@}
 };
 
 // Implemented by the MediaWebContentsObserver. The remote lives in the renderer
@@ -106,6 +115,21 @@ interface MediaPlayerObserver {
   // Notifies the browser process that the ability to switch audio output
   // devices for the associated media player has been disabled.
   OnAudioOutputSinkChangingDisabled();
+
+  ///@name USE_NEVA_MEDIA
+  ///@{
+  [EnableIf=use_neva_media]
+  OnMediaCreated(bool will_use_media_resource);
+
+  [EnableIf=use_neva_media]
+  OnMediaActivated();
+
+  [EnableIf=use_neva_media]
+  OnMediaActivationNeeded();
+
+  [EnableIf=use_neva_media]
+  OnMediaSuspended();
+  ///@}
 
   // Notifies that the RemotePlayback metadata of the media player has changed.
   OnRemotePlaybackMetadataChange(media_session.mojom.RemotePlaybackMetadata

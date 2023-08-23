@@ -28,6 +28,10 @@
 #include "ui/native_theme/native_theme_features.h"
 #include "ui/native_theme/overlay_scrollbar_constants_aura.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "base/neva/base_switches.h"
+#endif
+
 namespace blink {
 
 namespace {
@@ -66,8 +70,13 @@ cc::ManagedMemoryPolicy GetGpuMemoryPolicy(
     if (base::StringToSizeT(
             base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
                 ::switches::kForceGpuMemAvailableMb),
-            &actual.bytes_limit_when_visible))
+            &actual.bytes_limit_when_visible)) {
       actual.bytes_limit_when_visible *= 1024 * 1024;
+#if defined(OS_WEBOS)
+      actual.priority_cutoff_when_visible =
+          gpu::MemoryAllocation::CUTOFF_ALLOW_NICE_TO_HAVE;
+#endif
+    }
     return actual;
   }
 
@@ -462,6 +471,21 @@ cc::LayerTreeSettings GenerateLayerTreeSettings(
   settings.decoded_image_working_set_budget_bytes =
       cc::ImageDecodeCacheUtils::GetWorkingSetBytesForImageDecode(
           /*for_renderer=*/true);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  settings.use_aggressive_release_policy =
+      base::CommandLine::ForCurrentProcess()->HasSwitch(
+          cc::switches::kEnableAggressiveReleasePolicy);
+
+  if (cmd.HasSwitch(::switches::kDecodedImageWorkingSetBudgetMB)) {
+    int budget_bytes_mb = 0;
+    if (switch_value_as_int(cmd, ::switches::kDecodedImageWorkingSetBudgetMB,
+                            1, std::numeric_limits<int>::max(),
+                            &budget_bytes_mb))
+      settings.decoded_image_working_set_budget_bytes =
+          budget_bytes_mb * 1024 * 1024;
+  }
+#endif
 
   if (using_low_memory_policy) {
     // RGBA_4444 textures are only enabled:

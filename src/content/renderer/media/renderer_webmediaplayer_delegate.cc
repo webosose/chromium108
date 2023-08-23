@@ -320,5 +320,4 @@ void RendererWebMediaPlayerDelegate::OnDestruct() {
   CHECK(playing_videos_.empty());
   delete this;
 }
-
 }  // namespace media

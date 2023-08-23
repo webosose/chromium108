@@ -18,6 +18,32 @@
 #include "ui/platform_window/platform_window_init_properties.h"
 #include "ui/wm/core/default_screen_position_client.h"
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#include "content/common/renderer.mojom.h"
+#include "content/public/browser/browser_context.h"
+#include "content/public/browser/browser_plugin_guest_manager.h"
+#include "content/public/browser/render_frame_host.h"
+#include "content/public/browser/render_process_host.h"
+#include "content/public/browser/web_contents.h"
+#include "extensions/browser/guest_view/web_view/web_view_guest.h"
+///@}
+
+#if defined(USE_NEVA_MEDIA)
+#include "base/command_line.h"
+#include "content/public/browser/neva/media_state_manager.h"
+#include "media/base/media_switches_neva.h"
+#endif
+
+#if defined(OS_WEBOS)
+#include "ui/base/ime/input_method.h"
+#include "ui/base/ime/text_input_client.h"
+#include "ui/display/screen.h"
+
+constexpr int kKeyboardAnimationTime = 600;
+constexpr int kKeyboardHeightMargin = 10;
+#endif
+
 namespace extensions {
 
 namespace {
@@ -95,6 +121,50 @@ class ScreenPositionClient : public wm::DefaultScreenPositionClient {
   }
 };
 
+#if defined(OS_WEBOS)
+void DispatchSetInsetY(int height, content::WebContents* web_contents) {
+  content::RenderFrameHost* rfh = web_contents->GetPrimaryMainFrame();
+  if (rfh && rfh->IsRenderFrameLive()) {
+    std::stringstream ss;
+    ss << "document.dispatchEvent(new CustomEvent('setInsetY', { detail: "
+       << height << "}));";
+    const std::u16string js_code = base::UTF8ToUTF16(ss.str());
+    if (height == 0) {
+      rfh->ExecuteJavaScript(js_code, base::NullCallback());
+    } else {
+      base::ThreadTaskRunnerHandle::Get()->PostDelayedTask(
+          FROM_HERE,
+          base::BindOnce(&content::RenderFrameHost::ExecuteJavaScript,
+                         base::Unretained(rfh), js_code,
+                         content::RenderFrameHost::JavaScriptResultCallback()),
+          base::Milliseconds(kKeyboardAnimationTime));
+    }
+  }
+}
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+void OnWindowVisibilityChanged(ui::WidgetState new_state,
+                               content::WebContents* web_contents) {
+  bool is_hidden = (new_state == ui::WidgetState::MINIMIZED);
+  bool is_shown = (new_state == ui::WidgetState::MAXIMIZED ||
+                   new_state == ui::WidgetState::FULLSCREEN);
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kDisableWebMediaPlayerNeva)) {
+    if (is_hidden)
+      web_contents->WasHidden();
+    else if (is_shown)
+      web_contents->WasShown();
+    return;
+  }
+
+  if (is_hidden)
+    content::MediaStateManager::GetInstance()->SuspendAllMedia(web_contents);
+  else if (is_shown)
+    content::MediaStateManager::GetInstance()->ResumeAllMedia(web_contents);
+}
+#endif
+
 }  // namespace
 
 RootWindowController::RootWindowController(
@@ -105,8 +175,17 @@ RootWindowController::RootWindowController(
   DCHECK(desktop_delegate_);
   DCHECK(browser_context_);
 
-  host_ =
-      aura::WindowTreeHost::Create(ui::PlatformWindowInitProperties{bounds});
+  auto props = ui::PlatformWindowInitProperties{bounds};
+#if defined(OS_WEBOS)
+  // The opacity is used to hint the Wayland-compositor whether a created
+  // surface region should be considered as opaque. Thus, that may optimize
+  // rendering performance (e.g., if a surface is opaque and it occludes
+  // more surfaces beneath it, then the compositor could avoid forcing to
+  // redraw anything beneath the surface). So, setting the opacity as
+  // translucent makes it least efficient but the most correct.
+  props.opacity = ui::PlatformWindowOpacity::kTranslucentWindow;
+#endif  // defined(OS_WEBOS)
+  host_ = aura::WindowTreeHost::Create(std::move(props));
   host_->InitHost();
   host_->window()->Show();
 
@@ -120,6 +199,10 @@ RootWindowController::RootWindowController(
 
   host_->AddObserver(this);
   host_->Show();
+
+#if defined(OS_WEBOS)
+  ComputeScaleFactor(bounds.height());
+#endif
 }
 
 RootWindowController::~RootWindowController() {
@@ -179,6 +262,187 @@ void RootWindowController::OnHostCloseRequested(aura::WindowTreeHost* host) {
   // The ShellDesktopControllerAura will delete us.
   desktop_delegate_->CloseRootWindowController(this);
 }
+
+///@name USE_NEVA_APPRUNTIME
+///@{
+void RootWindowController::OnWindowHostStateChanged(aura::WindowTreeHost* host,
+                                                    ui::WidgetState new_state) {
+  if (app_windows_.empty() || new_state == window_host_state_)
+    return;
+
+  window_host_state_ = new_state;
+
+  if (new_state == ui::WidgetState::MINIMIZED ||
+      new_state == ui::WidgetState::MAXIMIZED ||
+      new_state == ui::WidgetState::FULLSCREEN) {
+    for (AppWindow* app_window : app_windows_) {
+      content::WebContents* web_contents = app_window->web_contents();
+      if (web_contents == nullptr)
+        continue;
+      content::BrowserContext* browser_context =
+          web_contents->GetBrowserContext();
+      if (browser_context == nullptr ||
+          browser_context->GetGuestManager() == nullptr)
+        continue;
+      browser_context->GetGuestManager()->ForEachGuest(
+          web_contents,
+          base::BindRepeating(
+              [](ui::WidgetState new_state,
+                 content::WebContents* guest_contents) {
+                WebViewGuest* guest_view =
+                    extensions::WebViewGuest::FromWebContents(guest_contents);
+                // Suspend or resume only for non-suspended WebViewGuest
+                // Embeder will take care of suspended WebViewGuest
+                if (guest_view != nullptr && !guest_view->IsSuspended()) {
+#if defined(USE_NEVA_MEDIA)
+                  OnWindowVisibilityChanged(new_state, guest_contents);
+#endif  // USE_NEVA_MEDIA
+                  content::RenderProcessHost* host =
+                      guest_view->web_contents()->GetPrimaryMainFrame()->GetProcess();
+                  if (host) {
+                    if (new_state == ui::WidgetState::MINIMIZED)
+                      host->GetRendererInterface()->ProcessSuspend();
+                    else if (new_state == ui::WidgetState::MAXIMIZED ||
+                             new_state == ui::WidgetState::FULLSCREEN)
+                      host->GetRendererInterface()->ProcessResume();
+                  }
+                }
+
+                return false;
+              },
+              new_state));
+    }
+  }
+}
+///@}
+
+#if defined(OS_WEBOS)
+void RootWindowController::ComputeScaleFactor(int window_height) {
+  scale_factor_ = 1.f;
+  const int display_height =
+      display::Screen::GetScreen()->GetPrimaryDisplay().bounds().height();
+  if (window_height != display_height)
+    scale_factor_ = static_cast<float>(display_height) / window_height;
+}
+
+int RootWindowController::CalculateTextInputOverlappedHeight(
+    aura::WindowTreeHost* host,
+    const gfx::Rect& rect) {
+  int shift_height = 0;
+  if (!host)
+    return shift_height;
+
+  ui::InputMethod* ime = host->GetInputMethod();
+  if (!ime || !ime->GetTextInputClient())
+    return shift_height;
+
+  gfx::Rect input_bounds = ime->GetTextInputClient()->GetTextInputBounds();
+  gfx::Rect caret_bounds = ime->GetTextInputClient()->GetCaretBounds();
+  gfx::Rect input_bounds_to_window_pos =
+      gfx::Rect(input_bounds.x(), caret_bounds.y(), input_bounds.width(),
+                input_bounds.height());
+  gfx::Rect scaled_rect =
+      gfx::Rect(rect.x() / scale_factor_, rect.y() / scale_factor_,
+                rect.width() / scale_factor_, rect.height() / scale_factor_);
+
+  if (input_bounds_to_window_pos.Intersects(scaled_rect))
+    shift_height = input_bounds_to_window_pos.bottom() - scaled_rect.y();
+  return shift_height;
+}
+
+bool RootWindowController::CanShiftContent(aura::WindowTreeHost* host,
+                                           int height) {
+  if (!host)
+    return false;
+
+  ui::InputMethod* ime = host->GetInputMethod();
+  if (!ime || !ime->GetTextInputClient())
+    return false;
+
+  gfx::Rect input_bounds = ime->GetTextInputClient()->GetTextInputBounds();
+  return input_bounds.y() >= height;
+}
+
+void RootWindowController::CheckShiftContent(aura::WindowTreeHost* host) {
+  if (input_panel_rect_.height()) {
+    gfx::Rect panel_rect_margin = gfx::Rect(
+        input_panel_rect_.x(), input_panel_rect_.y() - kKeyboardHeightMargin,
+        input_panel_rect_.width(),
+        input_panel_rect_.height() + kKeyboardHeightMargin);
+    int shift_height =
+        CalculateTextInputOverlappedHeight(host, panel_rect_margin);
+    if (shift_height != 0 && CanShiftContent(host, shift_height))
+      ShiftContentByY(shift_height);
+  }
+}
+
+void RootWindowController::ShiftContentByY(int height) {
+  content::WebContents* web_contents = nullptr;
+  // FIXME : For multi apps, we should search app with active text input.
+  // Enact-browser is one app and this is not effective currently.
+  for (AppWindow* app_window : app_windows_) {
+    web_contents = app_window->web_contents();
+    if (web_contents && web_contents->GetPrimaryMainFrame() &&
+        web_contents->GetPrimaryMainFrame()->IsRenderFrameLive())
+      break;
+  }
+
+  if (web_contents == nullptr)
+    return;
+
+  content::RenderFrameHost* rfh = web_contents->GetPrimaryMainFrame();
+  if (rfh && rfh->IsRenderFrameLive()) {
+    std::stringstream ss;
+    ss << "document.dispatchEvent(new CustomEvent('shiftContent', { detail: "
+       << height << "}));";
+    const std::u16string js_code = base::UTF8ToUTF16(ss.str());
+    if (height == 0) {
+      rfh->ExecuteJavaScript(js_code, base::NullCallback());
+    } else {
+      if (timer_for_shifting_.IsRunning())
+        timer_for_shifting_.Reset();
+      else
+        timer_for_shifting_.Start(
+            FROM_HERE, base::Milliseconds(kKeyboardAnimationTime),
+            base::BindOnce(
+                &content::RenderFrameHost::ExecuteJavaScript,
+                base::Unretained(rfh), js_code,
+                content::RenderFrameHost::JavaScriptResultCallback()));
+    }
+    if (!shifting_was_requested_)
+      shifting_was_requested_ = true;
+  }
+}
+
+void RootWindowController::RestoreContentByY() {
+  if (shifting_was_requested_) {
+    if (timer_for_shifting_.IsRunning())
+      timer_for_shifting_.Reset();
+    ShiftContentByY(0);
+    shifting_was_requested_ = false;
+  }
+}
+
+void RootWindowController::OnInputPanelVisibilityChanged(
+    aura::WindowTreeHost* host,
+    bool visibility) {
+  if (visibility)
+    CheckShiftContent(host);
+  else
+    RestoreContentByY();
+  input_panel_visible_ = visibility;
+}
+
+void RootWindowController::OnInputPanelRectChanged(aura::WindowTreeHost* host,
+                                                   int32_t x,
+                                                   int32_t y,
+                                                   uint32_t width,
+                                                   uint32_t height) {
+  input_panel_rect_.SetRect(x, y, width, height);
+  if (input_panel_visible_)
+    CheckShiftContent(host);
+}
+#endif
 
 void RootWindowController::OnAppWindowRemoved(AppWindow* window) {
   if (app_windows_.empty())

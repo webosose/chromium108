@@ -25,6 +25,11 @@
 #include <sys/utsname.h>
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "base/command_line.h"
+#include "content/public/common/content_neva_switches.h"
+#endif
+
 namespace content {
 
 namespace {
@@ -41,6 +46,8 @@ std::string GetUserAgentPlatform() {
   return "";
 #elif BUILDFLAG(IS_MAC)
   return "Macintosh; ";
+#elif defined(OS_WEBOS)
+  return "Web0S; ";
 #elif BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
   return "X11; ";  // strange, but that's what Firefox uses
 #elif BUILDFLAG(IS_ANDROID)
@@ -255,6 +262,17 @@ std::string BuildOSCpuInfoFromOSVersionAndCpuType(const std::string& os_version,
   uname(&unixinfo);
 #endif
 
+#if (defined(USE_NEVA_APPRUNTIME) && defined(OS_WEBOS))
+  std::string app_runtime_sysname = unixinfo.sysname;
+  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+  if (command_line->HasSwitch(switches::kUserAgentSuffix)) {
+    std::string suffix =
+        command_line->GetSwitchValueASCII(switches::kUserAgentSuffix);
+    if (!suffix.empty())
+      app_runtime_sysname += "/" + suffix;
+  }
+#endif  // defined(USE_NEVA_APPRUNTIME) && defined(OS_WEBOS)
+
 #if BUILDFLAG(IS_WIN)
   if (!cpu_type.empty()) {
     base::StringAppendF(&os_cpu, "Windows NT %s; %s", os_version.c_str(),
@@ -275,6 +293,8 @@ std::string BuildOSCpuInfoFromOSVersionAndCpuType(const std::string& os_version,
                       "Android %s", os_version.c_str()
 #elif BUILDFLAG(IS_FUCHSIA)
                       "Fuchsia"
+#elif (defined(USE_NEVA_APPRUNTIME) && defined(OS_WEBOS))
+                      "%s", app_runtime_sysname.c_str()
 #elif BUILDFLAG(IS_POSIX)
                       "%s %s",
                       unixinfo.sysname,  // e.g. Linux

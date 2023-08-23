@@ -206,6 +206,10 @@ void SetRuntimeFeaturesFromChromiumFeatures() {
      features::kBrowserVerifiedUserActivationKeyboard},
     {wf::EnableBrowserVerifiedUserActivationMouse,
      features::kBrowserVerifiedUserActivationMouse},
+#if defined(USE_FILESCHEME_CODECACHE)
+    {wf::EnableLocalResourceCodeCache,
+     blink::features::kLocalResourceCodeCache},
+#endif
     {wf::EnableCompositeBGColorAnimation, features::kCompositeBGColorAnimation},
     {wf::EnableConsolidatedMovementXY, features::kConsolidatedMovementXY},
     {wf::EnableCooperativeScheduling, features::kCooperativeScheduling},

@@ -29,9 +29,12 @@ void WaylandBufferFactory::CreateDmabufBuffer(
     wayland_zwp_dmabuf_->CreateBuffer(fd, size, strides, offsets, modifiers,
                                       format, planes_count,
                                       std::move(callback));
+#if !defined(OS_WEBOS)
   } else if (wayland_drm_) {
+
     wayland_drm_->CreateBuffer(fd, size, strides, offsets, modifiers, format,
                                planes_count, std::move(callback));
+#endif
   } else {
     // This method must never be called if neither zwp_linux_dmabuf or wl_drm
     // are supported.

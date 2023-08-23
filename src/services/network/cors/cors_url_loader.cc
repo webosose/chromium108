@@ -24,6 +24,7 @@
 #include "services/network/public/cpp/cors/origin_access_list.h"
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/cpp/header_util.h"
+#include "services/network/public/cpp/neva/cors_corb_exception.h"
 #include "services/network/public/cpp/request_mode.h"
 #include "services/network/public/cpp/resolve_host_client_base.h"
 #include "services/network/public/cpp/timing_allow_origin_parser.h"
@@ -526,7 +527,9 @@ void CorsURLLoader::OnReceiveResponse(
         GetHeaderString(*response_head,
                         header_names::kAccessControlAllowCredentials),
         request_.credentials_mode,
-        tainted_ ? url::Origin() : *request_.request_initiator);
+        tainted_ ? url::Origin() : *request_.request_initiator,
+        neva::CorsCorbException::ShouldAllowExceptionForProcess(process_id_) ||
+            neva::CorsCorbException::ShouldAllowExceptionForURL(request_.url));
     if (!result.has_value()) {
       HandleComplete(URLLoaderCompletionStatus(result.error()));
       return;
@@ -598,7 +601,9 @@ void CorsURLLoader::OnReceiveRedirect(const net::RedirectInfo& redirect_info,
         GetHeaderString(*response_head,
                         header_names::kAccessControlAllowCredentials),
         request_.credentials_mode,
-        tainted_ ? url::Origin() : *request_.request_initiator);
+        tainted_ ? url::Origin() : *request_.request_initiator,
+        neva::CorsCorbException::ShouldAllowExceptionForProcess(process_id_) ||
+            neva::CorsCorbException::ShouldAllowExceptionForURL(request_.url));
     if (!result.has_value()) {
       HandleComplete(URLLoaderCompletionStatus(result.error()));
       return;
@@ -799,7 +804,7 @@ void CorsURLLoader::StartRequest() {
       GetPrivateNetworkAccessPreflightBehavior(), tainted_,
       net::NetworkTrafficAnnotationTag(traffic_annotation_),
       network_loader_factory_, isolation_info_, CloneClientSecurityState(),
-      std::move(devtools_observer), net_log_);
+      std::move(devtools_observer), net_log_, process_id_);
 }
 
 void CorsURLLoader::ReportCorsErrorToDevTools(const CorsErrorStatus& status,

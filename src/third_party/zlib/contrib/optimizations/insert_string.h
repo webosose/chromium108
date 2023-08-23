@@ -17,7 +17,7 @@
 #endif
 
 #include "cpu_features.h"
-
+#if !defined(OS_WEBOS)
 // clang-format off
 #if defined(CRC32_SIMD_SSE42_PCLMUL)
   #include <smmintrin.h>  /* Required to make MSVC bot build pass. */
@@ -73,8 +73,8 @@ local INLINE Pos insert_string_simd(deflate_state* const s, const Pos str) {
   s->prev[str & s->w_mask] = ret;
   return ret;
 }
-
 #endif // TARGET_CPU_WITH_CRC
+#endif  // !defined(OS_WEBOS)
 
 /**
  * Some applications need to match zlib DEFLATE output exactly [3]. Use the
@@ -129,6 +129,7 @@ local INLINE Pos insert_string(deflate_state* const s, const Pos str) {
  * Note: the generated compressed output is a valid DEFLATE stream, but will
  * differ from canonical zlib output.
  */
+#if !defined(OS_WEBOS)
 #if defined(USE_ZLIB_RABIN_KARP_ROLLING_HASH)
 /* So this build-time option can be used to disable the crc32c hash, and use
  * the Rabin-Karp hash instead.
@@ -140,6 +141,7 @@ local INLINE Pos insert_string(deflate_state* const s, const Pos str) {
   if (arm_cpu_enable_crc32)
     return insert_string_simd(s, str);
 #endif
+#endif  // !defined(OS_WEBOS)
   return insert_string_c(s, str); /* Rabin-Karp */
 }
 

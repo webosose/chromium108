@@ -131,7 +131,7 @@ class Shell : public WebContentsDelegate, public WebContentsObserver {
   bool IsFullscreenForTabOrPending(const WebContents* web_contents) override;
   blink::mojom::DisplayMode GetDisplayMode(
       const WebContents* web_contents) override;
-#if !BUILDFLAG(IS_ANDROID)
+#if !BUILDFLAG(IS_ANDROID) && !defined(OS_WEBOS)
   void RegisterProtocolHandler(RenderFrameHost* requesting_frame,
                                const std::string& protocol,
                                const GURL& url,

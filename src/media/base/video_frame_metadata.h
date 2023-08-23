@@ -14,6 +14,11 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/geometry/rect.h"
 
+#if defined(USE_NEVA_WEBRTC)
+#include "base/callback.h"
+#include "media/base/video_codecs.h"
+#endif
+
 namespace media {
 
 // NOTE: When adding new VideoFrameMetadata fields, please ensure you update the
@@ -29,6 +34,16 @@ struct MEDIA_EXPORT VideoFrameMetadata {
 
   // CLear metadata fields that only make sense for texture backed frames.
   void ClearTextureFrameMedatada();
+
+#if defined(USE_NEVA_WEBRTC)
+  // This is a boolean that indicates that the frame is a key frame or not
+  absl::optional<bool> key_frame;
+  // This is codec information to deliver to WebMediaPlayerWebRTC
+  absl::optional<media::VideoCodec> codec_id;
+  // This is callback to request to change to SW fallback caused by media
+  // pipeline release in WebMediaPlayer_WebRTC
+  base::RepeatingCallback<void()> software_fallback_callback;
+#endif
 
   // Sources of VideoFrames use this marker to indicate that the associated
   // VideoFrame can be overlaid, case in which its contents do not need to be

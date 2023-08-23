@@ -252,6 +252,12 @@ class CONTENT_EXPORT InputRouterImpl
   raw_ptr<InputRouterImplClient> client_;
   raw_ptr<InputDispositionHandler> disposition_handler_;
 
+  // True if key event queue is handled one by one. Which means that next event
+  // is only sent after receiving ACK from previous event.
+  bool throttle_key_events_;
+  typedef std::deque<NativeWebKeyboardEventWithLatencyInfo> KeyQueue;
+  KeyQueue key_queue_;
+
   // Whether the TouchScrollStarted event has been sent for the current
   // gesture scroll yet.
   bool touch_scroll_started_sent_;

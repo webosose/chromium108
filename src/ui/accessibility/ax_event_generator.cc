@@ -264,6 +264,7 @@ AXEventGenerator::Iterator AXEventGenerator::end() const {
 
 void AXEventGenerator::ClearEvents() {
   tree_events_.clear();
+  reparenting_node_events_.clear();
 }
 
 void AXEventGenerator::AddEvent(AXNode* node, AXEventGenerator::Event event) {
@@ -781,6 +782,7 @@ void AXEventGenerator::OnNodeWillBeDeleted(AXTree* tree, AXNode* node) {
   DCHECK_EQ(tree_, tree);
   GetOrCreateLiveRegionTracker()->OnNodeWillBeDeleted(*node);
   FireValueInTextFieldChangedEventIfNecessary(tree, node);
+  reparenting_node_events_.erase(node->id());
 }
 
 void AXEventGenerator::OnSubtreeWillBeDeleted(AXTree* tree, AXNode* node) {
@@ -789,6 +791,9 @@ void AXEventGenerator::OnSubtreeWillBeDeleted(AXTree* tree, AXNode* node) {
 
 void AXEventGenerator::OnNodeWillBeReparented(AXTree* tree, AXNode* node) {
   DCHECK_EQ(tree_, tree);
+  for (const auto& event : tree_events_[node->id()]) {
+    reparenting_node_events_[node->id()].insert(event);
+  }
 }
 
 void AXEventGenerator::OnSubtreeWillBeReparented(AXTree* tree, AXNode* node) {
@@ -803,6 +808,10 @@ void AXEventGenerator::OnNodeDeleted(AXTree* tree, AXNodeID node_id) {
 void AXEventGenerator::OnNodeReparented(AXTree* tree, AXNode* node) {
   DCHECK_EQ(tree_, tree);
   AddEvent(node, Event::PARENT_CHANGED);
+  for (const auto& event : reparenting_node_events_[node->id()]) {
+    tree_events_[node->id()].insert(event);
+  }
+  reparenting_node_events_.erase(node->id());
 }
 
 void AXEventGenerator::OnNodeCreated(AXTree* tree, AXNode* node) {

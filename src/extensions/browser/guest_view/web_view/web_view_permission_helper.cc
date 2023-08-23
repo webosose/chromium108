@@ -23,6 +23,10 @@
 #include "third_party/blink/public/mojom/mediastream/media_stream.mojom-shared.h"
 #include "third_party/blink/public/mojom/mediastream/media_stream.mojom.h"
 
+#if defined(USE_NEVA_BROWSER_SERVICE)
+#include "neva/app_runtime/browser/media/webrtc/media_capture_devices_dispatcher.h"
+#endif
+
 using base::UserMetricsAction;
 using content::BrowserPluginGuestDelegate;
 using guest_view::GuestViewEvent;
@@ -180,6 +184,16 @@ void WebViewPermissionHelper::RequestMediaAccessPermission(
     content::WebContents* source,
     const content::MediaStreamRequest& request,
     content::MediaResponseCallback callback) {
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  if (!request.security_origin.SchemeIs(kExtensionScheme) &&
+      web_view_guest()->attached() &&
+      web_view_guest()->embedder_web_contents()->GetDelegate()) {
+    neva_app_runtime::MediaCaptureDevicesDispatcher::GetInstance()
+        ->ProcessMediaAccessRequest(source, request, std::move(callback));
+    return;
+  }
+#endif
+
   base::DictionaryValue request_info;
   request_info.SetStringKey(guest_view::kUrl, request.security_origin.spec());
   RequestPermission(
@@ -197,6 +211,12 @@ bool WebViewPermissionHelper::CheckMediaAccessPermission(
       !web_view_guest()->embedder_web_contents()->GetDelegate()) {
     return false;
   }
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  if (!security_origin.SchemeIs(kExtensionScheme)) {
+    return neva_app_runtime::MediaCaptureDevicesDispatcher::GetInstance()
+        ->CheckMediaAccessPermission(render_frame_host, security_origin, type);
+  }
+#endif
   return web_view_guest()
       ->embedder_web_contents()
       ->GetDelegate()
@@ -217,6 +237,7 @@ void WebViewPermissionHelper::OnMediaPermissionResponse(
         std::unique_ptr<content::MediaStreamUI>());
     return;
   }
+
   if (!web_view_guest()->attached() ||
       !web_view_guest()->embedder_web_contents()->GetDelegate()) {
     std::move(callback).Run(

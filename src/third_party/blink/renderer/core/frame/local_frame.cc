@@ -2492,8 +2492,16 @@ void LocalFrame::SetContextPaused(bool is_paused) {
 
   GetDocument()->Fetcher()->SetDefersLoading(GetLoaderFreezeMode());
   Loader().SetDefersLoading(GetLoaderFreezeMode());
+
+  // An ScopedPagePauser could be finished while any page is
+  // destroyed. It would be possible frame_scheduler_ would be
+  // already reset at this point.
+  if (!IsAttached())
+    return;
+
   // TODO(altimin): Move this to PageScheduler level.
-  GetFrameScheduler()->SetPaused(is_paused);
+  if (GetFrameScheduler())
+    GetFrameScheduler()->SetPaused(is_paused);
 }
 
 bool LocalFrame::SwapIn() {

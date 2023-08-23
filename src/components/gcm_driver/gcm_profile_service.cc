@@ -159,7 +159,8 @@ GCMProfileService::GCMProfileService(
       url_loader_factory_(std::move(url_loader_factory)) {
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   signin::IdentityManager::AccountIdMigrationState id_migration =
-      identity_manager_->GetAccountIdMigrationState();
+      identity_manager_ ? identity_manager_->GetAccountIdMigrationState()
+                        : signin::IdentityManager::MIGRATION_NOT_STARTED;
   bool remove_account_mappings_with_email_key =
       (id_migration == signin::IdentityManager::MIGRATION_IN_PROGRESS) ||
       (id_migration == signin::IdentityManager::MIGRATION_DONE);
@@ -178,8 +179,10 @@ GCMProfileService::GCMProfileService(
       product_category_for_subtypes, ui_task_runner, io_task_runner,
       blocking_task_runner);
 
-  identity_observer_ = std::make_unique<IdentityObserver>(
-      identity_manager_, url_loader_factory_, driver_.get());
+  if (identity_manager_) {
+    identity_observer_ = std::make_unique<IdentityObserver>(
+        identity_manager_, url_loader_factory_, driver_.get());
+  }
 }
 #endif  // BUILDFLAG(USE_GCM_FROM_PLATFORM)
 

@@ -1819,6 +1819,10 @@ component("platform") {
 
   configs -= [ "//build/config/compiler:default_symbols" ]
   configs += blink_symbols_config
+
+  if (use_webos_audio) {
+    defines = [ "USE_WEBOS_AUDIO" ]
+  }
 }
 
 static_library("test_support") {

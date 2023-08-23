@@ -192,6 +192,20 @@ WaylandSurfaceFactory::GetAllowedGLImplementations() {
         gl::GLImplementationParts(gl::kGLImplementationEGLGLES2));
     impls.emplace_back(
         gl::GLImplementationParts(gl::ANGLEImplementation::kSwiftShader));
+    // FIXME(neva): WARNING: In case of merge conflict please keep the code
+    // to do not miss ANGLE enabling later (it is landed/reverted several
+    // times in the upstream).
+    /*
+    // FIXME(neva): M100: Disabled ANGLE GL implementation support for
+    // Google ozone/wayland because it is not compatible with webOS platform.
+    // ANGLE disabled for all platforms (including PC) for the consistency.
+#if !defined(USE_NEVA_APPRUNTIME)
+    impls.emplace_back(
+        gl::GLImplementationParts(gl::ANGLEImplementation::kOpenGL));
+    impls.emplace_back(
+        gl::GLImplementationParts(gl::ANGLEImplementation::kOpenGLES));
+#endif
+    */
   }
   return impls;
 }

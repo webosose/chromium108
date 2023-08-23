@@ -240,6 +240,10 @@
 #include "v8/include/v8-local-handle.h"
 #include "v8/include/v8-microtask-queue.h"
 
+#if defined(USE_LOCAL_STORAGE_TRACKER)
+#include "components/local_storage_tracker/public/mojom/local_storage_tracker.mojom.h"
+#endif
+
 #if BUILDFLAG(ENABLE_PPAPI)
 #include "content/renderer/pepper/pepper_browser_connection.h"
 #include "content/renderer/pepper/pepper_plugin_instance_impl.h"
@@ -302,7 +306,11 @@ namespace content {
 
 namespace {
 
+#if defined(OS_WEBOS)
+const int kExtraCharsBeforeAndAfterSelection = 500;
+#else
 const int kExtraCharsBeforeAndAfterSelection = 100;
+#endif
 const size_t kMaxURLLogChars = 1024;
 
 // Time, in seconds, we delay before sending content state changes (such as form
@@ -977,7 +985,7 @@ void FillMiscNavigationParams(
   navigation_params->is_cross_site_cross_browsing_context_group =
       commit_params.is_cross_site_cross_browsing_context_group;
 
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || defined(USE_NEVA_APPRUNTIME)
   // Only android webview uses this.
   navigation_params->grant_load_local_resources =
       commit_params.can_load_local_resources;
@@ -1838,6 +1846,9 @@ RenderFrameImpl::RenderFrameImpl(CreateParams params)
           this,
           base::BindRepeating(&RenderFrameImpl::RequestOverlayRoutingToken,
                               base::Unretained(this))),
+#if defined(USE_NEVA_MEDIA)
+      frame_media_controller_impl_(this),
+#endif
       devtools_frame_token_(params.devtools_frame_token) {
   DCHECK(RenderThread::IsMainThread());
   blink_interface_registry_ = std::make_unique<BlinkInterfaceRegistryImpl>(
@@ -3394,7 +3405,12 @@ RenderFrameImpl::CreateServiceWorkerProvider() {
     // The context can be null when the frame is sandboxed.
     return nullptr;
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  return std::make_unique<WebServiceWorkerProviderImpl>(
+      provider->context(), GetRendererPreferences().application_id);
+#else
   return std::make_unique<WebServiceWorkerProviderImpl>(provider->context());
+#endif
 }
 
 blink::AssociatedInterfaceProvider*
@@ -4100,6 +4116,25 @@ void RenderFrameImpl::AbortClientNavigation() {
 
 void RenderFrameImpl::DidChangeSelection(bool is_empty_selection,
                                          blink::SyncCondition force_sync) {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (is_empty_selection &&
+      !GetLocalRootWebFrameWidget()->HandlingInputEvent() &&
+      !GetLocalRootWebFrameWidget()->HasImeEventGuard()) {
+    WebRange selection =
+        frame_->GetInputMethodController()->GetSelectionOffsets();
+    if (selection.IsNull())
+      return;
+
+    gfx::Range range =
+        gfx::Range(selection.StartOffset(), selection.EndOffset());
+    std::u16string text =
+        frame_
+        ->RangeAsText(WebRange(0, kExtraCharsBeforeAndAfterSelection + 1))
+        .Utf16();
+
+    SetSelectedText(text, 0, range);
+  }
+#endif
   if (!GetLocalRootWebFrameWidget()->HandlingInputEvent() &&
       !GetLocalRootWebFrameWidget()->HandlingSelectRange())
     return;
@@ -4158,6 +4193,12 @@ void RenderFrameImpl::WillSendRequest(blink::WebURLRequest& request,
     observer.WillSendRequest(request);
   }
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+bool RenderFrameImpl::IsAccessAllowedForURL(const blink::WebURL& url) {
+  return GetContentClient()->renderer()->IsAccessAllowedForURL(url);
+}
+#endif
 
 void RenderFrameImpl::WillSendRequestInternal(
     blink::WebURLRequest& request,
@@ -4219,9 +4260,33 @@ void RenderFrameImpl::WillSendRequestInternal(
   url_request_extra_data->set_allow_cross_origin_auth_prompt(
       GetWebView()->GetRendererPreferences().allow_cross_origin_auth_prompt);
   url_request_extra_data->set_top_frame_origin(GetSecurityOriginOfTopFrame());
+#if defined(USE_NEVA_APPRUNTIME)
+  switch (GetBlinkPreferences().third_party_cookies_policy) {
+    case blink::mojom::ThirdPartyCookiesPolicy::kAllow:
+      url_request_extra_data->set_allow_third_party_cookies(true);
+      break;
+    case blink::mojom::ThirdPartyCookiesPolicy::kDeny:
+      url_request_extra_data->set_allow_third_party_cookies(false);
+      break;
+    case blink::mojom::ThirdPartyCookiesPolicy::kDefault:
+    default:
+      url_request_extra_data->reset_allow_third_party_cookies();
+      break;
+  }
+#endif
 
   request.SetDownloadToNetworkCacheOnly(is_for_no_state_prefetch &&
                                         !for_outermost_main_frame);
+
+#if defined(USE_LOCAL_STORAGE_TRACKER)
+  mojo::Remote<local_storage::mojom::LocalStorageTracker> lst_responder;
+  mojo::PendingReceiver<local_storage::mojom::LocalStorageTracker> receiver =
+      lst_responder.BindNewPipeAndPassReceiver();
+  lst_responder->SaveUrl(
+      GetWebView()->GetRendererPreferences().file_security_origin,
+      request.Url().GetString().Utf8(), base::BindOnce([] {}));
+  GetBrowserInterfaceBroker()->GetInterface(std::move(receiver));
+#endif
 
   // The RenderThreadImpl or its URLLoaderThrottleProvider member may not be
   // valid in some tests.
@@ -4302,6 +4367,25 @@ void RenderFrameImpl::DidChangeCpuTiming(base::TimeDelta time) {
   for (auto& observer : observers_)
     observer.DidChangeCpuTiming(time);
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+void RenderFrameImpl::ResetStateToMarkNextPaint() {
+  for (auto& observer : observers_)
+    observer.DidResetStateToMarkNextPaint();
+
+  if (IsMainFrame() && GetWebFrame())
+    GetWebFrame()->ResetStateToMarkNextPaint();
+}
+#endif
+
+#if defined(USE_NEVA_MEDIA)
+content::mojom::FrameVideoWindowFactory*
+RenderFrameImpl::GetFrameVideoWindowFactory() {
+  if (!frame_video_window_factory_.is_bound())
+    GetRemoteAssociatedInterfaces()->GetInterface(&frame_video_window_factory_);
+  return frame_video_window_factory_.get();
+}
+#endif
 
 void RenderFrameImpl::DidObserveLoadingBehavior(
     blink::LoadingBehaviorFlag behavior) {
@@ -4685,11 +4769,22 @@ RenderFrameImpl::MakeDidCommitProvisionalLoadParams(
     if (!params->origin.IsSameOriginWith(params->url)) {
       // Exclude file: URLs when settings allow them access any origin.
       if (!file_scheme_with_universal_access) {
+#if defined(USE_NEVA_APPRUNTIME)
+        // TODO(neva, sync-to-93): Revise file_scheme_with_universal_access
+        // usage in Neva and deprecate it if possible in favor of the
+        // whitelisting to avoid clashes with Android use cases.
+        if (!(params->origin.scheme() == url::kFileScheme &&
+              !GetWebView()->GetRendererPreferences().file_security_origin
+                .empty())) {
+#endif
         SCOPED_CRASH_KEY_STRING256("MakeDCPLParams", "mismatched_url",
                                    params->url.possibly_invalid_spec());
         SCOPED_CRASH_KEY_STRING256("MakeDCPLParams", "mismatched_origin",
                                    params->origin.GetDebugString());
         CHECK(false) << " url:" << params->url << " origin:" << params->origin;
+#if defined(USE_NEVA_APPRUNTIME)
+        }
+#endif
       } else {
         requires_universal_access = true;
       }
@@ -4984,8 +5079,18 @@ void RenderFrameImpl::DidStopLoading() {
 }
 
 void RenderFrameImpl::NotifyAccessibilityModeChange(ui::AXMode new_mode) {
+  if (new_mode.is_mode_off() && GetWebView()) {
+    GetWebView()->GetSettings()->SetAccessibilityExploreByMouseEnabled(false);
+  }
+
   for (auto& observer : observers_)
     observer.AccessibilityModeChanged(new_mode);
+
+  if (new_mode == ui::kAXModeComplete &&
+      GetBlinkPreferences().accessibility_explore_by_mouse_enabled &&
+      GetWebView()) {
+    GetWebView()->GetSettings()->SetAccessibilityExploreByMouseEnabled(true);
+  }
 }
 
 void RenderFrameImpl::FocusedElementChanged(const blink::WebElement& element) {
@@ -5859,6 +5964,13 @@ void RenderFrameImpl::RegisterMojoInterfaces() {
   GetAssociatedInterfaceRegistry()->AddInterface<mojom::FrameBindingsControl>(
       base::BindRepeating(&RenderFrameImpl::BindFrameBindingsControl,
                           weak_factory_.GetWeakPtr()));
+
+#if defined(USE_NEVA_MEDIA)
+  GetAssociatedInterfaceRegistry()
+      ->AddInterface<content::mojom::FrameMediaController>(
+          base::BindRepeating(&neva::FrameMediaControllerImpl::Bind,
+                              base::Unretained(&frame_media_controller_impl_)));
+#endif
 
   GetAssociatedInterfaceRegistry()->AddInterface<mojom::NavigationClient>(
       base::BindRepeating(&RenderFrameImpl::BindNavigationClient,

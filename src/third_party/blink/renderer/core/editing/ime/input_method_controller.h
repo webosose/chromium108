@@ -219,6 +219,10 @@ class CORE_EXPORT InputMethodController final
       int selection_end,
       size_t text_length) const;
   int TextInputFlags() const;
+#if defined(USE_NEVA_APPRUNTIME)
+  gfx::Rect InputPanelRectangle() const;
+  int TextInputMaxLength() const;
+#endif  // defined(USE_NEVA_APPRUNTIME)
   ui::TextInputAction InputActionOfFocusedElement() const;
   WebTextInputMode InputModeOfFocusedElement() const;
   ui::mojom::VirtualKeyboardPolicy VirtualKeyboardPolicyOfFocusedElement()

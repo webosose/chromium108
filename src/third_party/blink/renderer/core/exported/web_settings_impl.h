@@ -35,6 +35,7 @@
 #include "third_party/blink/public/mojom/webpreferences/web_preferences.mojom-blink.h"
 #include "third_party/blink/public/web/web_settings.h"
 #include "third_party/blink/renderer/core/core_export.h"
+#include "third_party/blink/renderer/core/exported/neva/web_settings_impl_neva.h"
 #include "third_party/blink/renderer/platform/heap/persistent.h"
 
 namespace blink {
@@ -42,7 +43,7 @@ namespace blink {
 class DevToolsEmulator;
 class Settings;
 
-class CORE_EXPORT WebSettingsImpl final : public WebSettings {
+class CORE_EXPORT WebSettingsImpl final : public WebSettingsImplNeva {
  public:
   WebSettingsImpl(Settings*, DevToolsEmulator*);
   virtual ~WebSettingsImpl() = default;
@@ -51,6 +52,7 @@ class CORE_EXPORT WebSettingsImpl final : public WebSettings {
 
   bool ShrinksViewportContentToFit() const override;
   bool ViewportEnabled() const override;
+  bool GetAccessibilityExploreByMouseEnabled() override;
   void SetAccelerated2dCanvasMSAASampleCount(int) override;
   void SetAutoplayPolicy(mojom::blink::AutoplayPolicy) override;
   void SetPreferCompositingToLCDTextEnabled(bool) override;
@@ -65,6 +67,7 @@ class CORE_EXPORT WebSettingsImpl final : public WebSettings {
   void SetAntialiased2dCanvasEnabled(bool) override;
   void SetAntialiasedClips2dCanvasEnabled(bool) override;
   void SetAutoZoomFocusedEditableToLegibleScale(bool) override;
+  void SetAccessibilityExploreByMouseEnabled(bool) override;
   void SetClobberUserAgentInitialScaleQuirk(bool) override;
   void SetCookieEnabled(bool) override;
   void SetCaretBrowsingEnabled(bool) override;
@@ -195,6 +198,13 @@ class CORE_EXPORT WebSettingsImpl final : public WebSettings {
   void SetWideViewportQuirkEnabled(bool) override;
   void SetMediaControlsEnabled(bool) override;
   void SetDoNotUpdateSelectionOnMutatingSelectionRange(bool) override;
+#if defined(USE_NEVA_MEDIA)
+  void SetMaxTimeupdateEventFrequency(int) override;
+#endif
+#if defined(USE_NEVA_APPRUNTIME)
+  void SetDisallowScrollbarsInMainFrame(bool) override;
+  void SetWebOSNativeScrollEnabled(bool) override;
+#endif
   void SetLowPriorityIframesThreshold(WebEffectiveConnectionType) override;
 
   void SetLazyLoadEnabled(bool) override;

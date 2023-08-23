@@ -47,6 +47,9 @@ mojom("mojom") {
   if (!is_android) {
     enabled_features += [ "is_not_android" ]
   }
+  if (use_neva_appruntime) {
+    enabled_features += [ "use_neva_appruntime" ]
+  }
 }
 
 mojom("test_api") {

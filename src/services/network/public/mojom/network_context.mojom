@@ -9,6 +9,7 @@ import "mojo/public/mojom/base/read_only_file.mojom";
 import "mojo/public/mojom/base/time.mojom";
 import "mojo/public/mojom/base/unguessable_token.mojom";
 import "mojo/public/mojom/base/values.mojom";
+import "neva/pal_service/public/mojom/os_crypt.mojom";
 import "sandbox/policy/mojom/context.mojom";
 import "services/network/public/mojom/address_list.mojom";
 import "services/network/public/mojom/url_loader_network_service_observer.mojom";
@@ -188,6 +189,13 @@ interface TrustedURLLoaderHeaderClient {
       URLRequest request,
       pending_receiver<TrustedHeaderClient> header_client);
 };
+///@name USE_NEVA_APPRUNTIME
+///@{
+// Interface for NetworkDelegate to add extra web socket header
+interface ExtraHeaderNetworkDelegate {
+  SetWebSocketHeader(string key, string value);
+};
+///@}
 
 struct HttpAuthStaticNetworkContextParams {
   // Whether authentication APIs that support fallback to the default account
@@ -287,6 +295,13 @@ struct NetworkContextFilePaths {
 
 // Parameters for constructing a network context.
 struct NetworkContextParams {
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  // Network delegate for extra web socket header appending.
+  [EnableIf=neva_appruntime]
+  pending_receiver<ExtraHeaderNetworkDelegate>? network_delegate_receiver;
+  ///@}
+
   // The user agent string.
   string user_agent;
 
@@ -1505,4 +1520,6 @@ interface NetworkContext {
                                SchemefulSite? top_frame_site,
                                array<SchemefulSite> party_context)
     => (FirstPartySetMetadata metadata);
+
+  SetOSCrypt(pending_remote<pal.mojom.OSCrypt> os_crypt);
 };

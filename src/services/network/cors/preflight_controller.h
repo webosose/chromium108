@@ -115,7 +115,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) PreflightController final {
       const net::IsolationInfo& isolation_info,
       mojom::ClientSecurityStatePtr client_security_state,
       mojo::PendingRemote<mojom::DevToolsObserver> devtools_observer,
-      const net::NetLogWithSource& net_log);
+      const net::NetLogWithSource& net_log,
+      uint32_t process_id);
 
  private:
   class PreflightLoader;

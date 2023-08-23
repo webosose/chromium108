@@ -174,7 +174,11 @@ void XDGToplevelWrapperImpl::SetMinimized() {
 void XDGToplevelWrapperImpl::SurfaceMove(WaylandConnection* connection) {
   DCHECK(xdg_toplevel_);
   if (auto serial = GetSerialForMoveResize(connection))
+#if defined(USE_NEVA_APPRUNTIME)
+    xdg_toplevel_move(xdg_toplevel_.get(), connection->wlseat(),
+#else  // defined(USE_NEVA_APPRUNTIME)
     xdg_toplevel_move(xdg_toplevel_.get(), connection->seat()->wl_object(),
+#endif  // !defined(USE_NEVA_APPRUNTIME)
                       serial->value);
 }
 
@@ -182,7 +186,11 @@ void XDGToplevelWrapperImpl::SurfaceResize(WaylandConnection* connection,
                                            uint32_t hittest) {
   DCHECK(xdg_toplevel_);
   if (auto serial = GetSerialForMoveResize(connection)) {
+#if defined(USE_NEVA_APPRUNTIME)
+    xdg_toplevel_resize(xdg_toplevel_.get(), connection->wlseat(),
+#else  // defined(USE_NEVA_APPRUNTIME)
     xdg_toplevel_resize(xdg_toplevel_.get(), connection->seat()->wl_object(),
+#endif  // !defined(USE_NEVA_APPRUNTIME)
                         serial->value,
                         wl::IdentifyDirection(*connection, hittest));
   }

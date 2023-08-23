@@ -65,6 +65,10 @@
 #include "url/gurl.h"
 #include "url/origin.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/pal_service/public/mojom/system_servicebridge.mojom.h"
+#endif
+
 namespace content {
 
 class ServiceWorkerContainerHost;
@@ -216,6 +220,9 @@ class CONTENT_EXPORT ServiceWorkerVersion
   const GURL& script_url() const { return script_url_; }
   const blink::StorageKey& key() const { return key_; }
   const GURL& scope() const { return scope_; }
+#if defined(USE_NEVA_APPRUNTIME)
+  const std::string& app_id() const { return app_id_; }
+#endif
   blink::mojom::ScriptType script_type() const { return script_type_; }
   EmbeddedWorkerStatus running_status() const {
     return embedded_worker_->status();
@@ -970,6 +977,10 @@ class CONTENT_EXPORT ServiceWorkerVersion
   // have to terminate the worker ASAP (e.g. for activation).
   void MaybeUpdateIdleDelayForTerminationOnNoControllee(base::TimeDelta delay);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void LaunchWebApp(const GURL url, OpenNewTabCallback callback);
+#endif
+
   const int64_t version_id_;
   const int64_t registration_id_;
   const GURL script_url_;
@@ -978,6 +989,9 @@ class CONTENT_EXPORT ServiceWorkerVersion
   // --disable-web-security.
   const blink::StorageKey key_;
   const GURL scope_;
+#if defined(USE_NEVA_APPRUNTIME)
+  const std::string app_id_;
+#endif
   // A service worker has an associated type which is either
   // "classic" or "module". Unless stated otherwise, it is "classic".
   // https://w3c.github.io/ServiceWorker/#dfn-type
@@ -1221,6 +1235,10 @@ class CONTENT_EXPORT ServiceWorkerVersion
   scoped_refptr<PolicyContainerHost> policy_container_host_;
 
   base::UnguessableToken reporting_source_;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  mojo::Remote<pal::mojom::SystemServiceBridge> remote_system_bridge_;
+#endif
 
   base::WeakPtrFactory<ServiceWorkerVersion> weak_factory_{this};
 };

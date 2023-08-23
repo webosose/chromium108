@@ -48,6 +48,9 @@ VideoDecoderType GetPreferredCrosDecoderImplementation(
 VideoDecoderType GetPreferredLinuxDecoderImplementation(
     gpu::GpuPreferences gpu_preferences,
     const gpu::GPUInfo& gpu_info) {
+#if defined(USE_NEVA_V4L2_CODEC)
+  return VideoDecoderType::kVda;
+#endif
   // VaapiVideoDecoder flag is required for both VDA and VaapiVideoDecoder.
   if (!base::FeatureList::IsEnabled(kVaapiVideoDecodeLinux))
     return VideoDecoderType::kUnknown;

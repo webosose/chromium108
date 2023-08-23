@@ -99,9 +99,9 @@ StringId InternTimebaseCounterName(
   if (timebase.has_counter()) {
     return context->storage->InternString(StringifyCounter(timebase.counter()));
   }
-  if (timebase.has_tracepoint()) {
-    PerfEvents::Tracepoint::Decoder tracepoint(timebase.tracepoint());
-    return context->storage->InternString(tracepoint.name());
+  if (timebase.has_trace_point()) {
+    PerfEvents::Tracepoint::Decoder trace_point(timebase.trace_point());
+    return context->storage->InternString(trace_point.name());
   }
   if (timebase.has_raw_event()) {
     PerfEvents::RawEvent::Decoder raw(timebase.raw_event());

@@ -60,6 +60,11 @@ class COMPONENT_EXPORT(UI_BASE_IME) MockInputMethod : public InputMethod {
   void RemoveObserver(InputMethodObserver* observer) override;
   VirtualKeyboardController* GetVirtualKeyboardController() override;
 
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  LinuxInputMethodContext* GetInputMethodContext() override;
+  ///@}
+
  private:
   raw_ptr<TextInputClient> text_input_client_;
   base::ObserverList<InputMethodObserver>::Unchecked observer_list_;

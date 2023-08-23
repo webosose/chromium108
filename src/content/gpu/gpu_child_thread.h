@@ -65,6 +65,11 @@ class GpuChildThread : public ChildThreadImpl,
   // ChildThreadImpl:
   void BindServiceInterface(mojo::GenericPendingReceiver receiver) override;
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+  bool Send(IPC::Message* msg) override;
+  bool OnControlMessageReceived(const IPC::Message& msg) override;
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+
   // viz::VizMainImpl::Delegate:
   void OnInitializationFailed() override;
   void OnGpuServiceConnection(viz::GpuServiceImpl* gpu_service) override;

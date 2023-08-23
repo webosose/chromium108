@@ -54,7 +54,8 @@ class CONTENT_EXPORT PlatformNotificationService {
       const GURL& service_worker_origin,
       const GURL& origin,
       const blink::PlatformNotificationData& notification_data,
-      const blink::NotificationResources& notification_resources) = 0;
+      const blink::NotificationResources& notification_resources,
+      const int64_t service_worker_registration_id) = 0;
 
   // Closes the notification identified by |notification_id|. This method must
   // be called on the UI thread.

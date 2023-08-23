@@ -536,6 +536,13 @@ class CORE_EXPORT ChromeClient : public GarbageCollected<ChromeClient> {
       WTF::CrossThreadOnceFunction<void(base::TimeTicks)>;
   virtual void NotifyPresentationTime(LocalFrame& frame,
                                       ReportTimeCallback callback) {}
+#if defined(USE_NEVA_APPRUNTIME)
+  virtual void NotifyVizFMPSwap(LocalFrame& frame,
+                                bool is_first_contentful_paint,
+                                bool did_reset_container_state) {}
+  virtual String ApplicationId() const { return String(); }
+  virtual String FileSecurityOrigin() const { return String(); }
+#endif
 
   // Enable or disable BeginMainFrameNotExpected signals from the compositor of
   // the local root of |frame|. These signals would be consumed by the blink

@@ -14,7 +14,25 @@
 #include "components/nacl/common/buildflags.h"
 #include "content/public/browser/browser_main_parts.h"
 
+#if defined(USE_NEVA_BROWSER_SERVICE)
+#include "extensions/shell/neva/shell_media_capture_observer.h"
+#include "extensions/shell/neva/shell_permission_prompt.h"
+#endif
+
 class PrefService;
+
+#if defined(USE_NEVA_APPRUNTIME)
+namespace neva_app_runtime {
+class AppRuntimeSharedMemoryManager;
+}
+#endif
+
+#if defined(USE_NEVA_BROWSER_SERVICE)
+namespace neva {
+class MalwareDetectionService;
+class ShellMediaCaptureObserver;
+}  // namespace neva
+#endif
 
 namespace extensions {
 
@@ -48,6 +66,10 @@ class ShellBrowserMainParts : public content::BrowserMainParts {
 
   // BrowserMainParts overrides.
   int PreEarlyInitialization() override;
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  void ToolkitInitialized() override;
+  ///@}
   void PostCreateMainMessageLoop() override;
   int PreCreateThreads() override;
   int PreMainMessageLoopRun() override;
@@ -56,9 +78,20 @@ class ShellBrowserMainParts : public content::BrowserMainParts {
   void PostMainMessageLoopRun() override;
   void PostDestroyThreads() override;
 
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  // Store instance of malware detection service
+  neva::MalwareDetectionService* malware_detection_service() {
+    return malware_detection_service_.get();
+  };
+#endif
+
  private:
   // Initializes the ExtensionSystem.
   void InitExtensionSystem();
+
+#if defined(OS_WEBOS)
+  void ExitWhenPossibleOnUIThread(int signal);
+#endif
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   std::unique_ptr<ShellNetworkController> network_controller_;
@@ -70,6 +103,21 @@ class ShellBrowserMainParts : public content::BrowserMainParts {
 
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   std::unique_ptr<ShellAudioController> audio_controller_;
+#endif
+
+#if defined(USE_NEVA_APPRUNTIME)
+  std::unique_ptr<neva_app_runtime::AppRuntimeSharedMemoryManager>
+      app_runtime_mem_manager_;
+#endif
+
+#if defined(USE_NEVA_BROWSER_SERVICE)
+  // Store instance of malware detection service
+  scoped_refptr<neva::MalwareDetectionService> malware_detection_service_;
+
+  std::unique_ptr<NevaPermissionsClientDelegate>
+      neva_permission_client_delegate_;
+
+  std::unique_ptr<ShellMediaCaptureObserver> shell_media_capture_observer_;
 #endif
 
   // The DesktopController outlives ExtensionSystem and context-keyed services.

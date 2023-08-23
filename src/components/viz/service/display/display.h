@@ -212,6 +212,11 @@ class VIZ_SERVICE_EXPORT Display : public DisplaySchedulerClient,
       mojo::PendingReceiver<gfx::mojom::DelegatedInkPointRenderer>
           pending_receiver);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  void RenderProcessGone();
+  void SetFirstActivateTimeout(base::TimeDelta timeout);
+#endif
+
  protected:
   friend class DisplayTest;
   // PresentationGroupTiming stores rendering pipeline stage timings associated

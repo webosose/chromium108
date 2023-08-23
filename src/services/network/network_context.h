@@ -26,6 +26,7 @@
 #include "base/unguessable_token.h"
 #include "build/build_config.h"
 #include "build/chromeos_buildflags.h"
+#include "components/cookie_config/cookie_store_util_neva.h"
 #include "mojo/public/cpp/base/big_buffer.h"
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
@@ -41,6 +42,7 @@
 #include "net/first_party_sets/first_party_set_metadata.h"
 #include "net/http/http_auth_preferences.h"
 #include "net/net_buildflags.h"
+#include "neva/pal_service/public/mojom/os_crypt.mojom.h"
 #include "services/network/cache_transparency_settings.h"
 #include "services/network/cors/preflight_controller.h"
 #include "services/network/first_party_sets/first_party_sets_access_delegate.h"
@@ -502,6 +504,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
       const absl::optional<net::SchemefulSite>& top_frame_site,
       const std::vector<net::SchemefulSite>& party_context,
       ComputeFirstPartySetMetadataCallback callback) override;
+  void SetOSCrypt(mojo::PendingRemote<pal::mojom::OSCrypt> os_crypt) override;
 
   // Destroys |request| when a proxy lookup completes.
   void OnProxyLookupComplete(ProxyLookupRequest* proxy_lookup_request);
@@ -632,8 +635,7 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
       scoped_refptr<SessionCleanupCookieStore>,
       OnURLRequestContextBuilderConfiguredCallback
           on_url_request_context_builder_configured);
-  scoped_refptr<SessionCleanupCookieStore> MakeSessionCleanupCookieStore()
-      const;
+  scoped_refptr<SessionCleanupCookieStore> MakeSessionCleanupCookieStore();
 
   // Invoked when the HTTP cache was cleared. Invokes |callback|.
   void OnHttpCacheCleared(ClearHttpCacheCallback callback,
@@ -716,6 +718,8 @@ class COMPONENT_EXPORT(NETWORK_SERVICE) NetworkContext
       const url::SchemeHostPort& scheme_host_port);
 
   const raw_ptr<NetworkService> network_service_;
+
+  scoped_refptr<cookie_config::CookieNevaCryptoDelegate> crypto_delegate_;
 
   mojo::Remote<mojom::NetworkContextClient> client_;
 

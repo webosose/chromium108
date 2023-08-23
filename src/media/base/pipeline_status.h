@@ -27,7 +27,11 @@ enum PipelineStatusCodes : StatusCodeType {
   // Deprecated: PIPELINE_ERROR_URL_NOT_FOUND = 1,
   PIPELINE_ERROR_NETWORK = 2,
   PIPELINE_ERROR_DECODE = 3,
+#if defined(USE_NEVA_MEDIA)
+  PIPELINE_ERROR_DECRYPT = 4,
+#else
   // Deprecated: PIPELINE_ERROR_DECRYPT = 4,
+#endif
   PIPELINE_ERROR_ABORT = 5,
   PIPELINE_ERROR_INITIALIZATION_FAILED = 6,
   PIPELINE_ERROR_COULD_NOT_RENDER = 8,
@@ -66,8 +70,16 @@ enum PipelineStatusCodes : StatusCodeType {
   // The remote media component was disconnected unexpectedly, e.g. crash.
   PIPELINE_ERROR_DISCONNECTED = 24,
 
+#if !defined(USE_NEVA_MEDIA)
   // Must be equal to the largest value ever logged.
   PIPELINE_STATUS_MAX = PIPELINE_ERROR_DISCONNECTED,
+#else   // defined(USE_NEVA_MEDIA)
+  // Resource is released by policy action.
+  PIPELINE_ERROR_RESOURCE_IS_RELEASED = 25,
+
+  // Must be equal to the largest value ever logged.
+  PIPELINE_STATUS_MAX = PIPELINE_ERROR_RESOURCE_IS_RELEASED,
+#endif  // defined(USE_NEVA_MEDIA)
 };
 
 struct PipelineStatusTraits {

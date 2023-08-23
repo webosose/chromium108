@@ -147,6 +147,18 @@ class GlobalEventHandlers {
   DEFINE_STATIC_ATTRIBUTE_EVENT_LISTENER(webkittransitionend,
                                          kWebkitTransitionEnd)
   DEFINE_STATIC_ATTRIBUTE_EVENT_LISTENER(wheel, kWheel)
+  ///@name USE_NEVA_MEDIA
+  ///@{
+  DEFINE_STATIC_ATTRIBUTE_EVENT_LISTENER(umsmediainfo, kUmsmediainfo)
+  DEFINE_STATIC_ATTRIBUTE_EVENT_LISTENER(webosmediafocuschange,
+                                         kWebosmediafocuschange)
+
+  ///@name USE_NEVA_MEDIA_PLAYER_CAMERA
+  ///@{
+  DEFINE_STATIC_ATTRIBUTE_EVENT_LISTENER(updatecamerastate, kUpdatecamerastate)
+  ///@}
+
+  ///@}
 };
 
 }  // namespace

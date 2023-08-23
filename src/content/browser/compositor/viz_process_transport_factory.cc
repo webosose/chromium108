@@ -123,6 +123,9 @@ class HostDisplayClient : public viz::HostDisplayClient {
     compositor_->OnCompleteSwapWithNewSize(size);
   }
 #endif
+#if defined(USE_NEVA_APPRUNTIME)
+  void DidCompleteSwap() override { compositor_->OnCompleteSwap(); }
+#endif
 
  private:
   [[maybe_unused]] const raw_ptr<ui::Compositor> compositor_;

@@ -65,6 +65,10 @@ bool StructTraits<media::mojom::AudioDecoderConfigDataView,
   if (!input.should_discard_decoder_delay())
     output->disable_discard_decoder_delay();
 
+#if defined(USE_NEVA_MEDIA)
+  output->set_is_dolby_atmos(input.is_dolby_atmos());
+#endif
+
   return output->IsValidConfig();
 }
 

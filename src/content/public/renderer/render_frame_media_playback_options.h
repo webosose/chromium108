@@ -25,7 +25,12 @@ struct RenderFrameMediaPlaybackOptions {
   bool is_background_suspend_enabled = kIsBackgroundMediaSuspendEnabled;
 
   // Whether background video is allowed to play for given |render_frame|.
+#if defined(OS_WEBOS)
+  // In webOS, background video playback is disabled by default
+  bool is_background_video_playback_enabled = false;
+#else
   bool is_background_video_playback_enabled = true;
+#endif
 
   // Whether background video optimization is supported on current platform.
   bool is_background_video_track_optimization_supported = true;

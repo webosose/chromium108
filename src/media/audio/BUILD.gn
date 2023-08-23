@@ -341,6 +341,19 @@ source_set("audio") {
       "//third_party/fuchsia-sdk/sdk/pkg/sys_cpp",
     ]
   }
+
+  if (use_webos_audio) {
+    sources += [
+      "webos/audio_manager_webos.cc",
+      "webos/audio_manager_webos.h",
+      "webos/webos_audio_service.cc",
+      "webos/webos_audio_service.h",
+      "webos/webos_input_stream.cc",
+      "webos/webos_input_stream.h",
+      "webos/webos_output_stream.cc",
+      "webos/webos_output_stream.h",
+    ]
+  }
 }
 
 if (use_cras) {

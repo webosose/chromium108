@@ -27,7 +27,11 @@
 #if BUILDFLAG(USE_VAAPI)
 #include "media/gpu/vaapi/vaapi_video_decode_accelerator.h"
 #include "ui/gl/gl_implementation.h"
-#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH)
+#elif defined(USE_WEBOS_CODEC)
+#include "media/gpu/webos/webos_video_decode_accelerator.h"
+#include "ui/gl/gl_surface_egl.h"
+#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH) || \
+    defined(USE_NEVA_V4L2_CODEC)
 #include "media/gpu/v4l2/v4l2_device.h"
 #include "media/gpu/v4l2/v4l2_slice_video_decode_accelerator.h"
 #include "media/gpu/v4l2/v4l2_video_decode_accelerator.h"
@@ -60,13 +64,20 @@ gpu::VideoDecodeAcceleratorCapabilities GetDecoderCapabilitiesInternal(
 #if BUILDFLAG(USE_VAAPI)
   capabilities.supported_profiles =
       VaapiVideoDecodeAccelerator::GetSupportedProfiles();
-#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH)
+#elif defined(USE_WEBOS_CODEC)
+  GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
+      WebOSVideoDecodeAccelerator::GetSupportedProfiles(),
+      &capabilities.supported_profiles);
+#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH) || \
+    defined(USE_NEVA_V4L2_CODEC)
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       V4L2VideoDecodeAccelerator::GetSupportedProfiles(),
       &capabilities.supported_profiles);
+#if !defined(USE_NEVA_V4L2_CODEC)
   GpuVideoAcceleratorUtil::InsertUniqueDecodeProfiles(
       V4L2SliceVideoDecodeAccelerator::GetSupportedProfiles(),
       &capabilities.supported_profiles);
+#endif  // !defined(USE_NEVA_V4L2_CODEC)
 #endif
 #elif BUILDFLAG(IS_MAC)
   capabilities.supported_profiles =
@@ -99,7 +110,8 @@ GpuVideoDecodeAcceleratorFactory::GetDecoderCapabilities(
   static gpu::VideoDecodeAcceleratorCapabilities capabilities =
       GetDecoderCapabilitiesInternal(gpu_preferences, workarounds);
 
-#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH)
+#if BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH) || \
+    defined(USE_NEVA_V4L2_CODEC) || defined(USE_WEBOS_CODEC)
   // V4L2-only: the decoder devices may not be visible at the time the GPU
   // process is starting. If the capabilities vector is empty, try to query the
   // devices again in the hope that they will have appeared in the meantime.
@@ -144,9 +156,14 @@ GpuVideoDecodeAcceleratorFactory::CreateVDA(
   // both. In those cases prefer the VA creation function.
 #if BUILDFLAG(USE_VAAPI)
     &GpuVideoDecodeAcceleratorFactory::CreateVaapiVDA,
-#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH)
+#elif defined(USE_WEBOS_CODEC)
+    &GpuVideoDecodeAcceleratorFactory::CreateWebOSVDA,
+#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH) || \
+    defined(USE_NEVA_V4L2_CODEC)
     &GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA,
+#if !defined(USE_NEVA_V4L2_CODEC)
     &GpuVideoDecodeAcceleratorFactory::CreateV4L2SliceVDA,
+#endif  // !defined(USE_NEVA_V4L2_CODEC)
 #endif
 
 #if BUILDFLAG(IS_MAC)
@@ -191,7 +208,20 @@ GpuVideoDecodeAcceleratorFactory::CreateVaapiVDA(
                                                 gl_client_.bind_image));
   return decoder;
 }
-#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH)
+#elif defined(USE_WEBOS_CODEC)
+std::unique_ptr<VideoDecodeAccelerator>
+GpuVideoDecodeAcceleratorFactory::CreateWebOSVDA(
+    const gpu::GpuDriverBugWorkarounds& workarounds,
+    const gpu::GpuPreferences& gpu_preferences,
+    MediaLog* media_log) const {
+  std::unique_ptr<VideoDecodeAccelerator> decoder;
+  decoder.reset(new WebOSVideoDecodeAccelerator(
+      gl::GLSurfaceEGL::GetGLDisplayEGL()->GetDisplay(), gl_client_.get_context,
+      gl_client_.make_context_current));
+  return decoder;
+}
+#elif BUILDFLAG(USE_V4L2_CODEC) && BUILDFLAG(IS_CHROMEOS_ASH) || \
+    defined(USE_NEVA_V4L2_CODEC)
 std::unique_ptr<VideoDecodeAccelerator>
 GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA(
     const gpu::GpuDriverBugWorkarounds& /*workarounds*/,
@@ -207,6 +237,9 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2VDA(
   return decoder;
 }
 
+#if !defined(USE_NEVA_V4L2_CODEC)
+// Slice Video Decoder is implemented in linux v5.3.x
+// But in webOS and AGL, linux kernel 4.x is used.
 std::unique_ptr<VideoDecodeAccelerator>
 GpuVideoDecodeAcceleratorFactory::CreateV4L2SliceVDA(
     const gpu::GpuDriverBugWorkarounds& /*workarounds*/,
@@ -221,6 +254,7 @@ GpuVideoDecodeAcceleratorFactory::CreateV4L2SliceVDA(
   }
   return decoder;
 }
+#endif  // !defined(USE_NEVA_V4L2_CODEC)
 #endif
 
 #if BUILDFLAG(IS_MAC)

@@ -18687,6 +18687,7 @@ void GLES2DecoderImpl::DoDrawBuffersEXT(GLsizei count,
 }
 
 void GLES2DecoderImpl::DoLoseContextCHROMIUM(GLenum current, GLenum other) {
+  VLOG(1) << __func__ << " current=" << current << " other=" << other;
   MarkContextLost(GetContextLostReasonFromResetStatus(current));
   group_->LoseContexts(GetContextLostReasonFromResetStatus(other));
   reset_by_robustness_extension_ = true;
@@ -19202,6 +19203,7 @@ void GLES2DecoderImpl::OnContextLostError() {
     CheckResetStatus();
     group_->LoseContexts(error::kUnknown);
     reset_by_robustness_extension_ = true;
+    LOG(ERROR) << "LostContext";
   }
 }
 

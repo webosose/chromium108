@@ -18,6 +18,10 @@
 #include "mojo/core/embedder/scoped_ipc_support.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 
+#if defined(USE_LTTNG)
+#include "base/native_library.h"
+#endif
+
 namespace base {
 class AtExitManager;
 }  // namespace base
@@ -76,6 +80,10 @@ class ContentMainRunnerImpl : public ContentMainRunner {
 
   // Received in Initialize(), handed-off in Run().
   absl::optional<ContentMainParams> content_main_params_;
+
+#if defined(USE_LTTNG)
+  base::NativeLibrary lttng_native_library_ = nullptr;
+#endif
 };
 
 // The BrowserTestBase on Android does not call ContentMain(). It tries instead

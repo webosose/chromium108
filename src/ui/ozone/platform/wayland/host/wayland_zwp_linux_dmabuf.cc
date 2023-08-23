@@ -4,7 +4,9 @@
 
 #include "ui/ozone/platform/wayland/host/wayland_zwp_linux_dmabuf.h"
 
+#if !defined(OS_WEBOS)
 #include <drm_fourcc.h>
+#endif  // !defined(OS_WEBOS)
 #include <linux-dmabuf-unstable-v1-client-protocol.h>
 
 #include "base/logging.h"
@@ -12,6 +14,10 @@
 #include "ui/gfx/linux/drm_util_linux.h"
 #include "ui/ozone/platform/wayland/host/wayland_buffer_factory.h"
 #include "ui/ozone/platform/wayland/host/wayland_connection.h"
+
+#if defined(OS_WEBOS)
+#include "third_party/libdrm/src/include/drm/drm_fourcc.h"
+#endif  // defined(OS_WEBOS)
 
 namespace ui {
 

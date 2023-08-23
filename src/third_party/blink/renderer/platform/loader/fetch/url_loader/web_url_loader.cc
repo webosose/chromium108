@@ -478,6 +478,16 @@ void WebURLLoader::Context::Start(
     return;
   }
 
+#if defined(USE_NEVA_APPRUNTIME)
+  if (url_request_extra_data->allow_third_party_cookies().has_value()) {
+    bool allow = url_request_extra_data->allow_third_party_cookies().value();
+    if (allow)
+      loader_options &= ~network::mojom::kURLLoadOptionBlockThirdPartyCookies;
+    else
+      loader_options |= network::mojom::kURLLoadOptionBlockThirdPartyCookies;
+  }
+#endif
+
   TRACE_EVENT_WITH_FLOW0("loading", "WebURLLoader::Context::Start", this,
                          TRACE_EVENT_FLAG_FLOW_OUT);
   net::NetworkTrafficAnnotationTag tag = GetTrafficAnnotationTag(request.get());
@@ -722,6 +732,9 @@ void WebURLLoader::PopulateURLResponse(
   response->SetWasInPrefetchCache(head.was_in_prefetch_cache);
   response->SetWasCookieInRequest(head.was_cookie_in_request);
   response->SetRecursivePrefetchToken(head.recursive_prefetch_token);
+#if defined(USE_FILESCHEME_CODECACHE)
+  response->SetFileLastModifiedTime(head.file_last_modified_time);
+#endif
   response->SetWebBundleURL(KURL(head.web_bundle_url));
 
   SetSecurityStyleAndDetails(GURL(KURL(url)), head, response,

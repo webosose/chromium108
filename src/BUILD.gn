@@ -33,6 +33,7 @@ import("//tools/ipc_fuzzer/ipc_fuzzer.gni")
 import("//ui/base/ui_features.gni")
 import("//ui/gl/features.gni")
 import("//v8/gni/v8.gni")
+import("//neva/neva.gni")
 
 if (is_android) {
   import("//build/config/android/config.gni")
@@ -763,6 +764,26 @@ group("gn_all") {
     }
     if ((is_linux || is_chromeos) && current_toolchain == host_toolchain) {
       deps += [ "//v8:v8_shell" ]
+    }
+
+    if (use_neva_appruntime) {
+      deps += [
+        "//neva/browser_shell",
+        "//neva/wam_demo",
+        "//neva/neva_unittests",
+      ]
+      if (is_webos || is_webos_lite) {
+        deps += [
+          "//webos:weboswebruntime",
+          "//webos/install",
+        ]
+        if (current_cpu == "arm") {
+          deps -= [ "//third_party/libjpeg_turbo:simd" ]
+          deps += [
+            "//third_party/libjpeg_turbo:simd(//build/toolchain/linux:clang_webos_$target_cpu)",
+          ]
+        }
+      }
     }
   }
 
@@ -1629,7 +1650,7 @@ if (!is_ios) {
 # TODO(cassew): Add more OS's that don't support x86.
 is_valid_x86_target =
     target_os != "ios" && target_os != "mac" &&
-    (target_os != "linux" || use_libfuzzer || !build_with_chromium)
+    (target_os != "linux" || use_libfuzzer || !build_with_chromium || is_webos)
 
 # Note: v8_target_cpu == arm allows using the V8 arm simulator on x86 for fuzzing.
 assert(

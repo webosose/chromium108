@@ -2827,6 +2827,14 @@ void AXObjectCacheImpl::PostNotification(AXObject* object,
   if (!object || !object->AXObjectID() || object->IsDetached())
     return;
 
+  // User creates alert event first but spokes later than focus event
+  // because the focus event fired as sync event.
+  // So, to meet enyo's requirement, AlertRole should be sync event.
+  if (event_type == ax::mojom::blink::Event::kAlert) {
+    PostPlatformNotification(object, event_type);
+    return;
+  }
+
   modification_count_++;
 
   Document& document = *object->GetDocument();

@@ -123,6 +123,10 @@
 #include "ui/gfx/geometry/point_f.h"
 #include "ui/gfx/geometry/rect.h"
 
+#if defined(OS_WEBOS)
+#include "third_party/blink/renderer/core/css/resolver/style_resolver.h"
+#endif
+
 namespace blink {
 
 namespace {
@@ -226,6 +230,7 @@ EventHandler::EventHandler(LocalFrame& frame)
           this,
           &EventHandler::CursorUpdateTimerFired),
       should_only_fire_drag_over_event_(false),
+      force_focus_on_mouse_move_(false),
       event_handler_registry_(
           frame_->IsLocalRoot()
               ? MakeGarbageCollected<EventHandlerRegistry>(*frame_)
@@ -683,6 +688,56 @@ absl::optional<ui::Cursor> EventHandler::SelectCursor(
   const ui::Cursor& i_beam =
       horizontal_text ? IBeamCursor() : VerticalTextCursor();
 
+  // In accordance to the requirements all cursor icons, that chromium sets by
+  // the element type (e.g. I-beam for input element), should be disabled,
+  // except cases when cursor is set explicitly by the css "cursor" field
+  // in "style" attribute of the element or in the corresponding class.
+#if defined(OS_WEBOS)
+  bool check_parent_node = !node->IsElementNode();
+  if (!check_parent_node) {
+    Element* element = To<Element>(node);
+    bool defined_by_css_class = false;
+    element->GetDocument().UpdateStyleAndLayoutTreeForNode(element);
+    StyleRuleList* default_style =
+        element->GetDocument().GetStyleResolver().StyleRulesForElement(
+            element, StyleResolver::kAuthorCSSRules);
+    if (default_style) {
+      for(auto el : *default_style) {
+        defined_by_css_class =
+            el->Properties().HasProperty(CSSPropertyID::kCursor);
+        if (defined_by_css_class) {
+          break;
+        }
+      }
+    }
+    bool defined_by_css_style =
+        element->style() &&
+        element->style()->GetPropertyCSSValueInternal(CSSPropertyID::kCursor);
+
+    check_parent_node = !defined_by_css_style && !defined_by_css_class;
+  }
+  // If node is ElementNode and cursor is defined in style or css, then the
+  // element's cursor is used, otherwise - the parent's cursor is used
+  if (check_parent_node) {
+    Element* parent = node->parentElement();
+    if (parent) {
+      // Current node does not override cursor,
+      // so parent node has to be checked
+      HitTestResult parent_result(result);
+      parent_result.SetInnerNode(parent);
+      HitTestLocation location;
+      LocalFrameView* view = frame_->View();
+      if (view)
+        location = HitTestLocation(view->ViewportToFrame(
+            mouse_event_manager_->LastKnownMousePositionInViewport()));
+      return SelectCursor(location, parent_result);
+    } else {
+      // Pointer cursor is considered as default system cursor.
+      // On webOS it should looks like pink plectrum.
+      return PointerCursor();
+    }
+  }
+#endif
   switch (style ? style->Cursor() : ECursor::kAuto) {
     case ECursor::kAuto: {
       return SelectAutoCursor(result, node, i_beam);
@@ -953,11 +1008,31 @@ WebInputEventResult EventHandler::HandleMouseMoveEvent(
     const Vector<WebMouseEvent>& predicted_events) {
   TRACE_EVENT0("blink", "EventHandler::handleMouseMoveEvent");
   DCHECK(event.GetType() == WebInputEvent::Type::kMouseMove);
+
+  force_focus_on_mouse_move_ = false;
+
+  if (frame_->GetSettings() &&
+      frame_->GetSettings()->GetAccessibilityExploreByMouseEnabled())
+    force_focus_on_mouse_move_ = true;
+
   HitTestResult hovered_node_result;
   HitTestLocation location;
   WebInputEventResult result =
       HandleMouseMoveOrLeaveEvent(event, coalesced_events, predicted_events,
                                   &hovered_node_result, &location);
+
+  if (force_focus_on_mouse_move_) {
+    InputDeviceCapabilities* source_capabilities =
+        frame_->GetDocument()
+            ->domWindow()
+            ->GetInputDeviceCapabilities()
+            ->FiresTouchEvents(false);
+
+    mouse_event_manager_->HandleMouseFocus(
+        MouseEventWithHitTestResults(event, location, hovered_node_result)
+            .GetHitTestResult(),
+        source_capabilities);
+  }
 
   Page* page = frame_->GetPage();
   if (!page)
@@ -1413,6 +1488,12 @@ Element* EventHandler::EffectiveMouseEventTargetElement(
   Element* new_element_under_mouse = target_element;
   if (pointer_event_manager_->GetMouseCaptureTarget())
     new_element_under_mouse = pointer_event_manager_->GetMouseCaptureTarget();
+
+  if (frame_->GetSettings() &&
+      frame_->GetSettings()->GetAccessibilityExploreByMouseEnabled() &&
+      !force_focus_on_mouse_move_)
+    force_focus_on_mouse_move_ = true;
+
   return new_element_under_mouse;
 }
 

@@ -650,7 +650,13 @@
 // The macro EIGEN_COMP_CXXVER defines the c++ version expected by the compiler.
 // For instance, if compiling with gcc and -std=c++17, then EIGEN_COMP_CXXVER
 // is defined to 17.
-#if EIGEN_CPLUSPLUS > 201703L
+// TODO(neva): GCC 9.3 on webOS, 9.4 on PC uses c++ 201709 if '-std=c++2a' is set.
+// CEIGEN_COMP_CXXVER is regarded as 20 if c++ version is greater than 201703L.
+// 'std::construct_at' which is c++ 20 function is used if CEIGEN_COMP_CXXVER is 20.
+// However, the current GCC with '-std=c++2a' doesn't support this c++ 20 function.
+// Thus, threshold needs to be set to 201709L for the current GCC.
+// #if EIGEN_CPLUSPLUS > 201703L
+#if EIGEN_CPLUSPLUS > 201709L
   #define EIGEN_COMP_CXXVER 20
 #elif EIGEN_CPLUSPLUS > 201402L
   #define EIGEN_COMP_CXXVER 17

@@ -86,6 +86,7 @@ component("service") {
     "//gpu/vulkan:buildflags",
     "//mojo/public/cpp/bindings",
   ]
+
   libs = []
   ldflags = []
   if (is_win) {

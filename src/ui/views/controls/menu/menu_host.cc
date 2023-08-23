@@ -125,6 +125,9 @@ MenuHost::~MenuHost() {
 void MenuHost::InitMenuHost(const InitParams& init_params) {
   TRACE_EVENT0("views", "MenuHost::InitMenuHost");
   Widget::InitParams params(Widget::InitParams::TYPE_MENU);
+#if defined(USE_SINGLE_WINDOW_MODE)
+  params.type = Widget::InitParams::TYPE_POPUP;
+#endif
   const MenuController* menu_controller =
       submenu_->GetMenuItem()->GetMenuController();
   const MenuConfig& menu_config = MenuConfig::instance();

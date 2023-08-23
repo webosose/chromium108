@@ -85,9 +85,15 @@ namespace viz {
 
 OverlayProcessorDelegated::OverlayProcessorDelegated(
     std::unique_ptr<ui::OverlayCandidatesOzone> overlay_candidates,
+#if defined(USE_NEVA_MEDIA)
+    gpu::SurfaceHandle surface_handle,
+#endif
     std::vector<OverlayStrategy> available_strategies,
     gpu::SharedImageInterface* shared_image_interface)
     : OverlayProcessorOzone(std::move(overlay_candidates),
+#if defined(USE_NEVA_MEDIA)
+                            surface_handle,
+#endif
                             available_strategies,
                             shared_image_interface) {
   // TODO(msisov, petermcneeley): remove this once Wayland uses only delegated

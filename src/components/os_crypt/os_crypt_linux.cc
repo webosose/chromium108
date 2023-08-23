@@ -132,6 +132,7 @@ bool OSCryptImpl::DecryptString16(const std::string& ciphertext,
 
 bool OSCryptImpl::EncryptString(const std::string& plaintext,
                                 std::string* ciphertext) {
+  VLOG(1) << __func__;
   if (plaintext.empty()) {
     ciphertext->clear();
     return true;
@@ -164,6 +165,7 @@ bool OSCryptImpl::EncryptString(const std::string& plaintext,
 
 bool OSCryptImpl::DecryptString(const std::string& ciphertext,
                                 std::string* plaintext) {
+  VLOG(1) << __func__;
   if (ciphertext.empty()) {
     plaintext->clear();
     return true;

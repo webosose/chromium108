@@ -98,11 +98,19 @@ void ZXDGToplevelV6WrapperImpl::SetMinimized() {
 
 void ZXDGToplevelV6WrapperImpl::SurfaceMove(WaylandConnection* connection) {
   DCHECK(zxdg_toplevel_v6_);
+#if defined(USE_NEVA_APPRUNTIME)
+  DCHECK(connection_->wlseat());
+#else  // defined(USE_NEVA_APPRUNTIME)
   DCHECK(connection_->seat());
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 
   if (auto serial = GetSerialForMoveResize(connection)) {
     zxdg_toplevel_v6_move(zxdg_toplevel_v6_.get(),
+#if defined(USE_NEVA_APPRUNTIME)
+                          connection->wlseat(), serial->value);
+#else  // defined(USE_NEVA_APPRUNTIME)
                           connection->seat()->wl_object(), serial->value);
+#endif  // !defined(USE_NEVA_APPRUNTIME)
   }
 }
 
@@ -113,7 +121,11 @@ void ZXDGToplevelV6WrapperImpl::SurfaceResize(WaylandConnection* connection,
 
   if (auto serial = GetSerialForMoveResize(connection)) {
     zxdg_toplevel_v6_resize(zxdg_toplevel_v6_.get(),
+#if defined(USE_NEVA_APPRUNTIME)
+                            connection->wlseat(), serial->value,
+#else  // defined(USE_NEVA_APPRUNTIME)
                             connection->seat()->wl_object(), serial->value,
+#endif  // !defined(USE_NEVA_APPRUNTIME)
                             wl::IdentifyDirection(*connection, hittest));
   }
 }

@@ -1,0 +1,17 @@
+{
+    "roleFilesPrv": [
+        "/usr/share/ls2/roles/prv/com.webos.app.wam-demo.json"
+    ],
+    "roleFilesPub": [
+        "/usr/share/ls2/roles/pub/com.webos.app.wam-demo.json"
+    ],
+    "serviceFiles": [
+        "/usr/share/dbus-1/services/com.webos.app.wam-demo.service",
+        "/usr/share/dbus-1/system-services/com.webos.app.wam-demo.service"
+    ],
+    "clientPermissionFiles": [
+        "/usr/share/luna-service2/client-permissions.d/com.webos.app.wam-demo.perm.json"
+    ],
+    "id": "wam-demo",
+    "version": "1.0.0"
+}

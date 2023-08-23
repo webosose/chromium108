@@ -47,6 +47,11 @@
 #include "services/viz/privileged/mojom/gl/gpu_service.mojom.h"
 #include "third_party/skia/include/core/SkGraphics.h"
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+#include "ui/ozone/public/ozone_platform.h"
+#include "ui/ozone/public/gpu_platform_support.h"
+#endif
+
 #if BUILDFLAG(IS_ANDROID)
 #include "media/base/android/media_drm_bridge_client.h"
 #include "media/mojo/clients/mojo_android_overlay.h"
@@ -168,6 +173,25 @@ bool GpuChildThread::in_process_gpu() const {
   return viz_main_.gpu_service()->gpu_info().in_process_gpu;
 }
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+bool GpuChildThread::Send(IPC::Message* msg) {
+  // The GPU process must never send a synchronous IPC message to the browser
+  // process. This could result in deadlock.
+  DCHECK(!msg->is_sync());
+
+  return ChildThreadImpl::Send(msg);
+}
+
+bool GpuChildThread::OnControlMessageReceived(const IPC::Message& msg) {
+  if (ui::OzonePlatform::GetInstance()
+          ->GetGpuPlatformSupport()
+          ->OnMessageReceived(msg))
+    return true;
+
+  return false;
+}
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+
 void GpuChildThread::OnInitializationFailed() {
   OnChannelError();
 }
@@ -181,6 +205,12 @@ void GpuChildThread::OnGpuServiceConnection(viz::GpuServiceImpl* gpu_service) {
   gpu_service->media_gpu_channel_manager()->SetOverlayFactory(
       overlay_factory_cb);
 #endif
+
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+  ui::OzonePlatform::GetInstance()
+      ->GetGpuPlatformSupport()
+      ->OnChannelEstablished(this);
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
 
   if (!IsInBrowserProcess()) {
     gpu_service->SetVisibilityChangedCallback(

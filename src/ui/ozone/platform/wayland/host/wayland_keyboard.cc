@@ -108,6 +108,10 @@ WaylandKeyboard::WaylandKeyboard(
         this, zcr_keyboard_extension_v1_get_extended_keyboard(
                   keyboard_extension_v1, obj_.get()));
   }
+
+#if defined(OS_WEBOS)
+  auto_repeat_handler_.SetAutoRepeatEnabled(false);
+#endif
 }
 
 WaylandKeyboard::~WaylandKeyboard() {
@@ -164,17 +168,27 @@ void WaylandKeyboard::Enter(void* data,
                             uint32_t serial,
                             wl_surface* surface,
                             wl_array* keys) {
+  // This log should be kept for compliance to existing TCs scenarios.
+  VLOG(1) << "OnKeyboardEnter";
   // wl_surface might have been destroyed by this time.
   if (auto* window = wl::RootWindowFromWlSurface(surface)) {
     auto* self = static_cast<WaylandKeyboard*>(data);
     self->delegate_->OnKeyboardFocusChanged(window, /*focused=*/true);
   }
+
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (auto* window = wl::RootWindowFromWlSurface(surface))
+    window->HandleKeyboardEnter();
+  ///@}
 }
 
 void WaylandKeyboard::Leave(void* data,
                             wl_keyboard* obj,
                             uint32_t serial,
                             wl_surface* surface) {
+  // This log should be kept for compliance to existing TCs scenarios.
+  VLOG(1) << "OnKeyboardLeave";
   // wl_surface might have been destroyed by this time.
   auto* self = static_cast<WaylandKeyboard*>(data);
   if (auto* window = wl::RootWindowFromWlSurface(surface))
@@ -182,6 +196,12 @@ void WaylandKeyboard::Leave(void* data,
 
   // Upon window focus lose, reset the key repeat timers.
   self->auto_repeat_handler_.StopKeyRepeat();
+
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (auto* window = wl::RootWindowFromWlSurface(surface))
+    window->HandleKeyboardLeave();
+  ///@}
 }
 
 void WaylandKeyboard::Key(void* data,
@@ -190,6 +210,11 @@ void WaylandKeyboard::Key(void* data,
                           uint32_t time,
                           uint32_t key,
                           uint32_t state) {
+  // This log should be kept for compliance to existing TCs scenarios.
+  VLOG(1) << "OnKeyNotify"
+          << " KEY:" << key << " TYPE:"
+          << (state == WL_KEYBOARD_KEY_STATE_RELEASED ? "KeyRelease"
+                                                      : "KeyPress");
   WaylandKeyboard* keyboard = static_cast<WaylandKeyboard*>(data);
   DCHECK(keyboard);
   keyboard->OnKey(serial, time, key, state, KeyEventKind::kKey);
@@ -216,6 +241,8 @@ void WaylandKeyboard::RepeatInfo(void* data,
                                  wl_keyboard* obj,
                                  int32_t rate,
                                  int32_t delay) {
+// FIXME(neva): auto-repeat is turned off by default on webOS
+#if !defined(OS_WEBOS)
   // Negative values for either rate or delay are illegal.
   if (rate < 0 || delay < 0) {
     VLOG(1) << "Ignoring wl_keyboard.repeat_info event with illegal "
@@ -234,6 +261,7 @@ void WaylandKeyboard::RepeatInfo(void* data,
     handler.SetAutoRepeatRate(base::Milliseconds(delay),
                               base::Seconds(1.0 / rate));
   }
+#endif
 }
 
 void WaylandKeyboard::FlushInput(base::OnceClosure closure) {

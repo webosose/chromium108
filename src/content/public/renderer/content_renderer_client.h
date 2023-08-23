@@ -227,6 +227,14 @@ class CONTENT_EXPORT ContentRendererClient {
                                 bool is_redirect);
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // APPRUNTIME has own procedure for regulating access to local resources.
+  virtual bool IsAccessAllowedForURL(const blink::WebURL& url) { return true; }
+
+  // APPRUNTIME needs to allow file scheme for the serviceworker
+  virtual void RegisterSchemes() {}
+#endif
+
   // Notifies the embedder that the given frame is requesting the resource at
   // |url|. If the function returns a valid |new_url|, the request must be
   // updated to use it.

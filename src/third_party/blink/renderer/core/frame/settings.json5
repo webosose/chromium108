@@ -881,6 +881,26 @@
       name: "navigatorPlatformOverride",
       type: "String",
     },
+    ///@name USE_NEVA_MEDIA
+    ///@{
+    {
+      name: "maxTimeupdateEventFrequency",
+      initial: "250",
+      type: "int",
+    },
+    ///@}
+    ///@name USE_NEVA_APPRUNTIME
+    ///@{
+    {
+      name: "disallowScrollbarsInMainFrame",
+      initial: "false",
+    },
+    ///@}
+    {
+      name: "webOSNativeScrollEnabled",
+      initial: "false",
+    },
+    ///@}
     {
       name: "lowPriorityIframesThreshold",
       initial: "WebEffectiveConnectionType::kTypeUnknown",
@@ -999,6 +1019,10 @@
       initial: "NavigationControls::kNone",
       invalidate: ["MediaQuery"],
       type: "NavigationControls",
+    },
+    {
+      name: "accessibilityExploreByMouseEnabled",
+      initial: "false",
     },
     {
       name: "accessibilityAlwaysShowFocus",

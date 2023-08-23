@@ -24,6 +24,15 @@
 #include "ui/base/ime/input_method_minimal.h"
 #endif
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#if defined(USE_AURA)
+#include "ui/base/ime/linux/input_method_auralinux.h"
+#include "ui/base/ime/linux/neva/input_method_auralinux_neva.h"
+#include "ui/base/ui_base_neva_switches.h"
+#endif  // defined(USE_AURA)
+///@}
+
 namespace {
 
 ui::InputMethod* g_input_method_for_testing = nullptr;
@@ -65,6 +74,24 @@ std::unique_ptr<InputMethod> CreateInputMethod(
 #elif BUILDFLAG(IS_APPLE)
   return std::make_unique<InputMethodMac>(ime_key_event_dispatcher);
 #elif defined(USE_OZONE)
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (ui::OzonePlatform::IsWaylandExternal()) {
+#if defined(USE_AURA)
+    if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+            switches::kEnableNevaIme))
+      return std::make_unique<InputMethodAuraLinuxNeva>(
+          ime_key_event_dispatcher
+#if defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+          , widget
+#endif
+      );
+    else
+      return std::make_unique<InputMethodAuraLinux>(ime_key_event_dispatcher);
+#endif  // defined(USE_AURA)
+  }
+  ///@}
+
   return ui::OzonePlatform::GetInstance()->CreateInputMethod(
       ime_key_event_dispatcher, widget);
 #else

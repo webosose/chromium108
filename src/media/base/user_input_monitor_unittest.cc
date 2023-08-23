@@ -34,6 +34,11 @@ class UserInputMonitorTest : public testing::Test {
   // testing::Test.
   void SetUp() override {
 #if defined(USE_OZONE)
+#if defined(USE_NEVA_MEDIA)
+    // Need SingleThreadTaskEnvironment to handle ThreadTaskRunnerHandle
+    // in WebOSForeignVideoWindowManager and VideoWindowProviderImpl
+    base::test::SingleThreadTaskEnvironment task_environment;
+#endif
     if (ui::OzonePlatform::GetPlatformNameForTest() == "drm") {
       // OzonePlatformDrm::InitializeUI hangs in tests on the DRM platform.
       GTEST_SKIP();

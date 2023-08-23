@@ -1,0 +1,5 @@
+{
+    "com.webos.app.enactbrowser*": [ "application.operation", "applications" ],
+    "com.webos.app.test.browsershell*": [ "application.operation", "applications" ],
+    "com.webos.settingsservice.client*": [ "settings.read", "settings.query" ]
+}

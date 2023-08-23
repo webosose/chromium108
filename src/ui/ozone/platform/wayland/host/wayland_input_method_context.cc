@@ -33,6 +33,10 @@
 #include "ui/ozone/platform/wayland/host/zwp_text_input_wrapper_v1.h"
 #include "ui/ozone/public/ozone_switches.h"
 
+#if defined(OS_WEBOS)
+#include "ui/ozone/platform/wayland/extensions/webos/host/webos_text_model_wrapper.h"
+#endif
+
 #if BUILDFLAG(USE_XKBCOMMON)
 #include "ui/events/ozone/layout/keyboard_layout_engine_manager.h"
 #include "ui/events/ozone/layout/xkb/xkb_keyboard_layout_engine.h"
@@ -47,6 +51,7 @@
 namespace ui {
 namespace {
 
+#if !defined(USE_NEVA_APPRUNTIME)
 absl::optional<size_t> OffsetFromUTF8Offset(const base::StringPiece& text,
                                             uint32_t offset) {
   if (offset > text.length())
@@ -58,6 +63,7 @@ absl::optional<size_t> OffsetFromUTF8Offset(const base::StringPiece& text,
 
   return converted.size();
 }
+#endif  // !defined(USE_NEVA_APPRUNTIME)
 
 bool IsImeEnabled() {
   base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
@@ -155,6 +161,13 @@ void WaylandInputMethodContext::Init(bool initialize_for_testing) {
   }
 }
 
+#if defined(OS_WEBOS)
+void WaylandInputMethodContext::SetTextModelWrapper(
+    WebosTextModelWrapper* webos_text_model_wrapper) {
+  webos_text_model_wrapper_ = webos_text_model_wrapper;
+}
+#endif  // defined(OS_WEBOS)
+
 bool WaylandInputMethodContext::DispatchKeyEvent(
     const ui::KeyEvent& key_event) {
   if (key_event.type() != ET_KEY_PRESSED)
@@ -204,6 +217,11 @@ void WaylandInputMethodContext::Reset() {
   character_composer_.Reset();
   if (text_input_)
     text_input_->Reset();
+
+#if defined(OS_WEBOS)
+  if (webos_text_model_wrapper_)
+    webos_text_model_wrapper_->Reset();
+#endif  // defined(OS_WEBOS)
 }
 
 void WaylandInputMethodContext::WillUpdateFocus(TextInputClient* old_client,
@@ -401,6 +419,15 @@ void WaylandInputMethodContext::OnPreeditString(
     const std::vector<SpanStyle>& spans,
     int32_t preedit_cursor) {
   ui::CompositionText composition_text;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  if (base::IsStringUTF8(text)) {
+    composition_text.text = base::UTF8ToUTF16(text);
+    composition_text.selection = gfx::Range(0, composition_text.text.length());
+  } else {
+    composition_text.text = base::ASCIIToUTF16(text);
+  }
+#else  // !defined(USE_NEVA_APPRUNTIME)
   composition_text.text = base::UTF8ToUTF16(text);
   for (const auto& span : spans) {
     auto start_offset = OffsetFromUTF8Offset(text, span.index);
@@ -416,7 +443,6 @@ void WaylandInputMethodContext::OnPreeditString(
         /* type= */ style->first, *start_offset, *end_offset,
         /* thickness = */ style->second);
   }
-
   if (preedit_cursor < 0) {
     composition_text.selection = gfx::Range::InvalidRange();
   } else {
@@ -428,6 +454,7 @@ void WaylandInputMethodContext::OnPreeditString(
     }
     composition_text.selection = gfx::Range(*cursor);
   }
+#endif  // defined(USE_NEVA_APPRUNTIME)
 
   ime_delegate_->OnPreeditChanged(composition_text);
 }
@@ -468,6 +495,9 @@ void WaylandInputMethodContext::OnCursorPosition(int32_t index,
 
 void WaylandInputMethodContext::OnDeleteSurroundingText(int32_t index,
                                                         uint32_t length) {
+#if defined(USE_NEVA_APPRUNTIME)
+  ime_delegate_->OnDeleteRange(index, length);
+#else   // defined(USE_NEVA_APPRUNTIME)
   // |index| and |length| are expected to be in UTF8 form, so we convert these
   // into UTF16 form.
   // Here, we use the surrounding text stored in SetSurroundingText which should
@@ -507,11 +537,26 @@ void WaylandInputMethodContext::OnDeleteSurroundingText(int32_t index,
   ime_delegate_->OnDeleteSurroundingText(
       /* before= */ offsets_for_adjustment[0] - offsets_for_adjustment[2],
       /* after= */ offsets_for_adjustment[3] - offsets_for_adjustment[1]);
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 void WaylandInputMethodContext::OnKeysym(uint32_t keysym,
                                          uint32_t state,
                                          uint32_t modifiers_bits) {
+  // Keyboard might not exist.
+#if defined(USE_NEVA_APPRUNTIME)
+  int device_id =
+#if defined(OS_WEBOS)
+      webos_text_model_wrapper_ ? webos_text_model_wrapper_->device_id() : 0;
+#else   // defined(OS_WEBOS)
+      connection_->keyboard() ? connection_->keyboard()->device_id() : 0;
+#endif  // !defined(OS_WEBOS)
+#else   // defined(USE_NEVA_APPRUNTIME)
+  int device_id = connection_->seat()->keyboard()
+                      ? connection_->seat()->keyboard()->device_id()
+                      : 0;
+#endif  // !defined(USE_NEVA_APPRUNTIME)
+
 #if BUILDFLAG(USE_XKBCOMMON)
   auto* layout_engine = KeyboardLayoutEngineManager::GetKeyboardLayoutEngine();
   if (!layout_engine)
@@ -541,11 +586,6 @@ void WaylandInputMethodContext::OnKeysym(uint32_t keysym,
                          ->GetDomCodeByKeysym(keysym, modifiers);
   if (dom_code == DomCode::NONE)
     return;
-
-  // Keyboard might not exist.
-  int device_id = connection_->seat()->keyboard()
-                      ? connection_->seat()->keyboard()->device_id()
-                      : 0;
 
   EventType type =
       state == WL_KEYBOARD_KEY_STATE_PRESSED ? ET_KEY_PRESSED : ET_KEY_RELEASED;
@@ -676,7 +716,11 @@ void WaylandInputMethodContext::MaybeUpdateActivated(
 
   WaylandWindow* window =
       connection_->wayland_window_manager()->GetCurrentKeyboardFocusedWindow();
+#if defined(USE_NEVA_APPRUNTIME)
+  if (!window && !connection_->keyboard())
+#else   // defined(USE_NEVA_APPRUNTIME)
   if (!window && !connection_->seat()->keyboard())
+#endif  // !defined(USE_NEVA_APPRUNTIME)
     window = connection_->wayland_window_manager()->GetCurrentActiveWindow();
   // Activate Wayland IME only if 1) InputMethod in Chrome has some
   // TextInputClient connected, and 2) the actual keyboard focus of Wayland
@@ -690,6 +734,11 @@ void WaylandInputMethodContext::MaybeUpdateActivated(
   activated_ = activated;
   if (activated) {
     text_input_->Activate(window);
+    ///@name USE_NEVA_APPRUNTIME
+    ///@{
+    if (ime_delegate_->SystemKeyboardDisabled())
+      return;
+    ///@}
     if (!skip_virtual_keyboard_update)
       DisplayVirtualKeyboard();
   } else {

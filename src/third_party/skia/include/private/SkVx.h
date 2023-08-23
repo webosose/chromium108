@@ -242,7 +242,8 @@ SINT Vec<2*N,T> join(const Vec<N,T>& lo, const Vec<N,T>& hi) {
 
         // For some reason some (new!) versions of GCC cannot seem to deduce N in the generic
         // to_vec<N,T>() below for N=4 and T=float.  This workaround seems to help...
-        SI Vec<4,float> to_vec(VExt<4,float> v) { return bit_pun<Vec<4,float>>(v); }
+        // TODO(neva): Workaround to build with RP build #2250 to prevent compile error
+        // SI Vec<4,float> to_vec(VExt<4,float> v) { return bit_pun<Vec<4,float>>(v); }
     #endif
 
     SINT VExt<N,T> to_vext(const Vec<N,T>& v) { return bit_pun<VExt<N,T>>(v); }

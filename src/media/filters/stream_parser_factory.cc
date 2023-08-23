@@ -40,8 +40,15 @@
 #endif
 #endif
 
+#if defined(USE_NEVA_MEDIA)
+#include "media/base/media_switches_neva.h"
+#include "media/neva/media_preferences.h"
+#include "neva/logging.h"
+#endif
+
 namespace media {
 
+#if !defined(USE_NEVA_MEDIA)
 typedef bool (*CodecIDValidatorFunction)(base::StringPiece codecs_id,
                                          MediaLog* media_log);
 
@@ -76,6 +83,7 @@ struct CodecInfo {
   CodecIDValidatorFunction validator;
   HistogramTag tag;
 };
+#endif
 
 typedef StreamParser* (*ParserFactoryFunction)(
     base::span<const std::string> codecs,
@@ -85,25 +93,32 @@ struct SupportedTypeInfo {
   const char* type;
   const ParserFactoryFunction factory_function;
   const CodecInfo* const* codecs;
+#if defined(USE_NEVA_MEDIA)
+  const absl::optional<MediaCodecCapability> capability;
+#endif
 };
 
+#if defined(ENABLE_WEBM_VIDEO_CODECS)
 static const CodecInfo kVP8CodecInfo = {"vp8", CodecInfo::VIDEO, nullptr,
                                         CodecInfo::HISTOGRAM_VP8};
 static const CodecInfo kLegacyVP9CodecInfo = {"vp9", CodecInfo::VIDEO, nullptr,
                                               CodecInfo::HISTOGRAM_VP9};
 static const CodecInfo kVP9CodecInfo = {"vp09.*", CodecInfo::VIDEO, nullptr,
                                         CodecInfo::HISTOGRAM_VP9};
+#endif
+#if defined(ENABLE_WEBM_VIDEO_CODECS) || defined(ENABLE_WEBM_AUDIO_CODECS)
 static const CodecInfo kVorbisCodecInfo = {"vorbis", CodecInfo::AUDIO, nullptr,
                                            CodecInfo::HISTOGRAM_VORBIS};
+#endif
 static const CodecInfo kOpusCodecInfo = {"opus", CodecInfo::AUDIO, nullptr,
                                          CodecInfo::HISTOGRAM_OPUS};
-
 #if BUILDFLAG(ENABLE_AV1_DECODER)
 // Note: Validation of the codec string is handled by the caller.
 static const CodecInfo kAV1CodecInfo = {"av01.*", CodecInfo::VIDEO, nullptr,
                                         CodecInfo::HISTOGRAM_AV1};
 #endif
 
+#if defined(ENABLE_WEBM_VIDEO_CODECS)
 static const CodecInfo* const kVideoWebMCodecs[] = {
     &kVP8CodecInfo,  &kLegacyVP9CodecInfo, &kVP9CodecInfo, &kVorbisCodecInfo,
     &kOpusCodecInfo,
@@ -111,14 +126,19 @@ static const CodecInfo* const kVideoWebMCodecs[] = {
     &kAV1CodecInfo,
 #endif
     nullptr};
+#endif
 
+#if defined(ENABLE_WEBM_AUDIO_CODECS)
 static const CodecInfo* const kAudioWebMCodecs[] = {&kVorbisCodecInfo,
                                                     &kOpusCodecInfo, nullptr};
+#endif
 
+#if defined(ENABLE_WEBM_VIDEO_CODECS) || defined(ENABLE_WEBM_AUDIO_CODECS)
 static StreamParser* BuildWebMParser(base::span<const std::string> codecs,
                                      MediaLog* media_log) {
   return new WebMStreamParser();
 }
+#endif
 
 #if BUILDFLAG(USE_PROPRIETARY_CODECS)
 static int GetMP4AudioObjectType(base::StringPiece codec_id,
@@ -421,12 +441,27 @@ static StreamParser* BuildMP2TParser(base::span<const std::string> codecs,
 #endif  // ENABLE_MSE_MPEG2TS_STREAM_PARSER
 #endif  // BUILDFLAG(USE_PROPRIETARY_CODECS)
 
+#if defined(USE_NEVA_MEDIA)
+// Since we turn on Werror build flag in PC build, an warning
+// 'Wexit-time-destructors' introduces compile error. So suppress the warning.
+// TODO(neva): How to declare destructor of static array?
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#endif  // defined(USE_NEVA_MEDIA)
+
 static const SupportedTypeInfo kSupportedTypeInfo[] = {
+#if defined(ENABLE_WEBM_VIDEO_CODECS)
     {"video/webm", &BuildWebMParser, kVideoWebMCodecs},
+#endif
+#if defined(ENABLE_WEBM_AUDIO_CODECS)
     {"audio/webm", &BuildWebMParser, kAudioWebMCodecs},
+#endif
     {"audio/mpeg", &BuildMP3Parser, kAudioMP3Codecs},
     // NOTE: Including proprietary MP4 codecs is gated by build flags above.
     {"video/mp4", &BuildMP4Parser, kVideoMP4Codecs},
+#if defined(OS_WEBOS)
+    {"video/x-m4v", &BuildMP4Parser, kVideoMP4Codecs},
+#endif
     {"audio/mp4", &BuildMP4Parser, kAudioMP4Codecs},
 #if BUILDFLAG(USE_PROPRIETARY_CODECS)
     {"audio/aac", &BuildADTSParser, kAudioADTSCodecs},
@@ -435,6 +470,10 @@ static const SupportedTypeInfo kSupportedTypeInfo[] = {
 #endif
 #endif
 };
+
+#if defined(USE_NEVA_MEDIA)
+#pragma clang diagnostic pop
+#endif  // defined(USE_NEVA_MEDIA)
 
 // Verify that |codec_info| is supported on this platform.
 //
@@ -487,7 +526,12 @@ static SupportsType CheckTypeAndCodecs(
     MediaLog* media_log,
     ParserFactoryFunction* factory_function,
     std::vector<CodecInfo::HistogramTag>* audio_codecs,
+#if defined(USE_NEVA_MEDIA)
+    std::vector<CodecInfo::HistogramTag>* video_codecs,
+    const absl::optional<MediaCodecCapability>& capability) {
+#else
     std::vector<CodecInfo::HistogramTag>* video_codecs) {
+#endif
   // Search for the SupportedTypeInfo for |type|.
   for (const auto& type_info : kSupportedTypeInfo) {
     if (type == type_info.type) {
@@ -534,6 +578,53 @@ static SupportsType CheckTypeAndCodecs(
                type_info.codecs[i]->validator(codec_id, media_log))) {
             found_codec =
                 VerifyCodec(type_info.codecs[i], audio_codecs, video_codecs);
+#if defined(USE_NEVA_MEDIA)
+            if (found_codec &&
+                media::MediaPreferences::Get()->HasValidCodecCapabilities()) {
+              absl::optional<MediaCodecCapability> platform_capability =
+                  media::MediaPreferences::Get()
+                      ->GetMediaCodecCapabilityForCodec(codec_id);
+              if (type_info.codecs[i]->type == CodecInfo::VIDEO) {
+                // If HW video decoder doesn't support codec, we return false
+                // for IsTypeSupported.
+                // If so, some sites(e.g. Youtube) calls IsTypeSupported with
+                // other codec. So we can receive the video that can be
+                // supported by HW video decoder.
+                if (!platform_capability.has_value()) {
+                  NEVA_LOGF(INFO) << "Cannot support " << codec_id
+                                  << " by platform media framework";
+                  found_codec = false;
+                } else if (capability.has_value() &&
+                           !platform_capability->IsSatisfied(
+                               type_info.codecs[0]->type,
+                               type_info.codecs[0]->tag, capability.value())) {
+                  NEVA_LOGF(INFO)
+                      << "Cannot support " << codec_id << " by capability";
+                  found_codec = false;
+                }
+              } else if (type_info.codecs[i]->type == CodecInfo::AUDIO &&
+                         !base::CommandLine::ForCurrentProcess()->HasSwitch(
+                             switches::kDisableWebMediaPlayerNeva)) {
+                // When kDisableWebMediaPlayerNeva, SW audio codecs are used.
+                // So platform_capability is not needed.
+                // (platform_capability is a codec capability set that is
+                // supported in platform media framework.)
+                if (!platform_capability.has_value()) {
+                  NEVA_LOGF(INFO) << "Cannot support " << codec_id
+                                  << " by platform media framework";
+                  found_codec = false;
+                } else if (capability.has_value() &&
+                           !platform_capability->IsSatisfied(
+                               type_info.codecs[0]->type,
+                               type_info.codecs[0]->tag, capability.value())) {
+                  NEVA_LOGF(INFO)
+                      << "Cannot support " << codec_id << " by channels("
+                      << capability->channels << ")";
+                  found_codec = false;
+                }
+              }
+            }
+#endif
             break;  // Since only 1 pattern will match, no need to check others.
           }
         }
@@ -568,8 +659,24 @@ SupportsType StreamParserFactory::IsTypeSupported(
   // TODO(wolenetz): Questionable MediaLog usage, http://crbug.com/712310
   NullMediaLog media_log;
   return CheckTypeAndCodecs(type, codecs, &media_log, nullptr, nullptr,
+#if defined(USE_NEVA_MEDIA)
+                            nullptr, absl::nullopt);
+#else
                             nullptr);
+#endif
 }
+
+#if defined(USE_NEVA_MEDIA)
+SupportsType StreamParserFactory::IsTypeSupported(
+    const std::string& type,
+    const std::vector<std::string>& codecs,
+    const absl::optional<MediaCodecCapability>& capability) {
+  // TODO(wolenetz): Questionable MediaLog usage, http://crbug.com/712310
+  NullMediaLog media_log;
+  return CheckTypeAndCodecs(type, codecs, &media_log, nullptr, nullptr, nullptr,
+                            capability);
+}
+#endif
 
 // static
 std::unique_ptr<StreamParser> StreamParserFactory::Create(
@@ -590,7 +697,12 @@ std::unique_ptr<StreamParser> StreamParserFactory::Create(
   // codec switching occurs (without explicit ChangeType), see
   // https://crbug.com/535738.
   SupportsType supportsType = CheckTypeAndCodecs(
+#if defined(USE_NEVA_MEDIA)
+      type, codecs, media_log, &factory_function, &audio_codecs, &video_codecs,
+      absl::nullopt);
+#else
       type, codecs, media_log, &factory_function, &audio_codecs, &video_codecs);
+#endif
 
   if (SupportsType::kSupported == supportsType) {
     // Log the expected codecs.

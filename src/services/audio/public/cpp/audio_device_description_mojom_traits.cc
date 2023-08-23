@@ -12,6 +12,10 @@ bool StructTraits<audio::mojom::AudioDeviceDescriptionDataView,
          media::AudioDeviceDescription* output) {
   return data.ReadDeviceName(&output->device_name) &&
          data.ReadUniqueId(&output->unique_id) &&
+         ///@name USE_WEBOS_AUDIO
+         ///@{
+         data.ReadDisplayId(&output->display_id) &&
+         ///@}
          data.ReadGroupId(&output->group_id);
 }
 

@@ -1,0 +1,128 @@
+From 7765049316c13e85b9ba5d357da130de252997b1 Mon Sep 17 00:00:00 2001
+From: Jose Dapena Paz <j.dapena@lgepartner.com>
+Date: Thu, 9 Dec 2021 13:10:19 +0100
+Subject: [PATCH] [op][n_upsable][lttng] Avoid symbol clash with perfetto and
+ LTTng.
+
+:Release Notes:
+Fix building webOS PmTrace support with recent Chromium implementation.
+
+:Detailed Notes:
+In Chromium m91, Perfetto libraries are used even if it the client library
+is not used, because of the tracing library implementation. But Perfetto
+library defines the some properties with the name tracepoint, that clashes
+with the LTTng tracepoint define.
+
+To avoid that problem, we rename those to be named trace_point. This is
+kind of a work-around, but because LTTng expects direct access to that
+define it is just easier to not use that symbol from Perfetto.
+
+:Testing Performed:
+1. Build enabling LTTng in WAM and Chromium.
+2. Check that WebAppMgr exposes its tracepoints using lttng list -u
+
+:QA Notes:
+Test-cases: QWT-371
+
+:Issues Addressed:
+[WRN-12099] Strings are not displayed in Trace-file.
+
+Change-Id: I91832d748749dd1e2bd56c13458be5e6b15d2bab
+Originally-Reviewed-on: http://gpro.lge.com/c/webosose/chromium91/+/321834
+Reviewed-on: http://gpro.lge.com/c/webosose/chromium91/+/324773
+Reviewed-by: Commit Msg Checker <commit_msg@lge.com>
+Reviewed-by: Youngsoo Choi <youngsoo.choi@lge.com>
+Tested-by: Youngsoo Choi <youngsoo.choi@lge.com>
+---
+ protos/perfetto/common/perf_events.proto                  | 2 +-
+ protos/perfetto/config/perfetto_config.proto              | 2 +-
+ protos/perfetto/trace/perfetto_trace.proto                | 2 +-
+ src/profiling/perf/event_config.cc                        | 8 ++++----
+ .../importers/proto/perf_sample_tracker.cc                | 6 +++---
+ 5 files changed, 10 insertions(+), 10 deletions(-)
+
+diff --git a/protos/perfetto/common/perf_events.proto b/protos/perfetto/common/perf_events.proto
+index 270bacb12..b5daf4700 100644
+--- a/protos/perfetto/common/perf_events.proto
++++ b/protos/perfetto/common/perf_events.proto
+@@ -47,7 +47,7 @@ message PerfEvents {
+     // See common/perf_events.proto for the definitions.
+     oneof event {
+       Counter counter = 4;
+-      Tracepoint tracepoint = 3;
++      Tracepoint trace_point = 3;
+       RawEvent raw_event = 5;
+     }
+ 
+diff --git a/protos/perfetto/config/perfetto_config.proto b/protos/perfetto/config/perfetto_config.proto
+index e06cb3139..624bfaa32 100644
+--- a/protos/perfetto/config/perfetto_config.proto
++++ b/protos/perfetto/config/perfetto_config.proto
+@@ -1068,7 +1068,7 @@ message PerfEvents {
+     // See common/perf_events.proto for the definitions.
+     oneof event {
+       Counter counter = 4;
+-      Tracepoint tracepoint = 3;
++      Tracepoint trace_point = 3;
+       RawEvent raw_event = 5;
+     }
+ 
+diff --git a/protos/perfetto/trace/perfetto_trace.proto b/protos/perfetto/trace/perfetto_trace.proto
+index 04df8b1d0..fb41e0440 100644
+--- a/protos/perfetto/trace/perfetto_trace.proto
++++ b/protos/perfetto/trace/perfetto_trace.proto
+@@ -1068,7 +1068,7 @@ message PerfEvents {
+     // See common/perf_events.proto for the definitions.
+     oneof event {
+       Counter counter = 4;
+-      Tracepoint tracepoint = 3;
++      Tracepoint trace_point = 3;
+       RawEvent raw_event = 5;
+     }
+ 
+diff --git a/src/profiling/perf/event_config.cc b/src/profiling/perf/event_config.cc
+index a89d0c944..92175fae6 100644
+--- a/src/profiling/perf/event_config.cc
++++ b/src/profiling/perf/event_config.cc
+@@ -57,9 +57,9 @@ std::pair<std::string, std::string> SplitTracepointString(
+ 
+ // If set, the returned id is guaranteed to be non-zero.
+ base::Optional<uint32_t> ParseTracepointAndResolveId(
+-    const protos::gen::PerfEvents::Tracepoint& tracepoint,
+-    EventConfig::tracepoint_id_fn_t tracepoint_id_lookup) {
+-  std::string full_name = tracepoint.name();
++    const protos::gen::PerfEvents::Tracepoint& trace_point,
++    EventConfig::tracepoint_id_fn_t trace_point_id_lookup) {
++  std::string full_name = trace_point.name();
+   std::string tp_group;
+   std::string tp_name;
+   std::tie(tp_group, tp_name) = SplitTracepointString(full_name);
+@@ -325,7 +325,7 @@ base::Optional<EventConfig> EventConfig::Create(
+     timebase_event = *maybe_counter;
+ 
+   } else if (pb_config.timebase().has_tracepoint()) {
+-    const auto& tracepoint_pb = pb_config.timebase().tracepoint();
++    const auto& tracepoint_pb = pb_config.timebase().trace_point();
+     base::Optional<uint32_t> maybe_id =
+         ParseTracepointAndResolveId(tracepoint_pb, tracepoint_id_lookup);
+     if (!maybe_id)
+diff --git a/src/trace_processor/importers/proto/perf_sample_tracker.cc b/src/trace_processor/importers/proto/perf_sample_tracker.cc
+index aad20130a..105d952a4 100644
+--- a/src/trace_processor/importers/proto/perf_sample_tracker.cc
++++ b/src/trace_processor/importers/proto/perf_sample_tracker.cc
+@@ -99,9 +99,9 @@ StringId InternTimebaseCounterName(
+   if (timebase.has_counter()) {
+     return context->storage->InternString(StringifyCounter(timebase.counter()));
+   }
+-  if (timebase.has_tracepoint()) {
+-    PerfEvents::Tracepoint::Decoder tracepoint(timebase.tracepoint());
+-    return context->storage->InternString(tracepoint.name());
++  if (timebase.has_trace_point()) {
++    PerfEvents::Tracepoint::Decoder trace_point(timebase.trace_point());
++    return context->storage->InternString(trace_point.name());
+   }
+   if (timebase.has_raw_event()) {
+     PerfEvents::RawEvent::Decoder raw(timebase.raw_event());
+-- 
+2.40.0
+

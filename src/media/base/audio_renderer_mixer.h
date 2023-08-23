@@ -55,6 +55,10 @@ class MEDIA_EXPORT AudioRendererMixer
     return output_params_;
   }
 
+#if defined(USE_WEBOS_AUDIO)
+  AudioRendererSink* audio_renderer_sink() const { return audio_sink_.get(); }
+#endif
+
  private:
   // AudioRendererSink::RenderCallback implementation.
   int Render(base::TimeDelta delay,

@@ -38,6 +38,15 @@
 #include "ui/platform_window/win/win_window.h"
 #endif
 
+///@name USE_NEVA_APPRUNTIME
+///@{
+#include "base/command_line.h"
+#include "ui/base/ime/input_method.h"
+#include "ui/base/ime/neva/input_method_common.h"
+#include "ui/base/ui_base_neva_switches.h"
+#include "ui/platform_window/neva/ui_utils.h"
+///@}
+
 namespace aura {
 
 // static
@@ -51,7 +60,11 @@ std::unique_ptr<WindowTreeHost> WindowTreeHost::Create(
 WindowTreeHostPlatform::WindowTreeHostPlatform(
     ui::PlatformWindowInitProperties properties,
     std::unique_ptr<Window> window)
-    : WindowTreeHost(std::move(window)) {
+    ///@name USE_NEVA_APPRUNTIME
+    ///@{
+    //: WindowTreeHost(std::move(window)) {
+    : neva::WindowTreeHostPlatform(std::move(window), this) {
+    ///@}
   size_in_pixels_ = properties.bounds.size();
   CreateCompositor(false, false, properties.enable_compositing_based_throttling,
                    properties.compositor_memory_limit_mb);
@@ -59,7 +72,11 @@ WindowTreeHostPlatform::WindowTreeHostPlatform(
 }
 
 WindowTreeHostPlatform::WindowTreeHostPlatform(std::unique_ptr<Window> window)
-    : WindowTreeHost(std::move(window)),
+    ///@name USE_NEVA_APPRUNTIME
+    ///@{
+    //: WindowTreeHost(std::move(window)),
+    : neva::WindowTreeHostPlatform(std::move(window), this),
+    ///@}
       widget_(gfx::kNullAcceleratedWidget),
       current_cursor_(ui::mojom::CursorType::kNull) {}
 
@@ -72,6 +89,17 @@ void WindowTreeHostPlatform::CreateAndSetPlatformWindow(
 #if defined(USE_OZONE)
   platform_window_ = ui::OzonePlatform::GetInstance()->CreatePlatformWindow(
       this, std::move(properties));
+#if defined(OS_WEBOS)
+  platform_window_->SetContentsSize(size_in_pixels_);
+#endif
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  bool ime_enabled = base::CommandLine::ForCurrentProcess()->HasSwitch(
+      switches::kEnableNevaIme);
+  if (ime_enabled)
+    GetInputMethod()->AddObserver(this);
+  SetImeEnabled(ime_enabled);
+  ///@}
 #elif BUILDFLAG(IS_WIN)
   platform_window_ = std::make_unique<ui::WinWindow>(this, properties.bounds);
 #else
@@ -85,6 +113,12 @@ void WindowTreeHostPlatform::SetPlatformWindow(
 }
 
 WindowTreeHostPlatform::~WindowTreeHostPlatform() {
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+          switches::kEnableNevaIme))
+    GetInputMethod()->RemoveObserver(this);
+  ///@}
   DestroyCompositor();
   DestroyDispatcher();
 
@@ -169,6 +203,24 @@ void WindowTreeHostPlatform::SetCursorNative(gfx::NativeCursor cursor) {
     return;
   current_cursor_ = cursor;
 
+#if defined(OS_WEBOS)
+  // Pointer cursor is considered as default system cursor.
+  // So, for pointer cursor, method SetCustomCursor with kNotUse argument
+  // is called instead of SetCursor to substitute default pointer cursor
+  // (black arrow) to default LSM cursor (pink plectrum).
+  ui::mojom::CursorType native_type = cursor.type();
+  if (native_type != ui::mojom::CursorType::kNone) {
+    platform_window_->SetCustomCursor(neva_app_runtime::CustomCursorType::kNotUse,
+                                      "", 0, 0, false);
+  }
+  // Hiding of the cursor after some time is handled by LSM, but some sites
+  // for video playback are also have such functionality in JavaScript.
+  // And in case when cursor was hidden firstly by LSM and then by
+  // JavaScript, it no longer could be restored.
+  // To fix such situations hiding cursor by JavaScript is ignored.
+  return;
+#endif
+
   platform_window_->SetCursor(cursor.platform());
 }
 
@@ -180,6 +232,86 @@ void WindowTreeHostPlatform::MoveCursorToScreenLocationInPixels(
 void WindowTreeHostPlatform::OnCursorVisibilityChangedNative(bool show) {
   NOTIMPLEMENTED_LOG_ONCE();
 }
+
+///@name USE_NEVA_APPRUNTIME
+///@{
+void WindowTreeHostPlatform::SetCustomCursor(
+    neva_app_runtime::CustomCursorType type,
+    const std::string& path,
+    int hotspot_x,
+    int hotspot_y) {
+  platform_window_->SetCustomCursor(type, path, hotspot_x, hotspot_y, true);
+}
+
+void WindowTreeHostPlatform::SetCursorVisibility(bool visible) {
+  platform_window_->SetCursorVisibility(visible);
+}
+
+void WindowTreeHostPlatform::SetGroupKeyMask(ui::KeyMask key_mask) {
+  platform_window_->SetGroupKeyMask(key_mask);
+}
+
+void WindowTreeHostPlatform::SetKeyMask(ui::KeyMask key_mask, bool set) {
+  platform_window_->SetKeyMask(key_mask, set);
+}
+
+void WindowTreeHostPlatform::SetInputRegion(
+    const std::vector<gfx::Rect>& region) {
+  platform_window_->SetInputArea(region);
+}
+
+void WindowTreeHostPlatform::SetUseVirtualKeyboard(bool enable) {
+  SetImeEnabled(enable);
+  if (!enable)
+    OnHideIme(ui::ImeHiddenType::kHide);
+}
+
+void WindowTreeHostPlatform::SetWindowProperty(const std::string& name,
+                                               const std::string& value) {
+  platform_window_->SetWindowProperty(name, value);
+}
+
+void WindowTreeHostPlatform::ToggleFullscreen() {
+  platform_window_->ToggleFullscreen();
+}
+
+void WindowTreeHostPlatform::CreateGroup(
+    const ui::WindowGroupConfiguration& config) {
+  platform_window_->CreateGroup(config);
+}
+
+void WindowTreeHostPlatform::AttachToGroup(const std::string& group_name,
+                                           const std::string& layer_name) {
+  platform_window_->AttachToGroup(group_name, layer_name);
+}
+
+void WindowTreeHostPlatform::FocusGroupOwner() {
+  platform_window_->FocusGroupOwner();
+}
+
+void WindowTreeHostPlatform::FocusGroupLayer() {
+  platform_window_->FocusGroupLayer();
+}
+
+void WindowTreeHostPlatform::DetachGroup() {
+  platform_window_->DetachGroup();
+}
+
+void WindowTreeHostPlatform::XInputActivate(const std::string& type) {
+  platform_window_->XInputActivate(type);
+}
+
+void WindowTreeHostPlatform::XInputDeactivate() {
+  platform_window_->XInputDeactivate();
+}
+
+void WindowTreeHostPlatform::XInputInvokeAction(
+    std::uint32_t keysym,
+    ui::XInputKeySymbolType symbol_type,
+    ui::XInputEventType event_type) {
+  platform_window_->XInputInvokeAction(keysym, symbol_type, event_type);
+}
+///@}
 
 void WindowTreeHostPlatform::LockMouse(Window* window) {
   window->SetCapture();
@@ -207,6 +339,9 @@ void WindowTreeHostPlatform::OnBoundsChanged(const BoundsChange& change) {
   auto new_size = GetBoundsInPixels().size();
   bool size_changed = size_in_pixels_ != new_size;
   size_in_pixels_ = new_size;
+#if defined(OS_WEBOS)
+  platform_window_->SetContentsSize(new_size);
+#endif
   if (change.origin_changed) {
     OnHostMovedInPixels();
     // Changing the bounds may destroy this.
@@ -245,7 +380,65 @@ void WindowTreeHostPlatform::OnClosed() {}
 
 void WindowTreeHostPlatform::OnWindowStateChanged(
     ui::PlatformWindowState old_state,
-    ui::PlatformWindowState new_state) {}
+    ui::PlatformWindowState new_state) {
+  ///@name USE_NEVA_APPRUNTIME
+  ///@{
+  WindowTreeHost::OnWindowHostStateChanged(ui::ToWidgetState(new_state));
+  ///@}
+}
+
+///@name USE_NEVA_APPRUNTIME
+///@{
+void WindowTreeHostPlatform::OnWindowHostStateChanged(
+    ui::WidgetState new_state) {
+  WindowTreeHost::OnWindowHostStateChanged(new_state);
+}
+
+ui::LinuxInputMethodContext* WindowTreeHostPlatform::GetInputMethodContext() {
+  return GetInputMethod()->GetInputMethodContext();
+}
+
+#if defined(OS_WEBOS)
+void WindowTreeHostPlatform::OnInputPanelVisibilityChanged(bool visibility) {
+  WindowTreeHost::OnInputPanelVisibilityChanged(visibility);
+}
+
+void WindowTreeHostPlatform::OnInputPanelRectChanged(int32_t x,
+                                                     int32_t y,
+                                                     uint32_t width,
+                                                     uint32_t height) {
+  WindowTreeHost::OnInputPanelRectChanged(x, y, width, height);
+}
+#endif
+
+void WindowTreeHostPlatform::OnShowIme() {
+#if defined(USE_OZONE)
+  platform_window_->ShowInputPanel();
+#endif
+}
+
+void WindowTreeHostPlatform::OnHideIme(ui::ImeHiddenType hidden_type) {
+#if defined(USE_OZONE)
+  platform_window_->HideInputPanel(hidden_type);
+#endif
+}
+
+void WindowTreeHostPlatform::OnTextInputInfoChanged(
+    const ui::TextInputInfo& text_input_info) {
+#if defined(USE_OZONE)
+  if (text_input_info.type != ui::InputContentType::kNone)
+    platform_window_->SetTextInputInfo(text_input_info);
+#endif
+}
+
+void WindowTreeHostPlatform::SetSurroundingText(const std::string& text,
+                                                size_t cursor_position,
+                                                size_t anchor_position) {
+#if defined(USE_OZONE)
+  platform_window_->SetSurroundingText(text, cursor_position, anchor_position);
+#endif
+}
+///@}
 
 void WindowTreeHostPlatform::OnLostCapture() {
   OnHostLostWindowCapture();

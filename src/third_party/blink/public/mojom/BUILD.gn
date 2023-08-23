@@ -4,6 +4,7 @@
 
 import("//build/config/ui.gni")
 import("//mojo/public/tools/bindings/mojom.gni")
+import("//neva/neva.gni")
 import("//third_party/blink/public/public_features.gni")
 
 if (is_android) {
@@ -324,6 +325,18 @@ mojom("mojom_platform") {
   }
   if (is_android || is_mac) {
     enabled_features += [ "is_using_open_color_chooser" ]
+  }
+
+  if (use_neva_appruntime) {
+    sources += [ "neva/app_runtime_blink_delegate.mojom" ]
+  }
+
+  if (use_neva_appruntime) {
+    enabled_features += [ "neva_appruntime" ]
+  }
+
+  if (use_neva_media) {
+    enabled_features += [ "neva_media" ]
   }
 
   shared_cpp_typemaps = [
@@ -1111,6 +1124,10 @@ mojom("mojom_core") {
       "//ui/base/mojom",
       "//ui/gfx/range/mojom",
     ]
+  }
+
+  if (use_neva_appruntime) {
+    enabled_features = [ "neva_appruntime" ]
   }
 
   shared_cpp_typemaps = [

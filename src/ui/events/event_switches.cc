@@ -48,4 +48,13 @@ constexpr char kEnableMicrophoneMuteSwitchDeviceSwitch[] =
 
 #endif
 
+#if defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+// Ignores reporting touchscreen added.
+const char kIgnoreTouchDevices[] = "ignore-touch-devices";
+
+// Overrides navigator.maxTouchPoints. --ignore-touch-devices" has a higher
+// priority over this.
+const char kForceMaxTouchPoints[] = "force-max-touch-points";
+#endif  // defined(USE_OZONE) && defined(OZONE_PLATFORM_WAYLAND_EXTERNAL)
+
 }  // namespace switches

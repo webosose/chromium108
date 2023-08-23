@@ -21,4 +21,6 @@ struct ServiceWorkerRegistrationOptions {
   url.mojom.Url scope;
   ScriptType type = kClassic;
   ServiceWorkerUpdateViaCache update_via_cache = kImports;
+  [EnableIf=use_neva_appruntime]
+  string app_id;
 };

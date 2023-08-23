@@ -118,6 +118,14 @@ class MEDIA_EXPORT CdmContext {
   virtual FuchsiaCdmContext* GetFuchsiaCdmContext();
 #endif
 
+#if defined(USE_NEVA_MEDIA)
+  std::string get_key_system() { return key_system_; }
+
+  void set_key_system(const std::string& key_system) {
+    key_system_ = key_system;
+  }
+#endif
+
 #if BUILDFLAG(IS_CHROMEOS)
   // Returns a ChromeOsCdmContext interface when the context is backed by the
   // ChromeOS CdmFactoryDaemon. Otherwise return nullptr.
@@ -126,6 +134,11 @@ class MEDIA_EXPORT CdmContext {
 
  protected:
   CdmContext();
+
+#if defined(USE_NEVA_MEDIA)
+ private:
+  std::string key_system_;
+#endif
 };
 
 // A reference holder to make sure the CdmContext is always valid as long as

@@ -64,6 +64,10 @@ struct MEDIA_EXPORT AudioDeviceDescription {
   // includes the given |real_device_name|.
   static std::string GetDefaultDeviceName(const std::string& real_device_name);
 
+#if defined(USE_WEBOS_AUDIO)
+  static std::string GetDefaultDeviceId(const std::string& display_id);
+#endif
+
   // Returns the localized name of the generic default communications device.
   // This device is not supported on all platforms.
   static std::string GetCommunicationsDeviceName();
@@ -89,6 +93,11 @@ struct MEDIA_EXPORT AudioDeviceDescription {
   std::string device_name;  // Friendly name of the device.
   std::string unique_id;    // Unique identifier for the device.
   std::string group_id;     // Group identifier.
+
+  ///@name USE_WEBOS_AUDIO
+  ///@{
+  std::string display_id;  // Display Id (0 or 1) associated with the device
+  ///@}
 };
 
 typedef std::vector<AudioDeviceDescription> AudioDeviceDescriptions;

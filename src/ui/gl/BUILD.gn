@@ -182,6 +182,7 @@ component("gl") {
     "//third_party/angle:includes",
     "//ui/gfx/mojom",
   ]
+
   public_deps = [
     "//base",
     "//third_party/mesa_headers",

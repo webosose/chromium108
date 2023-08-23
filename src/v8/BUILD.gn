@@ -9,6 +9,7 @@ import("//build/config/host_byteorder.gni")
 import("//build/config/mips.gni")
 import("//build/config/sanitizers/sanitizers.gni")
 import("//build_overrides/build.gni")
+import("//neva/neva.gni")
 
 if (is_android) {
   import("//build/config/android/rules.gni")
@@ -636,7 +637,7 @@ config("internal_config") {
     ":cppgc_header_features",
   ]
 
-  if (is_component_build) {
+  if (is_component_build || use_cbe) {
     defines += [ "BUILDING_V8_SHARED" ]
   }
 
@@ -6125,6 +6126,10 @@ if (current_toolchain == v8_snapshot_toolchain) {
       ":v8_turboshaft",
       "//build/win:default_exe_manifest",
     ]
+
+    if (use_lttng && current_toolchain == default_toolchain) {
+      deps += [ "//base/trace_event/neva/lttng:chromium_lttng_provider", ]
+    }
   }
 }
 
