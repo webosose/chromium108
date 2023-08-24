@@ -994,14 +994,14 @@ void MediaDevicesManager::AudioDevicesEnumerated(
   for (const media::AudioDeviceDescription& description : device_descriptions) {
 #if defined(OS_WEBOS) && !defined(USE_PULSEAUDIO)
     if (type == MediaDeviceType::MEDIA_AUDIO_INPUT &&
-        description.unique_id.compare(
-            0, base::size(kWebOSDefaultAudioDeviceId) - 1,
-            kWebOSDefaultAudioDeviceId) != 0) {
+        description.unique_id.compare(0,
+                                      std::size(kWebOSDefaultAudioDeviceId) - 1,
+                                      kWebOSDefaultAudioDeviceId) != 0) {
       continue;
     }
     if (type == MediaDeviceType::MEDIA_AUDIO_INPUT &&
         description.unique_id.compare(
-            0, base::size(kWebOSBlacklistedAudioDeviceId) - 1,
+            0, std::size(kWebOSBlacklistedAudioDeviceId) - 1,
             kWebOSBlacklistedAudioDeviceId) == 0) {
       continue;
     }
