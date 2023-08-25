@@ -29,7 +29,9 @@ if (use_cbe) {
       "//content/public/app",
     ]
 
-    public_deps = []
+    public_deps = [
+      "//content/public/app",
+    ]
 
     ldflags = []
     if (target_cpu == "arm" && symbol_level == 2) {

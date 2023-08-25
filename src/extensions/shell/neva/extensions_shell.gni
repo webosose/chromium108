@@ -50,6 +50,7 @@ set_defaults("app_shell_executable") {
 exe_deps_to_add = []
 exe_deps_to_delete = [
   ":app_shell_lib",
+  "//content/public/app",
   "//extensions:shell_and_test_pak",
 ]
 
