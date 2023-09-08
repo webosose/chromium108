@@ -55,12 +55,15 @@ constexpr base::TimeDelta kFetchingTimeout = base::Seconds(3);
 
 WebRiskFetchHashes::WebRiskFetchHashes(
     const std::string& webrisk_key,
-    scoped_refptr<WebRiskDataStore> webrisk_data_store,
+    const scoped_refptr<WebRiskDataStore>& webrisk_data_store,
     network::SharedURLLoaderFactory* url_loader_factory,
+    const scoped_refptr<base::SingleThreadTaskRunner>&
+        malware_detection_task_runner,
     FetchHashStatusCallback callback)
     : webrisk_key_(webrisk_key),
       webrisk_data_store_(webrisk_data_store),
       url_loader_factory_(url_loader_factory),
+      file_thread_task_runner_(malware_detection_task_runner),
       fetch_status_callback_(std::move(callback)) {}
 
 WebRiskFetchHashes::~WebRiskFetchHashes() = default;
@@ -119,14 +122,25 @@ void WebRiskFetchHashes::OnRequestResponse(
     RunFetchStatusCallback(kFailed);
     ScheduleNextRequest(kRetryInterval);
   } else {
-    base::TimeDelta next_update_time = WebRiskDataStore::kDefaultUpdateInterval;
-    bool is_updated_diff = UpdateDiffResponse(file_format, next_update_time);
-    WebRiskFetchHashes::Status status = is_updated_diff ? kSuccess : kFailed;
-    RunFetchStatusCallback(status);
-    ScheduleNextRequest(next_update_time);
+    file_thread_task_runner_->PostTaskAndReplyWithResult(
+        FROM_HERE,
+        base::BindOnce(&WebRiskFetchHashes::UpdateDiffResponse,
+                       base::Unretained(this), file_format),
+        base::BindOnce(&WebRiskFetchHashes::OnUpdatedDiff,
+                       weak_factory_.GetWeakPtr()));
   }
 
   url_loader_.reset();
+}
+
+void WebRiskFetchHashes::OnUpdatedDiff(base::TimeDelta result) {
+  WebRiskFetchHashes::Status status =
+      result == base::TimeDelta() ? kFailed : kSuccess;
+  base::TimeDelta next_update_time =
+      result == base::TimeDelta() ? WebRiskDataStore::kDefaultUpdateInterval
+                                  : result;
+  RunFetchStatusCallback(status);
+  ScheduleNextRequest(next_update_time);
 }
 
 bool WebRiskFetchHashes::ComputeDiffResponse(
@@ -167,16 +181,15 @@ bool WebRiskFetchHashes::ComputeDiffResponse(
   return true;
 }
 
-bool WebRiskFetchHashes::UpdateDiffResponse(
-    const ComputeThreatListDiffResponse& file_format,
-    base::TimeDelta& next_update_time) {
+base::TimeDelta WebRiskFetchHashes::UpdateDiffResponse(
+    ComputeThreatListDiffResponse file_format) {
   if (!webrisk_data_store_->WriteDataToDisk(file_format)) {
     VLOG(1) << __func__ << ", Failed to write to store !!";
-    return false;
+    return base::TimeDelta();
   }
-  next_update_time = webrisk_data_store_->GetNextUpdateTime(
+  base::TimeDelta next_update_time = webrisk_data_store_->GetNextUpdateTime(
       file_format.recommended_next_diff());
-  return true;
+  return next_update_time;
 }
 
 void WebRiskFetchHashes::ScheduleComputeDiffRequest(base::TimeDelta interval) {

@@ -18,6 +18,8 @@
 #define NEVA_BROWSER_SERVICE_BROWSER_WEBRISK_CORE_WEBRISK_FETCH_HASHES_H_
 
 #include "base/memory/scoped_refptr.h"
+#include "base/memory/weak_ptr.h"
+#include "base/task/single_thread_task_runner.h"
 #include "base/timer/timer.h"
 #include "neva/browser_service/browser/webrisk/core/webrisk.pb.h"
 
@@ -41,8 +43,10 @@ class WebRiskFetchHashes {
   typedef base::RepeatingCallback<void(Status status)> FetchHashStatusCallback;
 
   WebRiskFetchHashes(const std::string& webrisk_key,
-                     scoped_refptr<WebRiskDataStore> webrisk_data_store,
+                     const scoped_refptr<WebRiskDataStore>& webrisk_data_store,
                      network::SharedURLLoaderFactory* url_loader_factory,
+                     const scoped_refptr<base::SingleThreadTaskRunner>&
+                         malware_detection_task_runner,
                      FetchHashStatusCallback callback);
   ~WebRiskFetchHashes();
 
@@ -56,8 +60,8 @@ class WebRiskFetchHashes {
                          std::unique_ptr<std::string> response_body);
   bool ComputeDiffResponse(std::unique_ptr<std::string> response_body,
                            ComputeThreatListDiffResponse& file_format);
-  bool UpdateDiffResponse(const ComputeThreatListDiffResponse& file_format,
-                          base::TimeDelta& next_update_time);
+  base::TimeDelta UpdateDiffResponse(ComputeThreatListDiffResponse file_format);
+  void OnUpdatedDiff(base::TimeDelta result);
   void RunFetchStatusCallback(const WebRiskFetchHashes::Status& status);
   void ScheduleComputeDiffRequestInternal(base::TimeDelta update_interval_diff);
   void ScheduleNextRequest(const base::TimeDelta& interval);
@@ -72,8 +76,10 @@ class WebRiskFetchHashes {
   FetchHashStatusCallback fetch_status_callback_;
 
   std::string webrisk_key_;
-  scoped_refptr<WebRiskDataStore> webrisk_data_store_;
+  const scoped_refptr<WebRiskDataStore> webrisk_data_store_;
+  const scoped_refptr<base::SingleThreadTaskRunner> file_thread_task_runner_;
   network::SharedURLLoaderFactory* url_loader_factory_ = nullptr;
+  base::WeakPtrFactory<WebRiskFetchHashes> weak_factory_{this};
 };
 
 }  // namespace webrisk
