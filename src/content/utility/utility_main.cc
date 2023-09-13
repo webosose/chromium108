@@ -109,12 +109,6 @@ int UtilityMain(MainFunctionParams parameters) {
     message_pump_type = base::MessagePumpType::IO;
 #endif  // BUILDFLAG(IS_FUCHSIA)
 
-#if defined(OS_WEBOS)
-  // On webOS always use UI threads to allow Luna response calls.
-  if (message_pump_type == base::MessagePumpType::DEFAULT)
-    message_pump_type = base::MessagePumpType::UI;
-#endif  // defined(OS_WEBOS)
-
   if (parameters.command_line->HasSwitch(switches::kTimeZoneForTesting)) {
     std::string time_zone = parameters.command_line->GetSwitchValueASCII(
         switches::kTimeZoneForTesting);

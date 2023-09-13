@@ -231,8 +231,12 @@ void LunaServiceClient::Initialize(const std::string& identifier,
     success = RegisterService(identifier);
 
   if (success && handle_) {
+    auto* context = g_main_context_get_thread_default();
+    if (!context)
+      context = g_main_context_default();
+    context_ = g_main_context_ref(context);
+
     AutoLSError error;
-    context_ = g_main_context_ref(g_main_context_default());
     if (!LSGmainContextAttach(handle_, context_, &error)) {
       UnregisterService();
       LogError("Fail to attach a service to a mainloop", error);
