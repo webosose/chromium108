@@ -38,11 +38,6 @@ class MEDIA_EXPORT AudioManagerWebOS : public AudioManagerPulse {
 
   // Implementation of AudioManager.
   const char* GetName() override;
-  void GetAudioInputDeviceNames(AudioDeviceNames* device_names) override;
-  void GetAudioOutputDeviceNames(AudioDeviceNames* device_names) override;
-  base::SingleThreadTaskRunner* GetTaskRunner() const override;
-  base::SingleThreadTaskRunner* GetWorkerTaskRunner() const override;
-  void ShutdownOnAudioThread() override;
 
   // Implementation of AudioManagerBase.
   AudioOutputStream* MakeLinearOutputStream(
@@ -61,6 +56,9 @@ class MEDIA_EXPORT AudioManagerWebOS : public AudioManagerPulse {
       const std::string& device_id,
       const LogCallback& log_callback) override;
 
+  // AudioManagerPulse override.
+  void GetAudioDeviceNames(bool input, AudioDeviceNames* device_names) override;
+
   std::string RegisterTrack(const std::string& stream_type);
   void UnregisterTrack(const std::string& track_id);
 
@@ -74,8 +72,6 @@ class MEDIA_EXPORT AudioManagerWebOS : public AudioManagerPulse {
   AudioInputStream* MakeWebOSInputStream(const AudioParameters& params,
                                          const std::string& device_id,
                                          LogCallback log_callback);
-
-  void GetAudioDeviceNames(bool input_device, AudioDeviceNames* device_names);
 
   scoped_refptr<WebOSAudioService> audio_service_;
 

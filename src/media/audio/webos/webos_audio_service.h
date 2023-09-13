@@ -70,7 +70,7 @@ class MEDIA_EXPORT WebOSAudioService
     std::string uri_;
     std::string param_;
     std::string* response_ = nullptr;
-    base::WaitableEvent sync_done_;
+    base::WaitableEvent async_done_;
   };
 
   friend class base::RefCountedThreadSafe<WebOSAudioService>;
@@ -78,9 +78,12 @@ class MEDIA_EXPORT WebOSAudioService
   WebOSAudioService(const WebOSAudioService&) = delete;
   WebOSAudioService& operator=(const WebOSAudioService&) = delete;
 
+  void EnsureLunaServiceCreated();
   bool LunaCallInternal(const std::string& uri,
                         const std::string& param,
                         std::string* response);
+  void LunaCallAsyncInternal(LunaCbHandle* handle);
+
   void OnLunaCallResponse(LunaCbHandle* handle, const std::string& response);
 
   std::unique_ptr<base::LunaServiceClient> luna_service_client_;

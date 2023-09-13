@@ -87,13 +87,6 @@ class InputStream final : public media::mojom::AudioInputStream,
   void OnStreamPlatformError();
   void CallDeleter();
   void SendLogMessage(const char* format, ...) PRINTF_FORMAT(2, 3);
-#if defined(USE_WEBOS_AUDIO)
-  void CreateStreamAsync(media::AudioManager* audio_manager,
-                         InputStreamActivityMonitor* activity_monitor,
-                         const media::AudioParameters& params,
-                         const std::string& device_id,
-                         bool enable_agc);
-#endif
 
   SEQUENCE_CHECKER(owning_sequence_);
 

@@ -123,21 +123,7 @@ void StreamFactory::CreateOutputStream(
     const media::AudioParameters& params,
     const base::UnguessableToken& group_id,
     CreateOutputStreamCallback created_callback) {
-#if defined(USE_WEBOS_AUDIO)
-  // Force creating OutputStream in task_runner from AudioManager and avoid
-  // the thread switch in OutputStream constructor.
-  if (!audio_manager_->GetTaskRunner()->BelongsToCurrentThread()) {
-    audio_manager_->GetTaskRunner()->PostTask(
-        FROM_HERE,
-        base::BindOnce(
-            &StreamFactory::CreateOutputStream, weak_ptr_factory_.GetWeakPtr(),
-            std::move(stream_receiver), std::move(observer), std::move(log),
-            output_device_id, params, group_id, std::move(created_callback)));
-    return;
-  }
-#else
   DCHECK_CALLED_ON_VALID_SEQUENCE(owning_sequence_);
-#endif
 
   TRACE_EVENT_NESTABLE_ASYNC_INSTANT2("audio", "CreateOutputStream", this,
                                       "device id", output_device_id, "params",

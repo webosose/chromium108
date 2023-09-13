@@ -439,14 +439,6 @@ OnMoreDataConverter::OnMoreDataConverter(
 OnMoreDataConverter::~OnMoreDataConverter() {
   // Ensure Stop() has been called so we don't end up with an AudioOutputStream
   // calling back into OnMoreData() after destruction.
-
-#if defined(USE_WEBOS_AUDIO)
-  // Ensure Stop is called to avoid CHECK fail and AudioOutputStream calling
-  // for more data.
-  if (source_callback_)
-    Stop();
-#endif
-
   CHECK(!source_callback_);
 }
 

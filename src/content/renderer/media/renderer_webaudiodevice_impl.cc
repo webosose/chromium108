@@ -27,6 +27,7 @@
 #include "third_party/blink/public/web/web_view.h"
 
 #if defined(USE_WEBOS_AUDIO)
+#include "content/renderer/render_frame_impl.h"
 #include "media/audio/audio_device_description.h"
 #endif
 
@@ -205,7 +206,7 @@ void RendererWebAudioDeviceImpl::Start() {
   }
 
   if (!device_id.empty()) {
-    sink_ = WebAudioDeviceFactory::NewAudioRendererSink(
+    sink_ = AudioDeviceFactory::GetInstance()->NewAudioRendererSink(
         GetLatencyHintSourceType(latency_hint_.Category()), frame_token_,
         media::AudioSinkParameters(session_id_, device_id));
   } else

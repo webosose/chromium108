@@ -64,10 +64,14 @@ WebOSAudioService::WebOSAudioService()
           {base::MayBlock(), base::TaskShutdownBehavior::BLOCK_SHUTDOWN})) {
   VLOG(1) << __func__ << " this[" << this << "]";
 
-  luna_call_thread_.Start();
+  luna_call_thread_.StartWithOptions(
+      base::Thread::Options(base::MessagePumpType::UI, 0));
 
   weak_this_ = weak_factory_.GetWeakPtr();
-  luna_service_client_.reset(new base::LunaServiceClient(kWebOSChromiumAudio));
+
+  luna_call_thread_.task_runner()->PostTask(
+      FROM_HERE,
+      base::BindOnce(&WebOSAudioService::EnsureLunaServiceCreated, weak_this_));
 }
 
 WebOSAudioService::~WebOSAudioService() {
@@ -80,8 +84,6 @@ WebOSAudioService::~WebOSAudioService() {
 bool WebOSAudioService::GetDeviceList(
     bool input,
     std::vector<WebOSAudioService::DeviceEntry>* device_list) {
-  DCHECK(GetTaskRunner()->BelongsToCurrentThread());
-
   base::DictionaryValue register_root;
   register_root.SetKey(kQuery, base::Value((input ? kInput : kOutput)));
 
@@ -136,7 +138,7 @@ bool WebOSAudioService::GetDeviceList(
 }
 
 std::string WebOSAudioService::RegisterTrack(const std::string& stream_type) {
-  DCHECK(GetTaskRunner()->BelongsToCurrentThread());
+  VLOG(1) << __func__ << " stream_type: " << stream_type;
 
   base::DictionaryValue register_root;
   register_root.SetKey(kStreamType, base::Value(stream_type));
@@ -172,7 +174,7 @@ std::string WebOSAudioService::RegisterTrack(const std::string& stream_type) {
 }
 
 bool WebOSAudioService::UnregisterTrack(const std::string& track_id) {
-  DCHECK(GetTaskRunner()->BelongsToCurrentThread());
+  VLOG(1) << __func__ << " track_id: " << track_id;
 
   base::DictionaryValue register_root;
   register_root.SetKey(kTrackId, base::Value(track_id));
@@ -196,7 +198,7 @@ bool WebOSAudioService::UnregisterTrack(const std::string& track_id) {
 
 bool WebOSAudioService::SetTrackVolume(const std::string& track_id,
                                        int volume) {
-  DCHECK(GetTaskRunner()->BelongsToCurrentThread());
+  VLOG(1) << __func__ << " track_id: " << track_id << "volume: " << volume;
 
   base::DictionaryValue register_root;
   register_root.SetKey(kTrackId, base::Value(track_id));
@@ -228,7 +230,7 @@ bool WebOSAudioService::SetTrackVolume(const std::string& track_id,
 
 bool WebOSAudioService::SetSourceInputVolume(const std::string& stream_type,
                                              double volume) {
-  DCHECK(GetTaskRunner()->BelongsToCurrentThread());
+  VLOG(1) << __func__ << " stream: " << stream_type << "volume: " << volume;
 
   base::DictionaryValue register_root;
   register_root.SetKey(kStreamType, base::Value(stream_type));
@@ -285,6 +287,14 @@ bool WebOSAudioService::GetRootDictionary(
   return true;
 }
 
+void WebOSAudioService::EnsureLunaServiceCreated() {
+  if (luna_service_client_)
+    return;
+
+  luna_service_client_.reset(new base::LunaServiceClient(kWebOSChromiumAudio));
+  VLOG(1) << __func__ << " luna_service_client_=" << luna_service_client_.get();
+}
+
 bool WebOSAudioService::LunaCallInternal(const std::string& uri,
                                          const std::string& param,
                                          std::string* response) {
@@ -292,20 +302,30 @@ bool WebOSAudioService::LunaCallInternal(const std::string& uri,
 
   base::AutoLock auto_lock(audio_service_lock_);
 
-  if (!response) {
-    luna_service_client_->CallAsync(uri, param);
-    return true;
+  LunaCbHandle handle(uri, param, response);
+  luna_call_thread_.task_runner()->PostTask(
+      FROM_HERE, base::BindOnce(&WebOSAudioService::LunaCallAsyncInternal,
+                                weak_this_, &handle));
+
+  handle.async_done_.Wait();
+  return true;
+}
+
+void WebOSAudioService::LunaCallAsyncInternal(LunaCbHandle* handle) {
+  DCHECK(luna_call_thread_.task_runner()->BelongsToCurrentThread());
+  VLOG(1) << __func__ << " " << handle->uri_ << " " << handle->param_;
+
+  EnsureLunaServiceCreated();
+
+  if (!handle->response_) {
+    luna_service_client_->CallAsync(handle->uri_, handle->param_);
+    handle->async_done_.Signal();
+    return;
   }
 
-  LunaCbHandle* handle = new LunaCbHandle(uri, param, response);
   luna_service_client_->CallAsync(
-      uri, param,
+      handle->uri_, handle->param_,
       BIND_TO_LUNA_THREAD(&WebOSAudioService::OnLunaCallResponse, handle));
-
-  handle->sync_done_.Wait();
-
-  delete handle;
-  return true;
 }
 
 void WebOSAudioService::OnLunaCallResponse(LunaCbHandle* handle,
@@ -318,7 +338,7 @@ void WebOSAudioService::OnLunaCallResponse(LunaCbHandle* handle,
   if (handle->response_)
     handle->response_->assign(response);
 
-  handle->sync_done_.Signal();
+  handle->async_done_.Signal();
 }
 
 }  // namespace media

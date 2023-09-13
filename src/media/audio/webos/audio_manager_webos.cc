@@ -52,39 +52,6 @@ const char* AudioManagerWebOS::GetName() {
   return "WebOSPulseAudio";
 }
 
-void AudioManagerWebOS::GetAudioInputDeviceNames(
-    AudioDeviceNames* device_names) {
-  VLOG(1) << __func__;
-  DCHECK(audio_service_->GetTaskRunner()->BelongsToCurrentThread());
-  GetAudioDeviceNames(true, device_names);
-}
-
-void AudioManagerWebOS::GetAudioOutputDeviceNames(
-    AudioDeviceNames* device_names) {
-  VLOG(1) << __func__;
-  DCHECK(audio_service_->GetTaskRunner()->BelongsToCurrentThread());
-  GetAudioDeviceNames(false, device_names);
-}
-
-base::SingleThreadTaskRunner* AudioManagerWebOS::GetTaskRunner() const {
-  return audio_service_->GetTaskRunner();
-}
-
-base::SingleThreadTaskRunner* AudioManagerWebOS::GetWorkerTaskRunner() const {
-  return audio_service_->GetTaskRunner();
-}
-
-void AudioManagerWebOS::ShutdownOnAudioThread() {
-  if (!audio_service_->GetTaskRunner()->BelongsToCurrentThread()) {
-    audio_service_->GetTaskRunner()->PostTask(
-        FROM_HERE,
-        base::BindOnce(&AudioManagerWebOS::ShutdownOnAudioThread, weak_this_));
-    return;
-  }
-
-  AudioManagerBase::ShutdownOnAudioThread();
-}
-
 AudioOutputStream* AudioManagerWebOS::MakeLinearOutputStream(
     const AudioParameters& params,
     const LogCallback& log_callback) {
@@ -120,43 +87,41 @@ AudioInputStream* AudioManagerWebOS::MakeLowLatencyInputStream(
   return MakeWebOSInputStream(params, device_id, log_callback);
 }
 
+void AudioManagerWebOS::GetAudioDeviceNames(bool input_device,
+                                            AudioDeviceNames* device_names) {
+  VLOG(1) << __func__ << " type= " << (input_device ? "input" : "output");
+
+  std::vector<WebOSAudioService::DeviceEntry> device_list;
+  audio_service_->GetDeviceList(input_device, &device_list);
+
+  for (auto device : device_list) {
+    device_names->push_back(
+        AudioDeviceName(device.device_details, device.device_name));
+    device_names->back().display_id = device.display_id;
+  }
+
+  // Prepend the default device if the list is not empty.
+  if (!device_names->empty())
+    device_names->push_front(AudioDeviceName::CreateDefault());
+}
+
 std::string AudioManagerWebOS::RegisterTrack(const std::string& stream_type) {
-  DCHECK(audio_service_->GetTaskRunner()->BelongsToCurrentThread());
   return audio_service_->RegisterTrack(stream_type);
 }
 
 void AudioManagerWebOS::UnregisterTrack(const std::string& track_id) {
-  if (!audio_service_->GetTaskRunner()->BelongsToCurrentThread()) {
-    audio_service_->GetTaskRunner()->PostTask(
-        FROM_HERE, base::BindOnce(&AudioManagerWebOS::UnregisterTrack,
-                                  weak_this_, track_id));
-    return;
-  }
   audio_service_->UnregisterTrack(track_id);
 }
 
 void AudioManagerWebOS::SetTrackVolume(const std::string& track_id,
                                        double volume) {
   VLOG(1) << __func__ << " track_id=" << track_id << " volume=" << volume;
-
-  if (!audio_service_->GetTaskRunner()->BelongsToCurrentThread()) {
-    audio_service_->GetTaskRunner()->PostTask(
-        FROM_HERE, base::BindOnce(&AudioManagerWebOS::SetTrackVolume,
-                                  weak_this_, track_id, volume));
-    return;
-  }
   audio_service_->SetTrackVolume(track_id, static_cast<int>(volume * 100));
 }
 
 void AudioManagerWebOS::SetSourceInputVolume(const std::string& stream_type,
                                              double volume) {
   VLOG(1) << __func__ << " stream_type=" << stream_type << " volume=" << volume;
-  if (!audio_service_->GetTaskRunner()->BelongsToCurrentThread()) {
-    audio_service_->GetTaskRunner()->PostTask(
-        FROM_HERE, base::BindOnce(&AudioManagerWebOS::SetSourceInputVolume,
-                                  weak_this_, stream_type, volume));
-    return;
-  }
   audio_service_->SetSourceInputVolume(stream_type,
                                        static_cast<int>(volume * 100));
 }
@@ -188,25 +153,6 @@ AudioInputStream* AudioManagerWebOS::MakeWebOSInputStream(
 
   return new WebOSAudioInputStream(this, device_id, params, input_mainloop_,
                                    input_context_, std::move(log_callback));
-}
-
-void AudioManagerWebOS::GetAudioDeviceNames(bool input_device,
-                                            AudioDeviceNames* device_names) {
-  DCHECK(audio_service_->GetTaskRunner()->BelongsToCurrentThread());
-  VLOG(1) << __func__ << " type= " << (input_device ? "input" : "output");
-
-  std::vector<WebOSAudioService::DeviceEntry> device_list;
-  audio_service_->GetDeviceList(input_device, &device_list);
-
-  for (auto device : device_list) {
-    device_names->push_back(
-        AudioDeviceName(device.device_details, device.device_name));
-    device_names->back().display_id = device.display_id;
-  }
-
-  // Prepend the default device if the list is not empty.
-  if (!device_names->empty())
-    device_names->push_front(AudioDeviceName::CreateDefault());
 }
 
 }  // namespace media

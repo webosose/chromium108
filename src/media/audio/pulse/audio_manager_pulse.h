@@ -69,10 +69,12 @@ class MEDIA_EXPORT AudioManagerPulse : public AudioManagerBase {
 
 #if defined(USE_WEBOS_AUDIO)
  protected:
+  virtual void GetAudioDeviceNames(bool input,
+                                   media::AudioDeviceNames* device_names);
 #else
  private:
-#endif
   void GetAudioDeviceNames(bool input, media::AudioDeviceNames* device_names);
+#endif
 
   // Callback to get the devices' info like names, used by GetInputDevices().
   static void InputDevicesInfoCallback(pa_context* context,
