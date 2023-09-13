@@ -33,13 +33,13 @@ class WebOSCameraService;
 
 // Class doing the actual camera capture using webOS camera service.
 // Created on the owner's thread, otherwise living, operating and destroyed
-// on |camera_task_runner_|.
+// on |capture_task_runner_|.
 class CAPTURE_EXPORT WebOSCaptureDelegate final {
  public:
   WebOSCaptureDelegate(
       scoped_refptr<WebOSCameraService> camera_service,
       const VideoCaptureDeviceDescriptor& device_descriptor,
-      const scoped_refptr<base::SingleThreadTaskRunner>& camera_task_runner,
+      const scoped_refptr<base::SingleThreadTaskRunner>& capture_task_runner,
       int power_line_frequency,
       int rotation);
   ~WebOSCaptureDelegate();
@@ -79,7 +79,7 @@ class CAPTURE_EXPORT WebOSCaptureDelegate final {
 
   scoped_refptr<WebOSCameraService> camera_service_;
 
-  const scoped_refptr<base::SingleThreadTaskRunner> camera_task_runner_;
+  const scoped_refptr<base::SingleThreadTaskRunner> capture_task_runner_;
   const VideoCaptureDeviceDescriptor device_descriptor_;
   const int power_line_frequency_;
 

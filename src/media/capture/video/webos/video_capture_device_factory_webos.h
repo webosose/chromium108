@@ -44,8 +44,6 @@ class CAPTURE_EXPORT VideoCaptureDeviceFactoryWebOS
       delete;
   void operator=(VideoCaptureDeviceFactoryWebOS const&) = delete;
 
-  void GetDevicesInfoAsync(GetDevicesInfoCallback callback);
-
   void GetSupportedFormats(const std::string& device_id,
                            VideoCaptureControlSupport* control,
                            VideoCaptureFormats* supported_formats);

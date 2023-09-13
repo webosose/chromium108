@@ -17,6 +17,7 @@
 #ifndef MEDIA_CAPTURE_VIDEO_WEBOS_VIDEO_CAPTURE_DEVICE_WEBOS_H_
 #define MEDIA_CAPTURE_VIDEO_WEBOS_VIDEO_CAPTURE_DEVICE_WEBOS_H_
 
+#include "base/threading/thread.h"
 #include "media/capture/video/video_capture_device.h"
 
 namespace media {
@@ -51,6 +52,7 @@ class VideoCaptureDeviceWebOS : public VideoCaptureDevice {
 
   const VideoCaptureDeviceDescriptor device_descriptor_;
 
+  base::Thread capture_thread_;  // Thread for reading data from the device.
   int rotation_ = 0;
 
   std::unique_ptr<WebOSCaptureDelegate> capture_impl_;

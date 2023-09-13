@@ -42,7 +42,9 @@ int TranslatePowerLineFrequencyToWebOS(PowerLineFrequency frequency) {
 VideoCaptureDeviceWebOS::VideoCaptureDeviceWebOS(
     scoped_refptr<WebOSCameraService> camera_service,
     const VideoCaptureDeviceDescriptor& device_descriptor)
-    : camera_service_(camera_service), device_descriptor_(device_descriptor) {
+    : camera_service_(camera_service),
+      device_descriptor_(device_descriptor),
+      capture_thread_("WebOSCameraDeviceCaptureThread") {
   VLOG(1) << __func__ << " this[" << this << "]";
 }
 
@@ -59,10 +61,14 @@ void VideoCaptureDeviceWebOS::AllocateAndStart(
 
   DCHECK(!capture_impl_);
 
+  if (capture_thread_.IsRunning())
+    return;  // Wrong state.
+  capture_thread_.Start();
+
   const int line_frequency =
       TranslatePowerLineFrequencyToWebOS(GetPowerLineFrequency(params));
   capture_impl_ = std::make_unique<WebOSCaptureDelegate>(
-      camera_service_, device_descriptor_, camera_service_->GetTaskRunner(),
+      camera_service_, device_descriptor_, capture_thread_.task_runner(),
       line_frequency, rotation_);
   if (!capture_impl_) {
     client->OnError(VideoCaptureError::
@@ -71,17 +77,16 @@ void VideoCaptureDeviceWebOS::AllocateAndStart(
     return;
   }
 
-  camera_service_->GetTaskRunner()->PostTask(
+  capture_thread_.task_runner()->PostTask(
       FROM_HERE,
       base::BindOnce(&WebOSCaptureDelegate::AllocateAndStart,
-                     capture_impl_->GetWeakPtr(),
-                     camera_service_->GetThreadId(),
+                     capture_impl_->GetWeakPtr(), capture_thread_.GetThreadId(),
                      params.requested_format.frame_size.width(),
                      params.requested_format.frame_size.height(),
                      params.requested_format.frame_rate, std::move(client)));
 
   for (auto& request : photo_requests_queue_)
-    camera_service_->GetTaskRunner()->PostTask(FROM_HERE, std::move(request));
+    capture_thread_.task_runner()->PostTask(FROM_HERE, std::move(request));
 
   photo_requests_queue_.clear();
 }
@@ -90,36 +95,39 @@ void VideoCaptureDeviceWebOS::StopAndDeAllocate() {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
 
-  camera_service_->GetTaskRunner()->PostTask(
+  DCHECK(capture_impl_);
+
+  capture_thread_.task_runner()->PostTask(
       FROM_HERE, base::BindOnce(&WebOSCaptureDelegate::StopAndDeAllocate,
                                 capture_impl_->GetWeakPtr(),
-                                camera_service_->GetThreadId()));
+                                capture_thread_.GetThreadId()));
 
-  camera_service_->GetTaskRunner()->DeleteSoon(FROM_HERE,
-                                               capture_impl_.release());
+  capture_thread_.task_runner()->DeleteSoon(FROM_HERE, capture_impl_.release());
   capture_impl_ = nullptr;
 }
 
 void VideoCaptureDeviceWebOS::TakePhoto(TakePhotoCallback callback) {
-  VLOG(1) << __func__;
-
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+
+  VLOG(1) << __func__;
 
   DCHECK(capture_impl_);
   auto functor =
       base::BindOnce(&WebOSCaptureDelegate::TakePhoto,
                      capture_impl_->GetWeakPtr(), std::move(callback));
-  camera_service_->GetTaskRunner()->PostTask(FROM_HERE, std::move(functor));
+  capture_thread_.task_runner()->PostTask(FROM_HERE, std::move(functor));
 }
 
 void VideoCaptureDeviceWebOS::GetPhotoState(GetPhotoStateCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
 
+  DCHECK(capture_impl_);
+
   auto functor =
       base::BindOnce(&WebOSCaptureDelegate::GetPhotoState,
                      capture_impl_->GetWeakPtr(), std::move(callback));
-  camera_service_->GetTaskRunner()->PostTask(FROM_HERE, std::move(functor));
+  capture_thread_.task_runner()->PostTask(FROM_HERE, std::move(functor));
 }
 
 void VideoCaptureDeviceWebOS::SetPhotoOptions(
@@ -128,16 +136,21 @@ void VideoCaptureDeviceWebOS::SetPhotoOptions(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(1) << __func__;
 
+  DCHECK(capture_impl_);
+
   auto functor = base::BindOnce(&WebOSCaptureDelegate::SetPhotoOptions,
                                 capture_impl_->GetWeakPtr(),
                                 std::move(settings), std::move(callback));
-  camera_service_->GetTaskRunner()->PostTask(FROM_HERE, std::move(functor));
+  capture_thread_.task_runner()->PostTask(FROM_HERE, std::move(functor));
 }
 
 void VideoCaptureDeviceWebOS::SetRotation(int rotation) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   rotation_ = rotation;
-  camera_service_->GetTaskRunner()->PostTask(
+
+  DCHECK(capture_impl_);
+
+  capture_thread_.task_runner()->PostTask(
       FROM_HERE, base::BindOnce(&WebOSCaptureDelegate::SetRotation,
                                 capture_impl_->GetWeakPtr(), rotation));
 }

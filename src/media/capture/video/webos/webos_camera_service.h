@@ -74,21 +74,16 @@ class CAPTURE_EXPORT WebOSCameraService
   bool GetRootDictionary(const std::string& payload,
                          std::unique_ptr<base::DictionaryValue>* root);
 
-  base::PlatformThreadId GetThreadId() const {
-    return luna_call_thread_.GetThreadId();
-  }
-
-  scoped_refptr<base::SingleThreadTaskRunner> GetTaskRunner() const {
-    return luna_call_thread_.task_runner();
-  }
-
  private:
   struct LunaCbHandle {
-    LunaCbHandle(std::string uri, std::string* response)
-        : uri_(uri), response_(response) {}
+    LunaCbHandle(const std::string& uri,
+                 const std::string& param,
+                 std::string* response)
+        : uri_(uri), param_(param), response_(response) {}
     std::string uri_;
+    std::string param_;
     std::string* response_ = nullptr;
-    base::WaitableEvent sync_done_;
+    base::WaitableEvent async_done_;
   };
 
   friend class base::RefCountedThreadSafe<WebOSCameraService>;
@@ -96,9 +91,11 @@ class CAPTURE_EXPORT WebOSCameraService
   WebOSCameraService(const WebOSCameraService&) = delete;
   WebOSCameraService& operator=(const WebOSCameraService&) = delete;
 
+  void EnsureLunaServiceCreated();
   bool LunaCallInternal(const std::string& uri,
                         const std::string& param,
                         std::string* response);
+  void LunaCallAsyncInternal(LunaCbHandle* handle);
 
   void OnLunaCallResponse(LunaCbHandle* handle, const std::string& response);
 

@@ -72,11 +72,11 @@ mojom::RangePtr MojoRangeFromValue(base::Value* property) {
 WebOSCaptureDelegate::WebOSCaptureDelegate(
     scoped_refptr<WebOSCameraService> camera_service,
     const VideoCaptureDeviceDescriptor& device_descriptor,
-    const scoped_refptr<base::SingleThreadTaskRunner>& camera_task_runner,
+    const scoped_refptr<base::SingleThreadTaskRunner>& capture_task_runner,
     int power_line_frequency,
     int rotation)
     : camera_service_(camera_service),
-      camera_task_runner_(camera_task_runner),
+      capture_task_runner_(capture_task_runner),
       device_descriptor_(device_descriptor),
       power_line_frequency_(power_line_frequency) {
   VLOG(1) << __func__ << " this[" << this << "]";
@@ -103,7 +103,7 @@ void WebOSCaptureDelegate::AllocateAndStart(
   VLOG(1) << __func__ << " width[" << width << "], height[" << height
           << "], frame_rate[" << frame_rate << "], pid[" << pid << "]";
 
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
   DCHECK(client);
 
   client_ = std::move(client);
@@ -168,14 +168,13 @@ void WebOSCaptureDelegate::AllocateAndStart(
   first_ref_time_ = base::TimeTicks();
 
   // Post task to start fetching frames from camera service.
-  camera_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&WebOSCaptureDelegate::DoCapture, GetWeakPtr()));
+  capture_task_runner_->PostTask(
+      FROM_HERE, base::BindOnce(&WebOSCaptureDelegate::DoCapture, weak_this_));
 }
 
 void WebOSCaptureDelegate::StopAndDeAllocate(base::PlatformThreadId pid) {
   VLOG(1) << __func__;
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   camera_service_->CloseCameraBuffer();
 
@@ -191,14 +190,14 @@ void WebOSCaptureDelegate::StopAndDeAllocate(base::PlatformThreadId pid) {
 void WebOSCaptureDelegate::TakePhoto(
     VideoCaptureDevice::TakePhotoCallback callback) {
   VLOG(1) << __func__;
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
   take_photo_callbacks_.push(std::move(callback));
 }
 
 void WebOSCaptureDelegate::GetPhotoState(
     VideoCaptureDevice::GetPhotoStateCallback callback) {
   VLOG(1) << __func__;
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   base::Value properties;
   mojom::PhotoStatePtr photo_capabilities = mojo::CreateEmptyPhotoState();
@@ -250,7 +249,7 @@ void WebOSCaptureDelegate::SetPhotoOptions(
     mojom::PhotoSettingsPtr settings,
     VideoCaptureDevice::SetPhotoOptionsCallback callback) {
   VLOG(1) << __func__;
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   base::DictionaryValue propert_value;
   if (settings->has_pan) {
@@ -304,7 +303,7 @@ void WebOSCaptureDelegate::SetPhotoOptions(
 }
 
 void WebOSCaptureDelegate::SetRotation(int rotation) {
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
   DCHECK_GE(rotation, 0);
   DCHECK_LT(rotation, 360);
   DCHECK_EQ(rotation % 90, 0);
@@ -317,7 +316,7 @@ base::WeakPtr<WebOSCaptureDelegate> WebOSCaptureDelegate::GetWeakPtr() {
 
 void WebOSCaptureDelegate::DoCapture() {
   VLOG(2) << __func__;
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   if (!is_capturing_)
     return;
@@ -369,15 +368,14 @@ void WebOSCaptureDelegate::DoCapture() {
     }
   }
 
-  camera_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&WebOSCaptureDelegate::DoCapture, GetWeakPtr()));
+  capture_task_runner_->PostTask(
+      FROM_HERE, base::BindOnce(&WebOSCaptureDelegate::DoCapture, weak_this_));
 }
 
 void WebOSCaptureDelegate::SetErrorState(VideoCaptureError error,
                                          const base::Location& from_here,
                                          const std::string& reason) {
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   LOG(ERROR) << __func__ << " reason: " << reason;
   if (!client_)
@@ -456,7 +454,7 @@ bool WebOSCaptureDelegate::IsResolutionSupported(const std::string& resolution,
 }
 
 void WebOSCaptureDelegate::OnCameraListUpdated(const std::string& response) {
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   VLOG(1) << __func__ << " response=" << response;
   if (device_descriptor_.device_id.empty())
@@ -492,7 +490,7 @@ void WebOSCaptureDelegate::OnCameraListUpdated(const std::string& response) {
 }
 
 void WebOSCaptureDelegate::OnFaultEventOccured(const std::string& response) {
-  DCHECK(camera_task_runner_->BelongsToCurrentThread());
+  DCHECK(capture_task_runner_->BelongsToCurrentThread());
 
   VLOG(1) << __func__ << " response=" << response;
   if (device_descriptor_.device_id.empty())
