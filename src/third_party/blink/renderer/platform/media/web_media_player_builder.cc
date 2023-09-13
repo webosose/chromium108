@@ -73,16 +73,13 @@ WebMediaPlayer* WebMediaPlayerBuilder::Build(
     const WebString& application_id,
     const WebString& file_security_origin,
     bool use_unlimited_media_policy,
+    bool use_neva_media,
     media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
     media::CreateMediaPlatformAPICB create_media_platform_api_cb) {
 #else
     scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces) {
 #endif
 #if defined(USE_NEVA_MEDIA)
-  bool use_neva_media = !base::CommandLine::ForCurrentProcess()->HasSwitch(
-                            switches::kDisableWebMediaPlayerNeva) &&
-                        client->ContentTypeDecoder() != "sw";
-
   if (use_neva_media && WebMediaPlayerNevaFactory::Playable(client)) {
     return WebMediaPlayerNevaFactory::CreateWebMediaPlayerNeva(
         frame, client, encrypted_client, delegate, std::move(factory_selector),

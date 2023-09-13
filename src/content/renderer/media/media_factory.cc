@@ -634,7 +634,7 @@ blink::WebMediaPlayer* MediaFactory::CreateMediaPlayer(
       blink::WebString::FromUTF8(renderer_prefs.application_id +
                                  renderer_prefs.display_id),
       blink::WebString::FromUTF8(renderer_prefs.file_security_origin),
-      renderer_prefs.use_unlimited_media_policy,
+      renderer_prefs.use_unlimited_media_policy, use_neva_media,
       std::move(create_media_player_neva_cb),
       std::move(create_media_platform_api_cb));
 #else
