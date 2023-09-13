@@ -422,6 +422,9 @@ source_set("base") {
 
   if (use_neva_webrtc) {
     visibility += [ "//media/webrtc:webrtc" ]
+    public_deps += [
+      "//third_party/webrtc_overrides:webrtc_component",
+    ]
   }
 
   libs = []

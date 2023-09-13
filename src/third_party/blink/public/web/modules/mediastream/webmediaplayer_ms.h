@@ -186,7 +186,7 @@ class BLINK_MODULES_EXPORT WebMediaPlayerMS
   void OnIdleTimeout() override;
 
 #if defined(USE_NEVA_WEBRTC)
-  void EnqueueHoleFrame(scoped_refptr<media::VideoFrame>& hole_frame);
+  void EnqueueFrame(scoped_refptr<media::VideoFrame> frame);
 
   virtual bool HandleVideoFrame(
       const scoped_refptr<media::VideoFrame>& video_frame) {

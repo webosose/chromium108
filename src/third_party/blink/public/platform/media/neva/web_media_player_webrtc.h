@@ -17,14 +17,7 @@
 #ifndef THIRD_PARTY_BLINK_PUBLIC_PLATFORM_MEDIA_NEVA_WEB_MEDIA_PLAYER_WEBRTC_H_
 #define THIRD_PARTY_BLINK_PUBLIC_PLATFORM_MEDIA_NEVA_WEB_MEDIA_PLAYER_WEBRTC_H_
 
-#include <stdint.h>
-
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "media/base/media_log.h"
-#include "media/neva/media_platform_api.h"
 #include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
@@ -37,7 +30,8 @@
 
 namespace blink {
 
-class MediaPlatformAPI;
+using MediaPlatformAPI = media::MediaPlatformAPI;
+
 class WebMediaPlayerImpl;
 
 class BLINK_PLATFORM_EXPORT WebMediaPlayerWebRTC
@@ -68,33 +62,18 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerWebRTC
   WebMediaPlayerWebRTC(const WebMediaPlayerWebRTC&) = delete;
   WebMediaPlayerWebRTC& operator=(const WebMediaPlayerWebRTC&) = delete;
 
-  WebMediaPlayer::LoadTiming Load(LoadType load_type,
-                                  const WebMediaPlayerSource& source,
-                                  CorsMode cors_mode,
-                                  bool is_cache_disabled) override;
-
-  void Play() override;
-  void Pause() override;
-  void SetRate(double rate) override;
-  void SetVolume(double volume) override;
-
-  // WebMediaPlayerDelegate::Observer interface stubs
+  // WebMediaPlayerDelegate::Observer implementation.
   void OnFrameHidden() override;
   void OnFrameShown() override;
-
-  // neva::WebMediaPlayer
-  void OnMediaActivationPermitted() override;
-  void OnMediaPlayerObserverConnectionEstablished() override;
 
   // Implements ui::mojom::VideoWindowClient
   void OnVideoWindowCreated(const ui::VideoWindowInfo& info) override;
   void OnVideoWindowDestroyed() override;
-  void OnVideoWindowGeometryChanged(const gfx::Rect& rect) override;
-  void OnVideoWindowVisibilityChanged(bool visibility) override;
+  void OnVideoWindowGeometryChanged(const gfx::Rect& rect) override {}
+  void OnVideoWindowVisibilityChanged(bool visibility) override {}
   // End of mojom::VideoWindowClient
 
   void SetRenderMode(WebMediaPlayer::RenderMode mode) override;
-  void SetDisableAudio(bool disable) override;
 
   // Overridden from parent WebMediaPlayerMS
   bool HandleVideoFrame(
@@ -106,83 +85,58 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerWebRTC
   void OnTransformChanged(media::VideoTransformation video_transform) override;
 
  private:
-  enum class StatusOnSuspended {
-    UnknownStatus = 0,
-    PlayingStatus,
-    PausedStatus,
+  enum class CompositorType {
+    kUnknown = -1,
+    kWebMediaPlayerMSCompositor = 0,
+    kVideoFrameProviderImpl = 1,
   };
 
-  void HandleEncodedFrame(const scoped_refptr<media::VideoFrame>& frame);
-
-  void StartMediaPipeline();
-  void InitMediaPlatformAPI();
-  void ReleaseMediaPlatformAPI();
-
-  void OnPipelineFeed();
+  void ResetForDecoderChange();
 
   void SuspendInternal();
   void ResumeInternal();
 
-  void OnLoadPermitted();
   void OnVideoSizeChanged(const gfx::Size& coded_size,
                           const gfx::Size& natural_size);
   void OnResumed();
   void OnSuspended();
 
+  void CreateVideoWindow();
   bool EnsureVideoWindowCreated();
   void ContinuePlayerWithWindowId();
 
-  void OnMediaPlatformAPIInitialized(media::PipelineStatus status);
-  void OnPipelineError(media::PipelineStatus status);
-
-  void EnqueueHoleFrame(const scoped_refptr<media::VideoFrame>& output_frame);
-  media::VideoDecoderConfig GetVideoConfig();
   std::unique_ptr<VideoFrameProviderImpl> video_frame_provider_impl_;
+  CompositorType compositor_type_ = CompositorType::kWebMediaPlayerMSCompositor;
 
   const scoped_refptr<base::SingleThreadTaskRunner> main_task_runner_;
 
   std::string app_id_;
-  StatusOnSuspended status_on_suspended_ = StatusOnSuspended::UnknownStatus;
-
-  scoped_refptr<media::MediaPlatformAPI> media_platform_api_;
 
   // This value is updated by using value from media platform api.
-  gfx::Size frame_size_;
   gfx::Size coded_size_;
   gfx::Size natural_size_;
 
-  bool is_loading_ = false;
-  LoadType pending_load_type_ = WebMediaPlayer::kLoadTypeMediaSource;
-  CorsMode pending_cors_mode_ = WebMediaPlayer::kCorsModeUnspecified;
-  bool pending_is_cache_disabled_ = false;
-  WebMediaStream pending_stream_;
-  bool pending_load_media_ = false;
+  scoped_refptr<media::VideoFrame> current_frame_ = nullptr;
 
   WebMediaPlayer::RenderMode render_mode_ = WebMediaPlayer::RenderModeNone;
 
   bool is_suspended_ = false;
 
-  base::TimeDelta paused_time_;
-  media::PipelineStatus pipeline_status_ = media::PIPELINE_OK;
+  bool video_play_started_ = false;
 
-  // |frame_lock_| protects |pending_encoded_frames_|.
-  base::Lock frame_lock_;
-  std::vector<scoped_refptr<media::VideoFrame>> pending_encoded_frames_;
+  WebLocalFrame* web_local_frame_ = nullptr;
 
-  media::VideoCodec codec_ = media::VideoCodec::kUnknown;
+  // Callback to notify app id, window id and cb status to decoder
+  base::RepeatingCallback<void(const std::string&,
+                               const std::string&,
+                               const base::RepeatingClosure&,
+                               const base::RepeatingClosure&,
+                               const MediaPlatformAPI::VideoSizeChangedCB&,
+                               const MediaPlatformAPI::ActiveRegionCB&)>
+      media_player_init_cb_;
 
-  // Whether or not the pipeline is running.
-  bool pipeline_running_ = false;
-  bool is_destroying_ = false;
-
-  bool handle_encoded_frames_ = false;
-
-  bool has_activation_permit_ = false;
-  bool require_media_resource_ = true;
-
-  media::CreateMediaPlatformAPICB create_media_platform_api_cb_;
-
-  base::RepeatingCallback<void()> software_fallback_callback_;
+  // Callback to notify media player suspend status to decoder
+  base::RepeatingCallback<void(bool)> media_player_suspend_cb_;
 
   CreateVideoWindowCallback create_video_window_callback_;
   absl::optional<ui::VideoWindowInfo> video_window_info_ = absl::nullopt;

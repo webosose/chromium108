@@ -31,9 +31,9 @@ void VideoFrameMetadata::MergeMetadataFrom(
   this->a = source.a
 
 #if defined(USE_NEVA_WEBRTC)
-  MERGE_OPTIONAL_FIELD(key_frame, metadata_source);
-  MERGE_OPTIONAL_FIELD(codec_id, metadata_source);
-  MERGE_VALUE_FIELD(software_fallback_callback, metadata_source);
+  MERGE_VALUE_FIELD(is_transparent_frame, metadata_source);
+  MERGE_OPTIONAL_FIELD(media_player_init_cb, metadata_source);
+  MERGE_OPTIONAL_FIELD(media_player_suspend_cb, metadata_source);
 #endif
   MERGE_VALUE_FIELD(allow_overlay, metadata_source);
   MERGE_OPTIONAL_FIELD(capture_begin_time, metadata_source);

@@ -201,6 +201,12 @@ class MEDIA_EXPORT GpuVideoAcceleratorFactories {
   // Returns the task runner the video accelerator runs on.
   virtual scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() = 0;
 
+#if defined(USE_NEVA_WEBRTC)
+  // Returns the render thread main task runner. This is needed in
+  // pass through video decoder for creating and binding MediaPlatformAPI
+  virtual scoped_refptr<base::SequencedTaskRunner> GetMainTaskRunner() = 0;
+#endif
+
   virtual viz::RasterContextProvider* GetMediaContextProvider() = 0;
 
   virtual const gpu::Capabilities* ContextCapabilities() = 0;

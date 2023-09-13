@@ -120,6 +120,9 @@ class GpuVideoAcceleratorFactoriesImpl
   void DestroyContext();
   base::UnsafeSharedMemoryRegion CreateSharedMemoryRegion(size_t size) override;
   scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() override;
+#if defined(USE_NEVA_WEBRTC)
+  scoped_refptr<base::SequencedTaskRunner> GetMainTaskRunner() override;
+#endif
 
   viz::RasterContextProvider* GetMediaContextProvider() override;
 

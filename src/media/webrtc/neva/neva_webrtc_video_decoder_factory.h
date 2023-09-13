@@ -37,7 +37,8 @@ class MEDIA_EXPORT NevaWebRtcVideoDecoderFactory
     : public webrtc::VideoDecoderFactory {
  public:
   explicit NevaWebRtcVideoDecoderFactory(
-      scoped_refptr<base::SequencedTaskRunner> main_task_runner);
+      scoped_refptr<base::SequencedTaskRunner> main_task_runner,
+      scoped_refptr<base::SequencedTaskRunner> media_task_runner);
   ~NevaWebRtcVideoDecoderFactory() override = default;
 
   std::vector<webrtc::SdpVideoFormat> GetSupportedFormats() const override;
@@ -46,6 +47,7 @@ class MEDIA_EXPORT NevaWebRtcVideoDecoderFactory
 
  private:
   scoped_refptr<base::SequencedTaskRunner> main_task_runner_;
+  scoped_refptr<base::SequencedTaskRunner> media_task_runner_;
 
   std::vector<webrtc::SdpVideoFormat> supported_formats_;
 };

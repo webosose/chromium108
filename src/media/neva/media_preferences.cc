@@ -62,7 +62,8 @@ std::string GetCodecName(const std::string& codec) {
   auto* it =
       find_if(begin(kCodecList), end(kCodecList),
               [&codec](const std::pair<std::string, std::string>& codec_list) {
-                return base::MatchPattern(codec, codec_list.first);
+                return base::MatchPattern(codec, codec_list.first) ||
+                       base::MatchPattern(codec, codec_list.second);
               });
   if (it == end(kCodecList))
     return "";

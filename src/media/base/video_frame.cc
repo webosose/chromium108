@@ -437,11 +437,6 @@ scoped_refptr<VideoFrame> VideoFrame::WrapExternalDataWithLayout(
 
   const auto& last_plane = layout.planes()[layout.planes().size() - 1];
   const size_t required_size = last_plane.offset + last_plane.size;
-  // TODO(neva, sync-to-91):
-  // Block if USE_NEVA_WEBRTC. Because we are storing encoded data into
-  // VideoFrame (!), data_size can be smaller than required_size. So skip
-  // this checking.
-#if !defined(USE_NEVA_WEBRTC)
   if (data_size < required_size) {
     DLOG(ERROR) << __func__ << " Provided data size is too small. Provided "
                 << data_size << " bytes, but " << required_size
@@ -451,16 +446,12 @@ scoped_refptr<VideoFrame> VideoFrame::WrapExternalDataWithLayout(
                                   natural_size);
     return nullptr;
   }
-#endif
 
   scoped_refptr<VideoFrame> frame = new VideoFrame(
       layout, storage_type, visible_rect, natural_size, timestamp);
 
   for (size_t i = 0; i < layout.planes().size(); ++i) {
     frame->data_[i] = data + layout.planes()[i].offset;
-#if defined(USE_NEVA_WEBRTC)
-    frame->data_size_[i] = data_size;
-#endif
   }
 
   return frame;

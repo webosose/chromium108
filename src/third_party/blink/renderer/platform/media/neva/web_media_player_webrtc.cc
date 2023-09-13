@@ -20,10 +20,6 @@
 #include "cc/layers/video_layer.h"
 #include "cc/trees/layer_tree_host.h"
 #include "media/base/bind_to_current_loop.h"
-#include "media/base/media_util.h"
-#include "media/neva/media_platform_api.h"
-#include "media/neva/media_preferences.h"
-#include "media/webrtc/neva/webrtc_pass_through_video_decoder.h"
 #include "neva/logging.h"
 #include "third_party/blink/public/platform/media/neva/video_frame_provider_impl.h"
 #include "third_party/blink/public/platform/web_media_player_client.h"
@@ -83,112 +79,34 @@ WebMediaPlayerWebRTC::WebMediaPlayerWebRTC(
                        use_surface_layer),
       main_task_runner_(base::ThreadTaskRunnerHandle::Get()),
       app_id_(application_id.Utf8()),
-      create_media_platform_api_cb_(std::move(create_media_platform_api_cb)),
+      web_local_frame_(frame),
       create_video_window_callback_(std::move(create_video_window_callback)),
       weak_factory_this_(this) {
-  NEVA_LOGTF(INFO) << "delegate_id_: " << delegate_id_;
+  NEVA_VLOGTF(1) << "[" << this << "] "
+                 << "delegate_id_: " << delegate_id_;
 
   weak_ptr_this_ = weak_factory_this_.GetWeakPtr();
-
-  video_frame_provider_impl_ =
-      std::make_unique<VideoFrameProviderImpl>(compositor_task_runner);
-  video_frame_provider_impl_->SetWebLocalFrame(frame);
-  video_frame_provider_impl_->SetWebMediaPlayerClient(client);
-
-  absl::optional<bool> is_audio_disabled = client_->IsAudioDisabled();
-  if (is_audio_disabled.has_value())
-    SetDisableAudio(*is_audio_disabled);
-
-  SetRenderMode(client_->RenderMode());
-
-  // TODO(neva, sync-to-91):
-  // Set to false for handling multiple streams. In WebRTC scenario,
-  // multiple WebMediaPlayer for WebRTC may are created. And someone of them
-  // actually doesn't decode frame(see |HandleVideoFrame()|).
-  // But still, this way is risky when multiple remote streams for decoding
-  // are provdied. But at the current moment there is no better way in our
-  // architecture.
-  require_media_resource_ = false;
 }
 
 WebMediaPlayerWebRTC::~WebMediaPlayerWebRTC() {
-  NEVA_LOGTF(INFO) << "delegate_id_: " << delegate_id_;
-
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
 
-  compositor_task_runner_->DeleteSoon(FROM_HERE,
-                                      std::move(video_frame_provider_impl_));
+  NEVA_VLOGTF(1) << "[" << this << "] "
+                 << "delegate_id_: " << delegate_id_;
 
-  if (media_platform_api_)
-    media_platform_api_->Finalize();
-}
-
-WebMediaPlayer::LoadTiming WebMediaPlayerWebRTC::Load(
-    LoadType load_type,
-    const WebMediaPlayerSource& source,
-    CorsMode cors_mode,
-    bool is_cache_disabled) {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  NEVA_DCHECK(source.IsMediaStream());
-
-  is_loading_ = true;
-  pending_load_type_ = load_type;
-  pending_stream_ = source.GetAsMediaStream();
-  pending_cors_mode_ = cors_mode;
-  pending_is_cache_disabled_ = is_cache_disabled;
-
-  client_->DidMediaActivationNeeded();
-
-  return LoadTiming::kDeferred;
-}
-
-void WebMediaPlayerWebRTC::Play() {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (!has_activation_permit_) {
-    status_on_suspended_ = StatusOnSuspended::PlayingStatus;
-    if (!client_->IsSuppressedMediaPlay())
-      client_->DidMediaActivationNeeded();
-    return;
-  }
-  WebMediaPlayerMS::Play();
-}
-
-void WebMediaPlayerWebRTC::Pause() {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (is_suspended_) {
-    status_on_suspended_ = StatusOnSuspended::PausedStatus;
+  if (!media_player_init_cb_.is_null()) {
+    ResetForDecoderChange();
     return;
   }
 
-  // call base-class implementation
-  WebMediaPlayerMS::Pause();
-
-  paused_time_ = base::Milliseconds(CurrentTime());
-}
-
-void WebMediaPlayerWebRTC::SetRate(double rate) {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (!has_activation_permit_) {
-    if (!client_->IsSuppressedMediaPlay())
-      client_->DidMediaActivationNeeded();
-    return;
+  if (video_frame_provider_impl_) {
+    compositor_task_runner_->DeleteSoon(FROM_HERE,
+                                        std::move(video_frame_provider_impl_));
   }
-
-  WebMediaPlayerMS::SetRate(rate);
-}
-
-void WebMediaPlayerWebRTC::SetVolume(double volume) {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  WebMediaPlayerMS::SetVolume(volume);
 }
 
 void WebMediaPlayerWebRTC::OnFrameHidden() {
-  NEVA_LOGTF(INFO) << ": delegate_id_: " << delegate_id_;
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
 
   WebMediaPlayerMS::OnFrameHidden();
 
@@ -196,51 +114,19 @@ void WebMediaPlayerWebRTC::OnFrameHidden() {
 }
 
 void WebMediaPlayerWebRTC::OnFrameShown() {
-  NEVA_LOGTF(INFO) << ": delegate_id_: " << delegate_id_;
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
 
   WebMediaPlayerMS::OnFrameShown();
 
   ResumeInternal();
 }
 
-void WebMediaPlayerWebRTC::OnMediaActivationPermitted() {
-  // If we already have activation permit, just skip.
-  if (has_activation_permit_) {
-    client_->DidMediaActivated();
-    return;
-  }
-
-  has_activation_permit_ = true;
-
-  if (is_loading_) {
-    OnLoadPermitted();
-    return;
-  }
-
-  Play();
-
-  client_->ResumePlayback();
-  client_->DidMediaActivated();
-}
-
-void WebMediaPlayerWebRTC::OnMediaPlayerObserverConnectionEstablished() {
-  client_->DidMediaCreated(require_media_resource_);
-}
-
 void WebMediaPlayerWebRTC::OnVideoWindowCreated(
     const ui::VideoWindowInfo& info) {
-  NEVA_VLOGTF(1);
+  NEVA_VLOGTF(1) << " window_id=" << info.native_window_id;
   video_window_info_ = info;
   video_frame_provider_impl_->SetOverlayPlaneId(info.window_id);
-  if (media_platform_api_)
-    media_platform_api_->SetMediaLayerId(info.native_window_id);
-  if (!coded_size_.IsEmpty() || !natural_size_.IsEmpty())
-    video_window_remote_->SetVideoSize(coded_size_, natural_size_);
-
-  main_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&WebMediaPlayerWebRTC::ContinuePlayerWithWindowId,
-                     weak_ptr_this_));
+  ContinuePlayerWithWindowId();
 }
 
 void WebMediaPlayerWebRTC::OnVideoWindowDestroyed() {
@@ -249,90 +135,130 @@ void WebMediaPlayerWebRTC::OnVideoWindowDestroyed() {
   video_window_client_receiver_.reset();
 }
 
-void WebMediaPlayerWebRTC::OnVideoWindowGeometryChanged(const gfx::Rect& rect) {
-}
-
-void WebMediaPlayerWebRTC::OnVideoWindowVisibilityChanged(bool visibility) {}
-
 void WebMediaPlayerWebRTC::SetRenderMode(WebMediaPlayer::RenderMode mode) {
+  VLOG(1) << __func__ << " mode[" << render_mode_ << " -> " << mode << "]";
+
   if (render_mode_ == mode)
     return;
 
   render_mode_ = mode;
 
+  if (!video_frame_provider_impl_)
+    return;
+
 #if defined(NEVA_VIDEO_HOLE)
   video_frame_provider_impl_->SetFrameType(VideoFrameProviderImpl::kHole);
 #endif
-}
-
-void WebMediaPlayerWebRTC::SetDisableAudio(bool disable) {
-  if (media_platform_api_)
-    media_platform_api_->SetDisableAudio(disable);
+  video_frame_provider_impl_->UpdateVideoFrame();
 }
 
 bool WebMediaPlayerWebRTC::HandleVideoFrame(
     const scoped_refptr<media::VideoFrame>& video_frame) {
-  // For local stream video frames contains raw data in I420 format.
-  // So decoding is not needed hence we return the same to parent
-  // WebMediaPlayerMS class for rendering using chromium video layer.
-  // For remote streams we pass the buffer to platform media pipeline
-  // for decoding and rendering.
-  if (!video_frame->metadata().codec_id.has_value()) {
-    if (pipeline_running_ && media_platform_api_) {
-      main_task_runner_->PostTask(
-          FROM_HERE,
-          base::BindOnce(&WebMediaPlayerWebRTC::ReleaseMediaPlatformAPI,
-                         weak_ptr_this_));
+  // We handle only first and second video frame which comes via pass through
+  // decoder and has is_transparent_frame set to true.
+  // First frame is used to decide the compositor type and initializing the
+  // video window and second frame is used to start rendering the punch hole.
+  // Rest all video frames contains raw local camera frames in I420 format or
+  // frames from SW decoder to be rendered using WebMediaPlayerMSCompositor or
+  // the transparent video frames from pass through decoder to continue the
+  // webrtc pipeline
+  CompositorType compositor_type =
+      video_frame->metadata().is_transparent_frame
+          ? CompositorType::kVideoFrameProviderImpl
+          : CompositorType::kWebMediaPlayerMSCompositor;
+
+  if (compositor_type_ != compositor_type) {
+    if (compositor_type_ == CompositorType::kVideoFrameProviderImpl)
+      ResetForDecoderChange();
+
+    compositor_type_ = compositor_type;
+    if (has_first_frame_) {
+      absl::optional<media::VideoTransformation> new_transform =
+          media::kNoTransformation;
+      if (video_frame->metadata().transformation) {
+        new_transform = video_frame->metadata().transformation;
+        if (new_transform.has_value()) {
+          // Recreate video layer because we have fallen back to SW decoding.
+          compositor_task_runner_->PostTask(
+              FROM_HERE,
+              base::BindOnce(&WebMediaPlayerWebRTC::OnTransformChanged,
+                             weak_ptr_this_, *new_transform));
+        }
+      }
     }
+  }
+
+  if (compositor_type_ == CompositorType::kWebMediaPlayerMSCompositor) {
+    return true;
+  }
+
+  VLOG(2) << __func__ << "[" << this << "] "
+          << " storage_type=" << video_frame->storage_type()
+          << " frame_size=" << video_frame->natural_size().ToString()
+          << " delegate_id_: " << delegate_id_;
+
+  // This is first frame from new instance of pass through decoder.
+  if (!video_frame->metadata().media_player_suspend_cb.is_null()) {
+    if (!media_player_suspend_cb_.is_null())
+      media_player_suspend_cb_.Reset();
+
+    media_player_suspend_cb_ = video_frame->metadata().media_player_suspend_cb;
+    video_frame->metadata().media_player_suspend_cb.Reset();
+  }
+
+  if (!video_frame->metadata().media_player_init_cb.is_null()) {
+    if (!media_player_init_cb_.is_null())
+      media_player_init_cb_.Reset();
+
+    media_player_init_cb_ = video_frame->metadata().media_player_init_cb;
+    video_frame->metadata().media_player_init_cb.Reset();
+
+    // We are holding the video frame, so that we can return later using
+    // WebMediaPlayerMS::EnqueueFrame after video window is created.
+    // This ensures that OnFirstFrameReceived is called after video window is
+    // created, in order to create video layer with video_frame_provider_impl.
+    current_frame_ = std::move(video_frame);
+
+    main_task_runner_->PostTask(
+        FROM_HERE, base::BindOnce(&WebMediaPlayerWebRTC::CreateVideoWindow,
+                                  weak_ptr_this_));
     return false;
   }
 
-  if (software_fallback_callback_.is_null() &&
-      !video_frame->metadata().software_fallback_callback.is_null()) {
-    software_fallback_callback_ =
-        video_frame->metadata().software_fallback_callback;
-    if (pipeline_status_ == media::PIPELINE_ERROR_RESOURCE_IS_RELEASED ||
-        pipeline_status_ == media::PIPELINE_ERROR_ABORT) {
-      software_fallback_callback_.Run();
-      return true;
-    }
+  if (!video_play_started_) {
+    // This is second frame from pass through decoder after buffer feed.
+    // We can render punch hole now, as buffer feed has started already.
+    video_play_started_ = true;
+    main_task_runner_->PostTask(
+        FROM_HERE, base::BindOnce(&WebMediaPlayerWebRTC::SetRenderMode,
+                                  weak_ptr_this_, get_client()->RenderMode()));
   }
-
-  // The pipeline operation here might be incorrect, but encoded frame
-  // couldn't be handled somewhere else.
-  if (pipeline_status_ != media::PIPELINE_OK) {
-    LOG(ERROR) << __func__ << " : pipeline_status error";
-    return true;
-  }
-  codec_ = *(video_frame->metadata().codec_id);
-
-  if (is_suspended_)
-    return true;
-
-  if (!has_first_frame_) {
-    has_first_frame_ = true;
-    handle_encoded_frames_ = true;
-    EnqueueHoleFrame(video_frame);
-  }
-
-  main_task_runner_->PostTask(
-      FROM_HERE, base::BindOnce(&WebMediaPlayerWebRTC::HandleEncodedFrame,
-                                weak_ptr_this_, video_frame));
   return true;
 }
 
 void WebMediaPlayerWebRTC::TriggerResize() {
-  if (handle_encoded_frames_) {
-    gfx::Size size(NaturalSize());
+  gfx::Size size(NaturalSize());
 
-    video_frame_provider_impl_->SetNaturalVideoSize(size);
-    if (video_window_remote_)
-      video_window_remote_->SetVideoSize(coded_size_, natural_size_);
+  NEVA_VLOGTF(1) << "[" << this << "] size: " << size.ToString();
 
-    video_frame_provider_impl_->UpdateVideoFrame();
+  if (compositor_type_ != CompositorType::kVideoFrameProviderImpl) {
+    WebMediaPlayerMS::TriggerResize();
+    return;
   }
 
-  WebMediaPlayerMS::TriggerResize();
+  if (!video_frame_provider_impl_)
+    return;
+
+  video_frame_provider_impl_->SetNaturalVideoSize(size);
+  if (video_window_remote_)
+    video_window_remote_->SetVideoSize(coded_size_, natural_size_);
+
+  video_frame_provider_impl_->UpdateVideoFrame();
+
+  if (HasVideo())
+    get_client()->SizeChanged();
+
+  client_->DidPlayerSizeChange(NaturalSize());
 }
 
 void WebMediaPlayerWebRTC::OnFirstFrameReceived(
@@ -340,252 +266,118 @@ void WebMediaPlayerWebRTC::OnFirstFrameReceived(
     bool is_opaque) {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
 
-  if (handle_encoded_frames_) {
-    if (is_loading_) {
-      is_loading_ = false;
-      client_->DidMediaActivated();
-    }
+  NEVA_VLOGTF(1) << "[" << this << "] delegate_id_: " << delegate_id_;
 
-    has_first_frame_ = true;
-
-    OnTransformChanged(video_transform);
-    OnOpacityChanged(is_opaque);
-
-    SetReadyState(WebMediaPlayer::kReadyStateHaveMetadata);
-    SetReadyState(WebMediaPlayer::kReadyStateHaveEnoughData);
-
-    TriggerResize();
-    ResetCanvasCache();
+  if (compositor_type_ != CompositorType::kVideoFrameProviderImpl) {
+    WebMediaPlayerMS::OnFirstFrameReceived(video_transform, is_opaque);
     return;
   }
 
-  WebMediaPlayerMS::OnFirstFrameReceived(video_transform, is_opaque);
+  if (!video_frame_provider_impl_)
+    return;
+
+  has_first_frame_ = true;
+  OnTransformChanged(video_transform);
+  OnOpacityChanged(is_opaque);
+
+  SetReadyState(WebMediaPlayer::kReadyStateHaveMetadata);
+  SetReadyState(WebMediaPlayer::kReadyStateHaveEnoughData);
+
+  TriggerResize();
+  ResetCanvasCache();
 }
 
 void WebMediaPlayerWebRTC::OnTransformChanged(
     media::VideoTransformation video_transform) {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
 
-  if (handle_encoded_frames_) {
-    if (!bridge_) {
-      // Keep the old |video_layer_| alive until SetCcLayer() is called with
-      // a new pointer, as it may use the pointer from the last call.
-      auto new_video_layer = cc::VideoLayer::Create(
-          video_frame_provider_impl_.get(), video_transform);
-      get_client()->SetCcLayer(new_video_layer.get());
-      video_layer_ = std::move(new_video_layer);
-    }
+  NEVA_VLOGTF(1) << "[" << this << "] delegate_id_: " << delegate_id_;
+
+  if (compositor_type_ != CompositorType::kVideoFrameProviderImpl) {
+    WebMediaPlayerMS::OnTransformChanged(video_transform);
     return;
   }
 
-  WebMediaPlayerMS::OnTransformChanged(video_transform);
-}
-
-void WebMediaPlayerWebRTC::HandleEncodedFrame(
-    const scoped_refptr<media::VideoFrame>& encoded_frame) {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (!media_platform_api_) {
-    StartMediaPipeline();
-  }
-
-  {
-    base::AutoLock auto_lock(frame_lock_);
-
-    // While pipeline is initializing all pending encoded frames
-    // will be removed after receiving a new key frame.
-    if (encoded_frame->metadata().key_frame == true && !pipeline_running_)
-      pending_encoded_frames_.clear();
-    pending_encoded_frames_.push_back(encoded_frame);
-  }
-
-  if (pipeline_running_) {
-    media_task_runner_->PostTask(
-        FROM_HERE,
-        base::BindOnce(&WebMediaPlayerWebRTC::OnPipelineFeed, weak_ptr_this_));
-    EnqueueHoleFrame(encoded_frame);
-  }
-}
-
-void WebMediaPlayerWebRTC::StartMediaPipeline() {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (media_platform_api_)
+  if (!video_frame_provider_impl_)
     return;
 
-  // Create MediaPlatformAPI
-  if (create_media_platform_api_cb_) {
-    media_platform_api_ = create_media_platform_api_cb_.Run(
-        media_task_runner_, client_->IsVideo(), app_id_,
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnVideoSizeChanged),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnResumed),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnSuspended),
-        BIND_TO_RENDER_LOOP_VIDEO_FRAME_PROVIDER(
-            &VideoFrameProviderImpl::ActiveRegionChanged),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnPipelineError));
-  } else {
-    media_platform_api_ = media::MediaPlatformAPI::Create(
-        media_task_runner_, client_->IsVideo(), app_id_,
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnVideoSizeChanged),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnResumed),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnSuspended),
-        BIND_TO_RENDER_LOOP_VIDEO_FRAME_PROVIDER(
-            &VideoFrameProviderImpl::ActiveRegionChanged),
-        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnPipelineError));
+  if (!bridge_) {
+    auto new_video_layer = cc::VideoLayer::Create(
+        video_frame_provider_impl_.get(), video_transform);
+    get_client()->SetCcLayer(new_video_layer.get());
+    video_layer_ = std::move(new_video_layer);
   }
-
-  media_platform_api_->SetMediaPreferences(
-      media::MediaPreferences::Get()->GetRawMediaPreferences());
-  media_platform_api_->SetMediaCodecCapabilities(
-      media::MediaPreferences::Get()->GetMediaCodecCapabilities());
-
-  if (video_window_info_)
-    media_platform_api_->SetMediaLayerId(video_window_info_->native_window_id);
-
-  media_task_runner_->PostTask(
-      FROM_HERE, base::BindOnce(&WebMediaPlayerWebRTC::InitMediaPlatformAPI,
-                                weak_ptr_this_));
 }
 
-void WebMediaPlayerWebRTC::InitMediaPlatformAPI() {
-  NEVA_DCHECK(media_task_runner_->BelongsToCurrentThread());
-
-  // audio data handling and rendering path is separate. We are leaving
-  // it to be taken care by Chromium now. So, we dont need any audio config
-  media::AudioDecoderConfig audio_config;
-  media::VideoDecoderConfig video_config = GetVideoConfig();
-
-  NEVA_LOGTF(INFO) << ": natural_size: "
-                   << video_config.natural_size().ToString();
-
-  media_platform_api_->Initialize(
-      audio_config, video_config,
-      base::BindRepeating(&WebMediaPlayerWebRTC::OnMediaPlatformAPIInitialized,
-                          weak_factory_this_.GetWeakPtr()));
-}
-
-void WebMediaPlayerWebRTC::ReleaseMediaPlatformAPI() {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
+void WebMediaPlayerWebRTC::ResetForDecoderChange() {
   NEVA_VLOGTF(1);
 
-  is_destroying_ = true;
-
-  {
-    base::AutoLock auto_lock(frame_lock_);
-    pending_encoded_frames_.clear();
+  if (!media_player_init_cb_.is_null()) {
+    media_player_init_cb_.Run(
+        std::string(), std::string(), base::RepeatingClosure(),
+        base::RepeatingClosure(), MediaPlatformAPI::VideoSizeChangedCB(),
+        MediaPlatformAPI::ActiveRegionCB());
   }
+  media_player_init_cb_.Reset();
+  media_player_suspend_cb_.Reset();
 
-  compositor_->ReplaceCurrentFrameWithACopy();
+  video_play_started_ = false;
 
-  if (!media_platform_api_)
-    return;
-
-  handle_encoded_frames_ = false;
-  media_platform_api_->Finalize();
-
-  // Make sure to stop the pipeline so there's no more media threads running.
-  base::WaitableEvent event(base::WaitableEvent::ResetPolicy::AUTOMATIC,
-                            base::WaitableEvent::InitialState::NOT_SIGNALED);
-  media_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&base::WaitableEvent::Signal, base::Unretained(&event)));
-  event.Wait();
-
-  media_platform_api_ = nullptr;
-
-  pipeline_running_ = false;
-  pipeline_status_ = media::PIPELINE_OK;
-  has_first_frame_ = false;
-}
-
-void WebMediaPlayerWebRTC::OnPipelineFeed() {
-  NEVA_DCHECK(media_task_runner_->BelongsToCurrentThread());
-
-  if (is_destroying_)
-    return;
-
-  std::vector<scoped_refptr<media::VideoFrame>> encoded_frames;
-  {
-    base::AutoLock auto_lock(frame_lock_);
-    encoded_frames.swap(pending_encoded_frames_);
-  }
-
-  for (const auto& encoded_frame : encoded_frames) {
-    scoped_refptr<media::DecoderBuffer> buffer = media::DecoderBuffer::CopyFrom(
-        encoded_frame->data(0), encoded_frame->data_size(0));
-    buffer->set_timestamp(encoded_frame->timestamp());
-    buffer->set_is_key_frame(encoded_frame->metadata().key_frame == true);
-    media_platform_api_->Feed(buffer, media::FeedType::kVideo);
+  if (video_frame_provider_impl_) {
+    compositor_task_runner_->DeleteSoon(FROM_HERE,
+                                        std::move(video_frame_provider_impl_));
+    video_frame_provider_impl_ = nullptr;
   }
 }
 
 void WebMediaPlayerWebRTC::SuspendInternal() {
-  NEVA_LOGTF(INFO) << ": delegate_id_: " << delegate_id_;
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
+
+  if (!video_frame_provider_impl_)
+    return;
 
   if (is_suspended_)
     return;
 
-  status_on_suspended_ = Paused() ? StatusOnSuspended::PausedStatus
-                                  : StatusOnSuspended::PlayingStatus;
-  if (media_platform_api_) {
-    media::SuspendReason reason =
-        client_->IsSuppressedMediaPlay()
-            ? media::SuspendReason::kBackgrounded
-            : media::SuspendReason::kSuspendedByPolicy;
-    media_platform_api_->Suspend(reason);
-  }
-
   is_suspended_ = true;
-  has_activation_permit_ = false;
 
-  // Usually we wait until OnSuspended(), but send DidMediaSuspended()
-  // immediately when media_platform_api_ is null.
-  if (!media_platform_api_)
-    client_->DidMediaSuspended();
+  if (!media_player_suspend_cb_.is_null())
+    media_player_suspend_cb_.Run(true);
+
+  if (HasVideo())
+    video_frame_provider_impl_->SetFrameType(VideoFrameProviderImpl::kBlack);
 }
 
 void WebMediaPlayerWebRTC::ResumeInternal() {
-  NEVA_LOGTF(INFO) << ": delegate_id_: " << delegate_id_;
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
+
+  if (!video_frame_provider_impl_)
+    return;
 
   if (!is_suspended_)
     return;
 
   is_suspended_ = false;
 
-  media::RestorePlaybackMode restore_playback_mode =
-      (status_on_suspended_ == StatusOnSuspended::PausedStatus)
-          ? media::RestorePlaybackMode::kPaused
-          : media::RestorePlaybackMode::kPlaying;
-
-  if (media_platform_api_) {
-    media_platform_api_->Resume(paused_time_, restore_playback_mode);
-  } else {
-    // Usually we wait until OnResumed(), but send DidMediaActivated()
-    // immediately when media_platform_api_ is null.
-    client_->DidMediaActivated();
-  }
-}
-
-void WebMediaPlayerWebRTC::OnLoadPermitted() {
-  // call base-class implementation
-  if (!EnsureVideoWindowCreated()) {
-    pending_load_media_ = true;
-    return;
-  }
-
-  main_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&WebMediaPlayerWebRTC::ContinuePlayerWithWindowId,
-                     weak_ptr_this_));
+  if (!media_player_suspend_cb_.is_null())
+    media_player_suspend_cb_.Run(false);
 }
 
 void WebMediaPlayerWebRTC::OnVideoSizeChanged(const gfx::Size& coded_size,
                                               const gfx::Size& natural_size) {
-  NEVA_VLOGTF(1) << "natural_size: " << natural_size.ToString();
+  NEVA_VLOGTF(1) << "[" << this << "]"
+                 << " natural_size: " << natural_size.ToString()
+                 << " delegate_id_: " << delegate_id_;
+
+  if (natural_size_ == natural_size)
+    return;
 
   coded_size_ = coded_size;
   natural_size_ = natural_size;
+
+  if (video_frame_provider_impl_)
+    video_frame_provider_impl_->SetNaturalVideoSize(natural_size_);
+
   if (video_window_remote_)
     video_window_remote_->SetVideoSize(coded_size_, natural_size_);
 }
@@ -593,21 +385,38 @@ void WebMediaPlayerWebRTC::OnVideoSizeChanged(const gfx::Size& coded_size,
 void WebMediaPlayerWebRTC::OnResumed() {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
 
-  if (status_on_suspended_ == StatusOnSuspended::PausedStatus) {
-    Pause();
-    status_on_suspended_ = StatusOnSuspended::UnknownStatus;
-  } else {
-    Play();
-    client_->ResumePlayback();
-  }
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
 
-  client_->DidMediaActivated();
+  if (!video_frame_provider_impl_)
+    return;
+
+  Play();
+  client_->ResumePlayback();
+
+  if (HasVideo()) {
+    video_frame_provider_impl_->SetFrameType(VideoFrameProviderImpl::kHole);
+  }
 }
 
 void WebMediaPlayerWebRTC::OnSuspended() {
   DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
+  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_;
+}
 
-  client_->DidMediaSuspended();
+void WebMediaPlayerWebRTC::CreateVideoWindow() {
+  NEVA_VLOGTF(1);
+
+  if (!video_frame_provider_impl_) {
+    video_frame_provider_impl_ =
+        std::make_unique<VideoFrameProviderImpl>(compositor_task_runner_);
+    video_frame_provider_impl_->SetWebLocalFrame(web_local_frame_);
+    video_frame_provider_impl_->SetWebMediaPlayerClient(client_);
+  }
+
+  if (!EnsureVideoWindowCreated())
+    return;
+
+  ContinuePlayerWithWindowId();
 }
 
 // It returns true if video window is already created and can be continued
@@ -641,129 +450,20 @@ void WebMediaPlayerWebRTC::ContinuePlayerWithWindowId() {
 
   NEVA_VLOGTF(1);
 
-  if (pending_load_media_) {
-    // call base-class implementation
-    WebMediaPlayerSource pending_source(pending_stream_);
-    WebMediaPlayerMS::Load(pending_load_type_, pending_source,
-                           pending_cors_mode_, pending_is_cache_disabled_);
-    pending_load_media_ = false;
-  }
-}
-
-void WebMediaPlayerWebRTC::OnMediaPlatformAPIInitialized(
-    media::PipelineStatus status) {
-  DCHECK_CALLED_ON_VALID_THREAD(thread_checker_);
-
-  if (is_destroying_ || !media_platform_api_) {
-    NEVA_LOGTF(ERROR) << "Is destroying";
-    return;
+  if (!media_player_init_cb_.is_null()) {
+    media_player_init_cb_.Run(
+        app_id_, video_window_info_->native_window_id,
+        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnSuspended),
+        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnResumed),
+        BIND_TO_RENDER_LOOP(&WebMediaPlayerWebRTC::OnVideoSizeChanged),
+        BIND_TO_RENDER_LOOP_VIDEO_FRAME_PROVIDER(
+            &VideoFrameProviderImpl::ActiveRegionChanged));
   }
 
-  NEVA_VLOGTF(1) << "status : " << status;
-  pipeline_running_ = true;
-  pipeline_status_ = status;
-
-  media_platform_api_->SetPlaybackRate(1.0f);
-
-  scoped_refptr<media::VideoFrame> encoded_frame;
-  {
-    base::AutoLock auto_lock(frame_lock_);
-    NEVA_DCHECK(!pending_encoded_frames_.empty());
-    encoded_frame = pending_encoded_frames_.back();
+  if (current_frame_) {
+    WebMediaPlayerMS::EnqueueFrame(std::move(current_frame_));
+    current_frame_ = nullptr;
   }
-
-  EnqueueHoleFrame(encoded_frame);
-
-  media_task_runner_->PostTask(
-      FROM_HERE,
-      base::BindOnce(&WebMediaPlayerWebRTC::OnPipelineFeed, weak_ptr_this_));
-}
-
-void WebMediaPlayerWebRTC::OnPipelineError(media::PipelineStatus status) {
-  NEVA_VLOGTF(1) << ": delegate_id_: " << delegate_id_
-                 << " status : " << status;
-
-  if (is_loading_) {
-    is_loading_ = false;
-    client_->DidMediaActivated();
-  }
-
-  if (is_destroying_)
-    return;
-
-  if ((status == media::PIPELINE_ERROR_RESOURCE_IS_RELEASED ||
-       status == media::PIPELINE_ERROR_ABORT) &&
-      !software_fallback_callback_.is_null())
-    software_fallback_callback_.Run();
-
-  {
-    base::AutoLock auto_lock(frame_lock_);
-    pending_encoded_frames_.clear();
-  }
-
-  compositor_->ReplaceCurrentFrameWithACopy();
-
-  pipeline_running_ = false;
-  pipeline_status_ = status;
-
-  SetNetworkState(PipelineErrorToNetworkState(status));
-
-  RepaintInternal();
-}
-
-void WebMediaPlayerWebRTC::EnqueueHoleFrame(
-    const scoped_refptr<media::VideoFrame>& input_frame) {
-  if (frame_size_ == input_frame->natural_size())
-    return;
-
-  frame_size_ = input_frame->natural_size();
-
-  scoped_refptr<media::VideoFrame> video_frame =
-      media::VideoFrame::CreateTransparentFrame(frame_size_);
-
-  if (video_frame.get()) {
-    video_frame->set_timestamp(input_frame->timestamp());
-
-    // Copy all metadata to the video frame.
-    video_frame->metadata().MergeMetadataFrom(input_frame->metadata());
-
-    // WebMediaPlayerMSCompositor::EnqueueFrame needs VideoFrame to continue
-    // the webrtc video pipeline. So we pass hole frame to the same.
-    WebMediaPlayerMS::EnqueueHoleFrame(video_frame);
-
-    RepaintInternal();
-  }
-}
-
-media::VideoDecoderConfig WebMediaPlayerWebRTC::GetVideoConfig() {
-  media::VideoCodecProfile profile = media::VIDEO_CODEC_PROFILE_UNKNOWN;
-  switch (codec_) {
-    case media::VideoCodec::kH264:
-      profile = media::H264PROFILE_MIN;
-      break;
-    case media::VideoCodec::kVP8:
-      profile = media::VP8PROFILE_ANY;
-      break;
-    case media::VideoCodec::kVP9:
-      profile = media::VP9PROFILE_MIN;
-      break;
-    default:
-      // forgot to handle new encoded video format?
-      NOTREACHED();
-      break;
-  }
-  NEVA_LOGTF(INFO) << ", codec: " << codec_
-                   << ", name: " << media::GetCodecName(codec_);
-
-  media::VideoDecoderConfig video_config(
-      codec_, profile, media::VideoDecoderConfig::AlphaMode::kIsOpaque,
-      media::VideoColorSpace(), media::kNoTransformation, kDefaultSize,
-      gfx::Rect(kDefaultSize),
-      // kDefaultSize, media::EmptyExtraData(), media::Unencrypted());
-      kDefaultSize, media::EmptyExtraData(),
-      media::EncryptionScheme::kUnencrypted);
-  video_config.set_live_stream(true);
-  return video_config;
 }
 
 }  // namespace blink

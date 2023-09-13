@@ -29,6 +29,11 @@ void OnMediaFileCheckerError(bool* called) {
   *called = false;
 }
 
+#if defined(USE_NEVA_WEBRTC)
+// Fixing error: reference to 'Decoder' is ambiguous
+#define Decoder DecoderCtx
+#endif
+
 struct Decoder {
   std::unique_ptr<AVCodecContext, ScopedPtrAVFreeContext> context;
   std::unique_ptr<FFmpegDecodingLoop> loop;

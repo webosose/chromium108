@@ -16,7 +16,7 @@
 
 #if defined(USE_NEVA_WEBRTC)
 #include "base/callback.h"
-#include "media/base/video_codecs.h"
+#include "media/neva/media_platform_api.h"
 #endif
 
 namespace media {
@@ -36,13 +36,20 @@ struct MEDIA_EXPORT VideoFrameMetadata {
   void ClearTextureFrameMedatada();
 
 #if defined(USE_NEVA_WEBRTC)
-  // This is a boolean that indicates that the frame is a key frame or not
-  absl::optional<bool> key_frame;
-  // This is codec information to deliver to WebMediaPlayerWebRTC
-  absl::optional<media::VideoCodec> codec_id;
-  // This is callback to request to change to SW fallback caused by media
-  // pipeline release in WebMediaPlayer_WebRTC
-  base::RepeatingCallback<void()> software_fallback_callback;
+  // To inform that this is a transparent frame from pass through decoder
+  bool is_transparent_frame = false;
+
+  // Callback passed to WebMediaPlayerWebRTC for receiving player details
+  base::RepeatingCallback<void(const std::string&,
+                               const std::string&,
+                               const base::RepeatingClosure&,
+                               const base::RepeatingClosure&,
+                               const MediaPlatformAPI::VideoSizeChangedCB&,
+                               const MediaPlatformAPI::ActiveRegionCB&)>
+      media_player_init_cb;
+
+  // Callback passed to WebMediaPlayerWebRTC for receiving suspend status
+  base::RepeatingCallback<void(bool)> media_player_suspend_cb;
 #endif
 
   // Sources of VideoFrames use this marker to indicate that the associated

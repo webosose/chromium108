@@ -520,6 +520,13 @@ GpuVideoAcceleratorFactoriesImpl::GetTaskRunner() {
   return task_runner_;
 }
 
+#if defined(USE_NEVA_WEBRTC)
+scoped_refptr<base::SequencedTaskRunner>
+GpuVideoAcceleratorFactoriesImpl::GetMainTaskRunner() {
+  return main_thread_task_runner_;
+}
+#endif
+
 absl::optional<media::VideoEncodeAccelerator::SupportedProfiles>
 GpuVideoAcceleratorFactoriesImpl::GetVideoEncodeAcceleratorSupportedProfiles() {
   base::AutoLock lock(supported_profiles_lock_);

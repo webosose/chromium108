@@ -288,7 +288,7 @@ std::unique_ptr<webrtc::VideoDecoderFactory> CreateWebrtcVideoDecoderFactory(
       cmd_line->HasSwitch(switches::kEnableWebRTCPlatformVideoDecoder)) {
     decoder_factory_neva =
         std::make_unique<media::NevaWebRtcVideoDecoderFactory>(
-            gpu_factories->GetTaskRunner());
+            gpu_factories->GetMainTaskRunner(), std::move(media_task_runner));
   }
   if (decoder_factory_neva) {
     return std::make_unique<DecoderAdapter>(std::move(decoder_factory_neva),

@@ -281,7 +281,8 @@ void MediaPlatformAPIWebOSGmp::Seek(base::TimeDelta time) {
 void MediaPlatformAPIWebOSGmp::Suspend(SuspendReason reason) {
   std::lock_guard<std::recursive_mutex> lock(recursive_mutex_);
   VLOG(1) << " media_player_client_=" << media_player_client_.get()
-          << "is_finalized_=" << is_finalized_;
+          << " is_finalized_=" << is_finalized_
+          << " load_completed_=" << load_completed_;
 
   if (player_event_cb_)
     player_event_cb_.Run(PlayerEvent::kSuspendDone);
@@ -753,6 +754,8 @@ void MediaPlatformAPIWebOSGmp::NotifyLoadComplete() {
 }
 
 bool MediaPlatformAPIWebOSGmp::MakeLoadData(int64_t start_time, void* data) {
+  VLOG(1) << __func__ << " start_time=" << start_time;
+
   MEDIA_LOAD_DATA_T* load_data = static_cast<MEDIA_LOAD_DATA_T*>(data);
   load_data->maxWidth = 1920;
   load_data->maxHeight = 1080;
@@ -783,6 +786,9 @@ bool MediaPlatformAPIWebOSGmp::MakeLoadData(int64_t start_time, void* data) {
     load_data->extraSize = video_config_.extra_data().size();
 #if defined(USE_GAV)
     load_data->windowId = const_cast<char*>(get_media_layer_id().c_str());
+#endif
+#if defined(USE_NEVA_WEBRTC)
+    load_data->liveStream = video_config_.is_live_stream();
 #endif
   }
 
@@ -827,7 +833,7 @@ bool MediaPlatformAPIWebOSGmp::IsReleasedMediaResource() {
 }
 
 void MediaPlatformAPIWebOSGmp::Unload() {
-  VLOG(1);
+  VLOG(1) << __func__ << " load_completed_=" << load_completed_;
 
   std::lock_guard<std::recursive_mutex> lock(recursive_mutex_);
 
