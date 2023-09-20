@@ -278,8 +278,17 @@ void NevaLayerOverlayProcessor::ProcessAggregatedRenderPass(
           quad_rect_in_root_target);
       base::UnguessableToken overlay_plane_id =
           VideoHoleDrawQuad::MaterialCast(*it)->overlay_plane_id;
-      render_pass->ReplaceExistingQuadWithSolidColor(
-          it, SkColors::kTransparent, SkBlendMode::kSrcOver, true);
+      // Replace color with black instead of transparent and blend mode with
+      // DstOut instead of SrcOver in order to preserve opacity value in case
+      // video hole quad is set to opacity < 1.f and blend mode SrcOver.
+      // Referred this logic from ProcessForUnderlay of dc_layer_overlay.cc
+      bool should_blend =
+          it->ShouldDrawWithBlending() &&
+          it->shared_quad_state->blend_mode == SkBlendMode::kSrcOver &&
+          it->shared_quad_state->opacity < 1.f;
+      render_pass->ReplaceExistingQuadWithSolidColor(it,
+          should_blend ? SkColors::kBlack : SkColors::kTransparent,
+          should_blend ? SkBlendMode::kDstOut : SkBlendMode::kSrcOver, true);
       if (video_window_geometry_manager_ &&
           video_window_geometry_manager_->IsInitialized()) {
         video_window_geometry_manager_->NotifyVideoWindowGeometryChanged(
