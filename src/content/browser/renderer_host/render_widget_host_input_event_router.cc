@@ -32,6 +32,11 @@
 #include "ui/compositor/compositor.h"
 #include "ui/gfx/geometry/dip_util.h"
 
+#if defined(ENABLE_PINCH_TO_ZOOM)
+#include "content/browser/renderer_host/render_view_host_delegate.h"
+#include "content/browser/renderer_host/render_view_host_impl.h"
+#endif
+
 namespace {
 
 // Transforms WebTouchEvent touch positions from the root view coordinate
@@ -1484,6 +1489,11 @@ void RenderWidgetHostInputEventRouter::DispatchTouchscreenGestureEvent(
     const blink::WebGestureEvent& gesture_event,
     const ui::LatencyInfo& latency,
     const absl::optional<gfx::PointF>& target_location) {
+#if defined(ENABLE_PINCH_TO_ZOOM)
+  if (MaybeDispatchPinchGestureEventToContentArea(gesture_event, latency)) {
+    return;
+  }
+#endif
   if (gesture_event.GetType() ==
       blink::WebInputEvent::Type::kGesturePinchBegin) {
     if (root_view == touchscreen_gesture_target_.get()) {
@@ -1658,6 +1668,45 @@ void RenderWidgetHostInputEventRouter::DispatchTouchscreenGestureEvent(
   if (is_gesture_end)
     SetTouchscreenGestureTarget(nullptr);
 }
+
+#if defined(ENABLE_PINCH_TO_ZOOM)
+bool RenderWidgetHostInputEventRouter ::
+    MaybeDispatchPinchGestureEventToContentArea(
+        const blink::WebGestureEvent& gesture_event,
+        const ui::LatencyInfo& latency) {
+  if (touchscreen_gesture_target_ &&
+      blink::WebInputEvent::IsPinchGestureEventType(gesture_event.GetType())) {
+    auto* target_rvhi = RenderViewHostImpl::From(
+        touchscreen_gesture_target_->GetRenderWidgetHost());
+    if (!target_rvhi || !target_rvhi->GetDelegate())
+      return false;
+
+    if (target_rvhi->GetDelegate()->IsGuest()) {
+      auto* target_rwhi = static_cast<RenderWidgetHostImpl*>(
+          touchscreen_gesture_target_->GetRenderWidgetHost());
+      if (!target_rwhi || !target_rwhi->delegate())
+        return false;
+
+      auto* input_event_router = static_cast<RenderWidgetHostInputEventRouter*>(
+          target_rwhi->delegate()->GetInputEventRouter());
+      if (!input_event_router)
+        return false;
+
+      if (gesture_event.GetType() ==
+          blink::WebInputEvent::Type::kGesturePinchBegin) {
+        input_event_router->touchscreen_pinch_state_.DidStartPinchInRoot();
+      }
+      touchscreen_gesture_target_->ProcessGestureEvent(gesture_event, latency);
+      if (gesture_event.GetType() ==
+          blink::WebInputEvent::Type::kGesturePinchEnd) {
+        input_event_router->touchscreen_pinch_state_.DidStopPinch();
+      }
+      return true;
+    }
+  }
+  return false;
+}
+#endif
 
 void RenderWidgetHostInputEventRouter::RouteTouchscreenGestureEvent(
     RenderWidgetHostViewBase* root_view,

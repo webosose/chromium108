@@ -715,6 +715,11 @@ bool WebViewGuest::HandleKeyboardEvent(
 
 bool WebViewGuest::PreHandleGestureEvent(WebContents* source,
                                          const blink::WebGestureEvent& event) {
+#if defined(ENABLE_PINCH_TO_ZOOM)
+  if (blink::WebInputEvent::IsPinchGestureEventType(event.GetType())) {
+    return false;
+  }
+#endif
   return !allow_scaling_ && GuestViewBase::PreHandleGestureEvent(source, event);
 }
 

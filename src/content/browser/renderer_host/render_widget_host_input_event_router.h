@@ -311,7 +311,12 @@ class CONTENT_EXPORT RenderWidgetHostInputEventRouter final
       const blink::WebGestureEvent& gesture_event,
       const ui::LatencyInfo& latency,
       const absl::optional<gfx::PointF>& target_location);
-
+#if defined(ENABLE_PINCH_TO_ZOOM)
+  // Dispatch |pinch_event| to |touchscreen_gesture_target_|
+  bool MaybeDispatchPinchGestureEventToContentArea(
+      const blink::WebGestureEvent& gesture_event,
+      const ui::LatencyInfo& latency);
+#endif
   // TODO(828422): Remove once this issue no longer occurs.
   void ReportBubblingScrollToSameView(const blink::WebGestureEvent& event,
                                       const RenderWidgetHostViewBase* view);

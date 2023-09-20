@@ -71,6 +71,9 @@ declare_args() {
 
   use_webrisk_database = true
 
+  # Enable pinch-to-zoom feature for the content area
+  enable_pinch_to_zoom = true
+
   # To be used as CBE library
   use_cbe = false
 

@@ -43,6 +43,10 @@
 #include "ui/gfx/geometry/size_f.h"
 #include "ui/touch_selection/touch_selection_controller.h"
 
+#if defined(ENABLE_PINCH_TO_ZOOM)
+#include "content/browser/renderer_host/render_view_host_delegate.h"
+#endif
+
 namespace content {
 
 // static
@@ -925,6 +929,14 @@ RenderWidgetHostViewChildFrame::FilterInputEvent(
     // child's TouchActionFilter filter them, but we may encounter
     // https://crbug.com/771330 which would let the pinch events through.
     if (gesture_event.SourceDevice() == blink::WebGestureDevice::kTouchscreen) {
+#if defined(ENABLE_PINCH_TO_ZOOM)
+      auto* target_rvhi = RenderViewHostImpl::From(GetRenderWidgetHost());
+      // We only target the GesturePinch to GuestView now.
+      if (target_rvhi && target_rvhi->GetDelegate() &&
+          target_rvhi->GetDelegate()->IsGuest()) {
+        return blink::mojom::InputEventResultState::kNotConsumed;
+      }
+#endif
       return blink::mojom::InputEventResultState::kConsumed;
     }
     NOTREACHED();
