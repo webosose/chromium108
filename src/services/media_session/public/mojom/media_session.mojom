@@ -248,13 +248,9 @@ interface MediaSessionObserver {
   // Called when the position associated with the session has changed.
   MediaSessionPositionChanged@4(MediaPosition? position);
 
-
-  // TODO(M108): Need to check whether below codes is still required.
-  // Because neva refactored code by removing MediaSessionRequestChanged and
-  // used RequestMediaSession internally.
   // Called when the Observed MediaSession Request has changed
-  //[EnableIf=is_webos]
-  //MediaSessionRequestChanged@5(mojo_base.mojom.UnguessableToken? request_id);
+  [EnableIf=is_webos]
+  MediaSessionRequestChanged@5(mojo_base.mojom.UnguessableToken? request_id);
 };
 
 // A MediaSession manages the media session and audio focus for a given

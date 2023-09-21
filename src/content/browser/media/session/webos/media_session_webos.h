@@ -48,6 +48,8 @@ class MediaSessionWebOS final
   ~MediaSessionWebOS() override;
 
   // media_session::mojom::MediaSessionObserver implementation:
+  void MediaSessionRequestChanged(
+      const absl::optional<base::UnguessableToken>& request_id) override;
   void MediaSessionInfoChanged(
       media_session::mojom::MediaSessionInfoPtr session_info) override;
   void MediaSessionMetadataChanged(
@@ -78,33 +80,34 @@ class MediaSessionWebOS final
     kStopped,
   };
 
-  void RequestMediaSession(const std::string& request_id);
   bool RegisterMediaSession(const std::string& session_id);
   void UnregisterMediaSession();
   bool ActivateMediaSession(const std::string& session_id);
   void DeactivateMediaSession();
-  void SetPlaybackStatus(PlaybackState playback_state);
+
+  // Sets the current Playback Status to MCS.
+  void SetPlaybackStatusInternal(PlaybackState playback_state);
+
+  // Sets the playback position and duration value to MCS.
+  void SetMediaPositionInternal(const base::TimeDelta& position);
 
   // Sets a value on the Metadata property and sends to MCS if necessary.
-  void SetMetadataProperty(const std::string& property,
-                           const std::string& value);
+  void SetMetadataPropertyInternal(const std::string& property,
+                                   const std::u16string& value);
 
   // Receives the response from MCS and takes necessary action.
   void ReceiveMediaKeyEvent(const std::string& payload);
 
   void CheckReplyStatusMessage(const std::string& message);
   void HandleMediaKeyEvent(const std::string* key_event);
-  void SetMediaTitle(const std::u16string& value);
-  void SetMediaArtist(const std::u16string& value);
-  void SetMediaAlbum(const std::u16string& value);
 
   MediaSessionWebOS::PlaybackState ConvertIntoWebOSPlaybackState(
       media_session::mojom::MediaPlaybackState mojom_state);
 
   // True if registration requested to com.webos.service.mediacontroller
   // service.
-  bool registration_requested_ = false;
-  bool mcs_call_denied_ = false;
+  bool registered_ = false;
+  bool mcs_permission_error_ = false;
 
   MediaSessionImpl* const media_session_;
 
@@ -113,9 +116,6 @@ class MediaSessionWebOS final
 
   LSMessageToken subscribe_key_ = 0;
   std::unique_ptr<base::LunaServiceClient> luna_service_client_;
-
-  media_session::mojom::MediaSessionInfo_SessionState state_ =
-      media_session::mojom::MediaSessionInfo_SessionState::kInactive;
 
   MediaSessionWebOS::PlaybackState playback_state_ = PlaybackState::kStopped;
   base::TimeDelta duration_;

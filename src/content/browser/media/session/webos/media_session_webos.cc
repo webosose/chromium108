@@ -96,43 +96,63 @@ MediaSessionWebOS::MediaSessionWebOS(MediaSessionImpl* session)
 
   application_id_ = renderer_prefs->application_id + renderer_prefs->display_id;
 
-  NEVA_VLOGTF(0) << " Application id: " << application_id_;
+  NEVA_VLOGTF(1) << " Application id: " << application_id_;
 
   session->AddObserver(observer_receiver_.BindNewPipeAndPassRemote());
 }
 
 MediaSessionWebOS::~MediaSessionWebOS() {
-  NEVA_VLOGTF(0);
+  NEVA_VLOGTF(1);
   UnregisterMediaSession();
+}
+
+void MediaSessionWebOS::MediaSessionRequestChanged(
+    const absl::optional<base::UnguessableToken>& request_id) {
+  NEVA_VLOGTF(1);
+
+  if (!session_id_.empty()) {
+    // Previous session is active. Deactivate it.
+    UnregisterMediaSession();
+  }
+
+  if (!request_id.has_value()) {
+    NEVA_LOGF(ERROR) << " Session id is not received";
+    return;
+  }
+
+  if (!RegisterMediaSession(request_id->ToString())) {
+    NEVA_LOGF(ERROR) << " Register session failed for "
+                     << request_id->ToString();
+    return;
+  }
+
+  if (!ActivateMediaSession(request_id->ToString())) {
+    NEVA_LOGF(ERROR) << " Activate session failed for "
+                     << request_id->ToString();
+    return;
+  }
+
+  session_id_ = request_id->ToString();
 }
 
 void MediaSessionWebOS::MediaSessionInfoChanged(
     media_session::mojom::MediaSessionInfoPtr session_info) {
-  NEVA_VLOGTF(1) << " state: " << session_info->state
-                 << ", playback_state: " << session_info->playback_state
-                 << ", session_id_: " << session_id_
-                 << ", request_id: " << media_session_->GetRequestId()
-                 << ", registration_requested_: " << registration_requested_
-                 << ", mcs_call_denied_: " << mcs_call_denied_;
-  if (mcs_call_denied_)
+  NEVA_VLOGTF(1) << ", playback_state: " << session_info->playback_state;
+  if (session_id_.empty() || mcs_permission_error_)
     return;
 
-  if (!registration_requested_ &&
-      media_session::mojom::MediaSessionInfo_SessionState::kActive ==
-          session_info->state) {
-    NEVA_LOGF(INFO) << " state: active";
-    RequestMediaSession(media_session_->GetRequestId().ToString());
+  PlaybackState playback_state =
+      ConvertIntoWebOSPlaybackState(session_info->playback_state);
+  if (playback_state_ == playback_state)
     return;
-  }
 
-  SetPlaybackStatus(
-      ConvertIntoWebOSPlaybackState(session_info->playback_state));
+  SetPlaybackStatusInternal(playback_state_);
 }
 
 void MediaSessionWebOS::MediaSessionMetadataChanged(
     const absl::optional<media_session::MediaMetadata>& metadata) {
   NEVA_VLOGTF(1);
-  if (mcs_call_denied_)
+  if (session_id_.empty() || mcs_permission_error_)
     return;
 
   if (!metadata.has_value()) {
@@ -140,29 +160,19 @@ void MediaSessionWebOS::MediaSessionMetadataChanged(
     return;
   }
 
-  SetMediaAlbum(metadata->title);
-  SetMediaArtist(metadata->artist);
-  SetMediaTitle(metadata->album);
-}
+  if (!metadata->title.empty())
+    SetMetadataPropertyInternal(kMediaMetaDataTitle, metadata->title);
 
-void MediaSessionWebOS::SetMediaAlbum(const std::u16string& value) {
-  if (!value.empty())
-    SetMetadataProperty(kMediaMetaDataAlbum, base::UTF16ToUTF8(value));
-}
+  if (!metadata->artist.empty())
+    SetMetadataPropertyInternal(kMediaMetaDataArtist, metadata->artist);
 
-void MediaSessionWebOS::SetMediaArtist(const std::u16string& value) {
-  if (!value.empty())
-    SetMetadataProperty(kMediaMetaDataArtist, base::UTF16ToUTF8(value));
-}
-
-void MediaSessionWebOS::SetMediaTitle(const std::u16string& value) {
-  if (!value.empty())
-    SetMetadataProperty(kMediaMetaDataTitle, base::UTF16ToUTF8(value));
+  if (!metadata->album.empty())
+    SetMetadataPropertyInternal(kMediaMetaDataAlbum, metadata->album);
 }
 
 void MediaSessionWebOS::MediaSessionPositionChanged(
     const absl::optional<media_session::MediaPosition>& position) {
-  if (mcs_call_denied_)
+  if (session_id_.empty() || mcs_permission_error_)
     return;
 
   if (!position.has_value()) {
@@ -170,26 +180,7 @@ void MediaSessionWebOS::MediaSessionPositionChanged(
     return;
   }
 
-  NEVA_VLOGTF(3);
-
-  base::DictionaryValue root_dict;
-  root_dict.SetStringKey(kMediaId, session_id_);
-  root_dict.SetStringKey(kMediaPlayPosition,
-                         std::to_string(position->GetPosition().InSecondsF()));
-
-  std::string payload;
-  if (!base::JSONWriter::Write(root_dict, &payload)) {
-    NEVA_LOGF(ERROR) << " Failed to write setMediaPlayPosition payload";
-    return;
-  }
-
-  NEVA_VLOGTF(1) << " payload: " << payload;
-  luna_service_client_->CallAsync(
-      base::LunaServiceClient::GetServiceURI(
-          base::LunaServiceClient::URIType::MEDIACONTROLLER,
-          kSetMediaPlayPosition),
-      payload,
-      BIND_TO_CURRENT_LOOP(&MediaSessionWebOS::CheckReplyStatusMessage));
+  SetMediaPositionInternal(position->GetPosition());
 
   // Send duration
   base::TimeDelta new_duration = position->duration();
@@ -197,8 +188,8 @@ void MediaSessionWebOS::MediaSessionPositionChanged(
     return;
 
   duration_ = new_duration;
-  SetMetadataProperty(kMediaMetaDataTotalDuration,
-                      std::to_string(position->duration().InSecondsF()));
+  SetMetadataPropertyInternal(kMediaMetaDataTotalDuration,
+                              base::NumberToString16(duration_.InSecondsF()));
 }
 
 bool MediaSessionWebOS::RegisterMediaSession(const std::string& session_id) {
@@ -226,12 +217,12 @@ bool MediaSessionWebOS::RegisterMediaSession(const std::string& session_id) {
       payload, &subscribe_key_,
       BIND_TO_CURRENT_LOOP(&MediaSessionWebOS::ReceiveMediaKeyEvent));
 
-  registration_requested_ = true;
+  registered_ = true;
   return true;
 }
 
 void MediaSessionWebOS::UnregisterMediaSession() {
-  if (!registration_requested_) {
+  if (!registered_) {
     NEVA_LOGF(ERROR) << " Session is already unregistered";
     return;
   }
@@ -242,7 +233,7 @@ void MediaSessionWebOS::UnregisterMediaSession() {
   }
 
   if (playback_state_ != PlaybackState::kStopped)
-    SetPlaybackStatus(PlaybackState::kStopped);
+    SetPlaybackStatusInternal(PlaybackState::kStopped);
 
   base::DictionaryValue root_dict;
   root_dict.SetKey(kMediaId, base::Value(session_id_));
@@ -263,7 +254,7 @@ void MediaSessionWebOS::UnregisterMediaSession() {
 
   luna_service_client_->Unsubscribe(subscribe_key_);
 
-  registration_requested_ = false;
+  registered_ = false;
   session_id_ = std::string();
   duration_ = base::TimeDelta();
 }
@@ -318,7 +309,8 @@ void MediaSessionWebOS::DeactivateMediaSession() {
       BIND_TO_CURRENT_LOOP(&MediaSessionWebOS::CheckReplyStatusMessage));
 }
 
-void MediaSessionWebOS::SetPlaybackStatus(PlaybackState playback_state) {
+void MediaSessionWebOS::SetPlaybackStatusInternal(
+    PlaybackState playback_state) {
   if (session_id_.empty()) {
     NEVA_LOGF(ERROR) << " No active session";
     return;
@@ -361,10 +353,38 @@ void MediaSessionWebOS::SetPlaybackStatus(PlaybackState playback_state) {
       BIND_TO_CURRENT_LOOP(&MediaSessionWebOS::CheckReplyStatusMessage));
 }
 
-void MediaSessionWebOS::SetMetadataProperty(const std::string& property,
-                                            const std::string& value) {
+void MediaSessionWebOS::SetMediaPositionInternal(
+    const base::TimeDelta& position) {
+  if (session_id_.empty()) {
+    LOG(ERROR) << __func__ << " No active session.";
+    return;
+  }
+
+  base::DictionaryValue playposition_root;
+  playposition_root.SetStringKey(kMediaId, session_id_);
+  playposition_root.SetStringKey(kMediaPlayPosition,
+                                 std::to_string(position.InSecondsF()));
+
+  std::string playposition_payload;
+  if (!base::JSONWriter::Write(playposition_root, &playposition_payload)) {
+    LOG(ERROR) << __func__ << " Failed to write Play Position payload";
+    return;
+  }
+  VLOG(1) << __func__ << " playposition_payload: " << playposition_payload;
+
+  luna_service_client_->CallAsync(
+      base::LunaServiceClient::GetServiceURI(
+          base::LunaServiceClient::URIType::MEDIACONTROLLER,
+          kSetMediaPlayPosition),
+      playposition_payload,
+      BIND_TO_CURRENT_LOOP(&MediaSessionWebOS::CheckReplyStatusMessage));
+}
+
+void MediaSessionWebOS::SetMetadataPropertyInternal(
+    const std::string& property,
+    const std::u16string& value) {
   base::DictionaryValue metadata;
-  metadata.SetStringKey(property, value);
+  metadata.SetStringKey(property, base::UTF16ToUTF8(value));
 
   base::DictionaryValue root_dict;
   root_dict.SetStringKey(kMediaId, session_id_);
@@ -386,6 +406,10 @@ void MediaSessionWebOS::SetMetadataProperty(const std::string& property,
 
 void MediaSessionWebOS::ReceiveMediaKeyEvent(const std::string& payload) {
   NEVA_VLOGTF(1) << " payload: " << payload;
+
+  if (mcs_permission_error_)
+    return;
+
   absl::optional<base::Value> value = base::JSONReader::Read(payload);
   if (!value) {
     return;
@@ -398,10 +422,10 @@ void MediaSessionWebOS::ReceiveMediaKeyEvent(const std::string& payload) {
   auto subscribed = response->FindBoolPath(kSubscribed);
 
   if (!return_value || !*return_value || !subscribed || !*subscribed) {
-    mcs_call_denied_ = true;
+    mcs_permission_error_ = true;
     NEVA_LOGF(ERROR) << " Failed to Register with MCS"
                      << ", session_id: " << session_id_
-                     << ", mcs_call_denied: " << mcs_call_denied_;
+                     << ", mcs_permission_error: " << mcs_permission_error_;
     return;
   }
 
@@ -421,13 +445,17 @@ void MediaSessionWebOS::ReceiveMediaKeyEvent(const std::string& payload) {
   if (key_event) {
     HandleMediaKeyEvent(key_event);
   } else {
-    NEVA_VLOGTF(0) << " Successfully Registered with MCS, session_id: "
+    NEVA_VLOGTF(1) << " Successfully Registered with MCS, session_id: "
                    << session_id_;
   }
 }
 
 void MediaSessionWebOS::CheckReplyStatusMessage(const std::string& message) {
   NEVA_VLOGTF(1) << " message: " << message;
+
+  if (mcs_permission_error_)
+    return;
+
   absl::optional<base::Value> value = base::JSONReader::Read(message);
   if (!value) {
     return;
@@ -448,7 +476,7 @@ void MediaSessionWebOS::CheckReplyStatusMessage(const std::string& message) {
 }
 
 void MediaSessionWebOS::HandleMediaKeyEvent(const std::string* key_event) {
-  NEVA_VLOGTF(0) << " key_event: " << *key_event;
+  NEVA_VLOGTF(1) << " key_event: " << *key_event;
 
   static std::map<std::string, MediaKeyEvent> kEventKeyMap = {
       {kPlayEvent, MediaSessionWebOS::MediaKeyEvent::kPlay},
@@ -486,30 +514,6 @@ void MediaSessionWebOS::HandleMediaKeyEvent(const std::string* key_event) {
   }
 }
 
-void MediaSessionWebOS::RequestMediaSession(const std::string& request_id) {
-  if (!session_id_.empty()) {
-    // Previous session is active. Deactivate it.
-    UnregisterMediaSession();
-  }
-
-  if (request_id.empty()) {
-    NEVA_LOGF(ERROR) << " Session id is not received";
-    return;
-  }
-
-  if (!RegisterMediaSession(request_id)) {
-    NEVA_LOGF(ERROR) << " Register session failed for " << request_id;
-    return;
-  }
-
-  if (!ActivateMediaSession(request_id)) {
-    NEVA_LOGF(ERROR) << " Activate session failed for " << request_id;
-    return;
-  }
-
-  session_id_ = request_id;
-}
-
 MediaSessionWebOS::PlaybackState
 MediaSessionWebOS::ConvertIntoWebOSPlaybackState(
     media_session::mojom::MediaPlaybackState mojom_state) {
@@ -518,6 +522,8 @@ MediaSessionWebOS::ConvertIntoWebOSPlaybackState(
       return PlaybackState::kPaused;
     case media_session::mojom::MediaPlaybackState::kPlaying:
       return PlaybackState::kPlaying;
+    case media_session::mojom::MediaPlaybackState::kStopped:
+      return PlaybackState::kStopped;
     default:
       return PlaybackState::kUnknown;
   }

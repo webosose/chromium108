@@ -76,14 +76,10 @@ class MediaController : public mojom::MediaController,
                            std::vector<MediaImage>>& images) override;
   void MediaSessionPositionChanged(
       const absl::optional<media_session::MediaPosition>& position) override;
-  // TODO(M108): Need to check whether below codes is still required.
-  // Because neva refactored code by removing MediaSessionRequestChanged and
-  // used RequestMediaSession internally.
-  // Called when the Observed MediaSession Request has changed
-  //#if defined(OS_WEBOS)
-  //  void MediaSessionRequestChanged(
-  //      const absl::optional<base::UnguessableToken>& request_id) override {}
-  //#endif
+#if defined(OS_WEBOS)
+  void MediaSessionRequestChanged(
+      const absl::optional<base::UnguessableToken>& request_id) override {}
+#endif
 
   void SetMediaSession(AudioFocusRequest* session);
   void ClearMediaSession();

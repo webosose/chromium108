@@ -497,18 +497,15 @@ bool MediaSessionImpl::AddPlayer(MediaSessionPlayerObserver* observer,
   if (audio_focus_state_ != State::ACTIVE)
     return false;
 
-  // TODO(M108): Need to check whether below codes is still required.
-  // Because neva refactored code by removing MediaSessionRequestChanged and
-  // used RequestMediaSession internally.
-  //#if defined(OS_WEBOS)
-  //  auto it = normal_players_.find(key);
-  //  if (it == normal_players_.end()) {
-  //    base::UnguessableToken request_id = GetRequestId();
-  //    VLOG(1) << __func__ << " request_id: " << request_id.ToString();
-  //    for (auto& observer : observers_)
-  //      observer->MediaSessionRequestChanged(request_id);
-  //  }
-  //#endif  // defined(OS_WEBOS)
+#if defined(OS_WEBOS)
+  auto it = normal_players_.find(key);
+  if (it == normal_players_.end()) {
+    base::UnguessableToken request_id = GetRequestId();
+    VLOG(1) << __func__ << " request_id: " << request_id.ToString();
+    for (auto& observer : observers_)
+      observer->MediaSessionRequestChanged(request_id);
+  }
+#endif  // defined(OS_WEBOS)
 
   // The session should be reset if a player is starting while all players are
   // suspended.
@@ -540,15 +537,12 @@ void MediaSessionImpl::RemovePlayer(MediaSessionPlayerObserver* observer,
   if (guarding_player_id_ && *guarding_player_id_ == identifier)
     ResetDurationUpdateGuard();
 
-  // TODO(M108): Need to check whether below codes is still required.
-  // Because neva refactored code by removing MediaSessionRequestChanged and
-  // used RequestMediaSession internally.
-  //#if defined(OS_WEBOS)
-  //  if (normal_players_.find(identifier) != normal_players_.end()) {
-  //    for (auto& observer : observers_)
-  //      observer->MediaSessionRequestChanged(absl::nullopt);
-  //  }
-  //#endif  // defined(OS_WEBOS)
+#if defined(OS_WEBOS)
+  if (normal_players_.find(identifier) != normal_players_.end()) {
+    for (auto& observer : observers_)
+      observer->MediaSessionRequestChanged(absl::nullopt);
+  }
+#endif  // defined(OS_WEBOS)
 
   AbandonSystemAudioFocusIfNeeded();
   UpdateRoutedService();
