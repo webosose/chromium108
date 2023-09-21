@@ -24,6 +24,7 @@
 #include "base/logging.h"
 #include "base/rand_util.h"
 #include "base/task/thread_pool.h"
+#include "base/unguessable_token.h"
 
 namespace base {
 
@@ -264,8 +265,10 @@ bool LunaServiceClient::RegisterService(const std::string& appid) {
 
   // Some clients may have connection with empty identifier.
   // So append random number only for non empty identifier.
-  if (!name.empty())
-    name += std::to_string(getpid());
+  if (!name.empty()) {
+    auto token = base::UnguessableToken::Create();
+    name += token.ToString();
+  }
 
   AutoLSError error;
   if (!LSRegister(name.c_str(), &handle_, &error)) {
