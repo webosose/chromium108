@@ -176,7 +176,8 @@ bool WebOSVideoDecodeAccelerator::Initialize(const Config& config,
     }
 
 #if defined(ARCH_CPU_ARMEL)
-    if (!gl::g_driver_egl.ext.b_EGL_KHR_fence_sync) {
+    gl::GLDisplayEGL* display = gl::GLDisplayEGL::GetDisplayForCurrentContext();
+    if (!display || !display->ext->b_EGL_KHR_fence_sync) {
       LOG(ERROR) << __func__ << " context does not have EGL_KHR_fence_sync";
       return false;
     }
