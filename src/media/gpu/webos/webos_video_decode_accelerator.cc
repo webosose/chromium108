@@ -27,6 +27,7 @@
 #include "media/gpu/webos/webos_codec_utils.h"
 #include "media/gpu/webos/webos_vda_utils.h"
 #include "ui/gl/gl_context.h"
+#include "ui/gl/gl_display.h"
 #include "ui/gl/scoped_binders.h"
 
 #define NOTIFY_ERROR(x) \
