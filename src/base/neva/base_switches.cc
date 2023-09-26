@@ -36,4 +36,6 @@ const char kLocalStorageLimitPerSecondLevelDomain[] =
 
 const char kNevaCertificatesPath[] = "neva-certificates-path";
 
+const char kPwaInstallPath[] = "pwa-install-path";
+
 }  // namespace switches

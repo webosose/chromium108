@@ -9,6 +9,7 @@ PmLogCtl logkv chrome.runscript info launchTime place=start_chrome
 export TMPDIR="/tmp"
 export BROWSER_APP_ID=""
 export APP_FOLDER_PATH=""
+export PWA_FOLDER_PATH="/media/cryptofs/apps/usr/palm/applications"
 export EXTRA_PARAMS_JSON="{}"
 # Setup 4Mb limitation mse audio buffer size
 export MSE_AUDIO_BUFFER_SIZE_LIMIT=4194304
@@ -152,6 +153,7 @@ CHROME_FLAGS=" \
   --load-apps=${APP_FOLDER_PATH}\
   --v8-snapshot-blob-path=${APP_FOLDER_PATH}/snapshot_blob.bin\
   --ozone-platform=wayland\
+  --pwa-install-path=${PWA_FOLDER_PATH}/ \
 "
 CHROME_FLAGS="${CHROME_FLAGS} ${CHROME_LS2_NAME_FLAG}"
 

@@ -16,6 +16,7 @@
 
 #include "neva/app_runtime/browser/installable/webapp_installable_manager.h"
 
+#include "base/bind.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chrome/browser/web_applications/web_app_helpers.h"
 #include "chrome/browser/web_applications/web_app_id.h"
@@ -66,7 +67,8 @@ void WebAppInstallableManager::OnCheckInstallability(
     web_app::UpdateWebAppInfoFromManifest(*opt_manifest, manifest_url,
                                           &web_app_info);
     auto delegate_info = ConvertAppInfo(&web_app_info);
-    installed = pal_installable_delegate_->IsWebAppInstalled(&delegate_info);
+    installed = pal_installable_delegate_->IsWebAppForUrlInstalled(
+        web_app_info.start_url);
     VLOG(1) << std::boolalpha << __func__ << "() id='" << delegate_info.id()
             << "' installed=" << installed;
   }
@@ -88,7 +90,8 @@ void WebAppInstallableManager::OnDidGetManifest(
     InstallWebAppCallback callback,
     const GURL& manifest_url,
     blink::mojom::ManifestPtr manifest) {
-  if (manifest_url.is_empty() || blink::IsEmptyManifest(manifest)) {
+  if (!manifest || manifest_url.is_empty() ||
+      blink::IsEmptyManifest(manifest)) {
     std::move(callback).Run(false);
   }
 
@@ -116,6 +119,72 @@ void WebAppInstallableManager::OnIconsDownloaded(
       pal_installable_delegate_->SaveArtifacts(&delegate_info);
 
   std::move(callback).Run(install_result);
+}
+
+// -----------------------------------------------------------------------------
+// Update
+void WebAppInstallableManager::MaybeUpdate(content::WebContents* web_contents) {
+  VLOG(1) << "Start update of PWA app";
+  data_retriever_->CheckInstallabilityAndRetrieveManifest(
+      web_contents, true,
+      base::BindOnce(&WebAppInstallableManager::OnManifestForUpdate,
+                     weak_factory_.GetWeakPtr(), web_contents));
+}
+
+void WebAppInstallableManager::OnManifestForUpdate(
+    content::WebContents* web_contents,
+    blink::mojom::ManifestPtr manifest,
+    const GURL& manifest_url,
+    bool valid_manifest_for_web_app,
+    bool is_installable) {
+  VLOG(1) << "manifest_url: " << manifest_url
+          << ", valid_manifest_for_web_app: " << valid_manifest_for_web_app
+          << ", is_installable: " << is_installable;
+  if (!manifest || !valid_manifest_for_web_app || !is_installable)
+    return;
+
+  auto web_app_info = std::make_unique<WebAppInstallInfo>();
+  web_app::UpdateWebAppInfoFromManifest(*manifest, manifest_url,
+                                        web_app_info.get());
+
+  if (!pal_installable_delegate_->IsWebAppForUrlInstalled(
+          web_app_info->start_url)) {
+    VLOG(1) << "Do not update because the app is not installed";
+    return;
+  }
+
+  if (!pal_installable_delegate_->ShouldAppForURLBeUpdated(
+          web_app_info->start_url)) {
+    VLOG(1) << "The app should not be updated now";
+    return;
+  }
+
+  // Icons
+  auto url = web_app::GetValidIconUrlsToDownload(*web_app_info);
+  data_retriever_->GetIcons(
+      web_contents, url, true,
+      base::BindOnce(&WebAppInstallableManager::OnIconsDownloadedForUpdate,
+                     weak_factory_.GetWeakPtr(), std::move(web_app_info)));
+}
+
+void WebAppInstallableManager::OnIconsDownloadedForUpdate(
+    std::unique_ptr<WebAppInstallInfo> web_app_info,
+    web_app::IconsDownloadedResult result,
+    IconsMap icons_map,
+    DownloadedIconsHttpResults icons_http_results) {
+  web_app::PopulateProductIcons(web_app_info.get(), &icons_map);
+  web_app::PopulateOtherIcons(web_app_info.get(), icons_map);
+
+  auto const new_delegate_info = ConvertAppInfo(web_app_info.get());
+
+  if (pal_installable_delegate_->isInfoChanged(&new_delegate_info)) {
+    VLOG(1) << "Proceed with updating the app";
+    bool install_result =
+        pal_installable_delegate_->SaveArtifacts(&new_delegate_info);
+    VLOG(1) << "The app update install_result: " << install_result;
+  } else {
+    VLOG(1) << "Do not update the app because resources are not changed";
+  }
 }
 
 pal::WebAppInstallableDelegate::WebAppInfo

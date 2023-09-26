@@ -39,6 +39,7 @@ class WebAppInstallableManager {
   using InstallWebAppCallback = base::OnceCallback<void(bool success)>;
   void InstallWebApp(content::WebContents* web_contents,
                      InstallWebAppCallback callback);
+  void MaybeUpdate(content::WebContents* web_contents);
 
  private:
   void OnCheckInstallability(CheckInstallabilityCallback callback,
@@ -57,6 +58,16 @@ class WebAppInstallableManager {
                         blink::mojom::ManifestPtr manifest);
   pal::WebAppInstallableDelegate::WebAppInfo ConvertAppInfo(
       const WebAppInstallInfo* web_app_info);
+  void OnManifestForUpdate(content::WebContents* web_contents,
+                           blink::mojom::ManifestPtr opt_manifest,
+                           const GURL& manifest_url,
+                           bool valid_manifest_for_web_app,
+                           bool is_installable);
+  void OnIconsDownloadedForUpdate(
+      std::unique_ptr<WebAppInstallInfo> web_app_info,
+      web_app::IconsDownloadedResult result,
+      IconsMap icons_map,
+      DownloadedIconsHttpResults icons_http_results);
 
   std::unique_ptr<web_app::WebAppDataRetriever> data_retriever_;
   std::unique_ptr<pal::WebAppInstallableDelegate> pal_installable_delegate_;

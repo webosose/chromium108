@@ -41,6 +41,11 @@ class WebAppInstallableDelegate {
     const absl::optional<SkColor>& background_color() const {
       return background_color_;
     }
+    int64_t timestamp() const { return timestamp_; }
+
+    // TODO: remove comparisons, they are unused
+    bool operator==(const WebAppInstallableDelegate::WebAppInfo& other);
+    bool operator!=(const WebAppInstallableDelegate::WebAppInfo& other);
 
    private:
     friend class WebAppInstallableDelegate;
@@ -50,12 +55,17 @@ class WebAppInstallableDelegate {
     std::map<SquareSizePx, SkBitmap> icons_;
     GURL start_url_;
     absl::optional<SkColor> background_color_;
+    int64_t timestamp_ = -1;
   };
 
   virtual ~WebAppInstallableDelegate();
 
   virtual bool SaveArtifacts(const WebAppInfo* app_info) = 0;
-  virtual bool IsWebAppInstalled(const WebAppInfo* app_info) = 0;
+  virtual bool IsWebAppForUrlInstalled(const GURL& app_start_url) = 0;
+  // Call ShouldAppForURLBeUpdated before download resources, will return false
+  // when update is in process already, or it was updated not so long ago
+  virtual bool ShouldAppForURLBeUpdated(const GURL& app_start_url) = 0;
+  virtual bool isInfoChanged(const WebAppInfo* app_info) = 0;
 
   WebAppInfo GenerateAppInfo(
       const std::string& title,
@@ -64,7 +74,7 @@ class WebAppInstallableDelegate {
       absl::optional<SkColor> background_color);
 
  protected:
-  virtual std::string GenerateAppId(const WebAppInfo* app_info) = 0;
+  virtual std::string GenerateAppId(const GURL& app_start_url) = 0;
 };
 
 }  // namespace pal

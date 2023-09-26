@@ -85,6 +85,11 @@
 void GetPluginsCallback(const std::vector<content::WebPluginInfo>& plugins) {}
 #endif
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "components/webapps/browser/installable/installable_manager.h"
+#include "extensions/shell/neva/web_view_guest_installable_manager.h"
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+
 namespace {
 
 void AddUserStyleSheetForFrame(const std::string& sheet,
@@ -204,6 +209,15 @@ void WebView::CreateWebContents() {
 
   permissions::PermissionRequestManager::CreateForWebContents(
       web_contents_.get());
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  // TODO: check if we can use webapps::InstallableManager::...() directly,
+  // maybe guest variant is only for mojo interface.
+  installable_manager_ =
+      std::make_unique<neva_app_runtime::WebViewGuestInstallableManager>(
+          web_contents_.get());
+  webapps::InstallableManager::CreateForWebContents(web_contents_.get());
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 }
 
 content::WebContents* WebView::GetWebContents() {
@@ -1189,6 +1203,13 @@ void WebView::DidFinishLoad(content::RenderFrameHost* render_frame_host,
         base::BindOnce(&GetPluginsCallback));
   }
 #endif
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  // In original Chromium the update scheduled in PrimaryPageChanged, but in our
+  // case in PrimaryPageChanged WebContents did not navigate to the correct URL.
+  // So for now use Finish.
+  if (validated_url.SchemeIsHTTPOrHTTPS())
+    installable_manager_->MaybeUpdate();
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
   // Async notification is required for webOS WAM app exit logic which
   // depends on loading about:blank page
   content::GetUIThreadTaskRunner({})->PostTask(

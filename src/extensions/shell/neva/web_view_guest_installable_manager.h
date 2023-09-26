@@ -25,6 +25,7 @@
 
 namespace neva_app_runtime {
 
+// TODO: if used in non-guest view rename to non-guest? manager
 class WebViewGuestInstallableManager
     : public content::WebContentsObserver,
       public content::WebContentsUserData<WebViewGuestInstallableManager>,
@@ -40,6 +41,8 @@ class WebViewGuestInstallableManager
   // mojom::InstallableManager
   void GetInfo(GetInfoCallback callback) override;
   void InstallApp(InstallAppCallback callback) override;
+
+  void MaybeUpdate();
 
  private:
   void OnGetInfo(GetInfoCallback callback, bool installable, bool installed);

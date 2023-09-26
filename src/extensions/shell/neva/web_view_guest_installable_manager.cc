@@ -74,4 +74,9 @@ void WebViewGuestInstallableManager::OnInstallApp(InstallAppCallback callback,
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(WebViewGuestInstallableManager);
 
+void WebViewGuestInstallableManager::MaybeUpdate() {
+  // TODO: Could it use GURL instead of WebContents?
+  installable_manager_.MaybeUpdate(web_contents_);
+}
+
 }  // namespace neva_app_runtime
