@@ -125,7 +125,7 @@ VideoDecoderConfig GetVideoConfig(VideoCodec video_codec,
       gfx::Rect(default_size), default_size, media::EmptyExtraData(),
       media::EncryptionScheme::kUnencrypted);
   video_config.set_live_stream(true);
-
+  video_config.set_hdr_metadata(gfx::HDRMetadata());
   VLOG(1) << __func__ << " config=" << video_config.AsHumanReadableString();
 
   return video_config;
@@ -477,10 +477,10 @@ void WebRtcPassThroughVideoDecoder::DecodeOnMediaThread() {
     const base::TimeDelta incoming_timestamp = buffer->timestamp();
 
     if (media_platform_api_->Feed(std::move(buffer), FeedType::kVideo)) {
-      DVLOG(2) << __func__ << " Feed Success! ts=" << buffer->timestamp();
+      DVLOG(2) << __func__ << " Feed Success! ts=" << incoming_timestamp;
       ReturnEmptyOutputFrame(incoming_timestamp);
     } else {
-      LOG(WARNING) << __func__ << " Feed Failed! ts=" << buffer->timestamp();
+      LOG(WARNING) << __func__ << " Feed Failed! ts=" << incoming_timestamp;
     }
   }
 }
