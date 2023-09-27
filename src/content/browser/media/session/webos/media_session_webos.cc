@@ -141,12 +141,8 @@ void MediaSessionWebOS::MediaSessionInfoChanged(
   if (session_id_.empty() || mcs_permission_error_)
     return;
 
-  PlaybackState playback_state =
-      ConvertIntoWebOSPlaybackState(session_info->playback_state);
-  if (playback_state_ == playback_state)
-    return;
-
-  SetPlaybackStatusInternal(playback_state_);
+  SetPlaybackStatusInternal(
+      ConvertIntoWebOSPlaybackState(session_info->playback_state));
 }
 
 void MediaSessionWebOS::MediaSessionMetadataChanged(
