@@ -230,7 +230,6 @@ void OSCryptImpl::SetRawEncryptionKey(const std::string& raw_key) {
   DCHECK(!is_password_v11_cached_);
   // The config won't be used if this function is being called. Callers should
   // choose between setting a config and setting a raw encryption key.
-  DCHECK(!config_);
   if (!raw_key.empty()) {
     password_v11_cache_ =
         crypto::SymmetricKey::Import(crypto::SymmetricKey::AES, raw_key);
@@ -271,7 +270,6 @@ std::unique_ptr<KeyStorageLinux> OSCryptImpl::CreateKeyStorage() {
   CHECK(config_);
   std::unique_ptr<KeyStorageLinux> key_storage =
       KeyStorageLinux::CreateService(*config_);
-  config_.reset();
   return key_storage;
 }
 
