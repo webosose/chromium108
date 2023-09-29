@@ -201,7 +201,8 @@ void WebOSCaptureDelegate::GetPhotoState(
 
   base::Value properties;
   mojom::PhotoStatePtr photo_capabilities = mojo::CreateEmptyPhotoState();
-  if (!camera_service_->GetProperties(camera_handle_, &properties) ||
+  const std::string device_id = device_descriptor_.device_id;
+  if (!camera_service_->GetProperties(device_id, &properties) ||
       !properties.is_dict()) {
     LOG(ERROR) << __func__ << " Failed to get properties.";
     std::move(callback).Run(std::move(photo_capabilities));
@@ -399,14 +400,14 @@ VideoPixelFormat WebOSCaptureDelegate::GetPixelFormat(int width,
   std::ostringstream resolution;
   resolution << width << "," << height << "," << frame_rate;
 
-  base::Value property_params;
-  if (!camera_service_->GetProperties(camera_handle_, &property_params) ||
-      !property_params.is_dict()) {
-    LOG(ERROR) << __func__ << " Failed to get properties.";
+  base::Value info;
+  const std::string device_id = device_descriptor_.device_id;
+  if (!camera_service_->GetDeviceInfo(device_id, &info) || !info.is_dict()) {
+    LOG(ERROR) << __func__ << " Failed to get info.";
     return PIXEL_FORMAT_UNKNOWN;
   }
 
-  if (base::Value* formats = property_params.FindDictPath(kResolution)) {
+  if (base::Value* formats = info.FindDictPath(kResolution)) {
     support_yuv =
         IsResolutionSupported(resolution.str(), formats->FindPath(kYUV));
     support_jpeg =
@@ -501,7 +502,7 @@ void WebOSCaptureDelegate::OnFaultEventOccured(const std::string& response) {
     return;
 
   std::string* event_type = root_value->FindStringPath(kEventType);
-  if (event_type && event_type->find("device_fault") != std::string::npos) {
+  if (event_type && event_type->find("preview_fault") != std::string::npos) {
     std::string* device_id = root_value->FindStringPath(kId);
     if (device_id && !device_id->compare(device_descriptor_.device_id)) {
       SetErrorState(

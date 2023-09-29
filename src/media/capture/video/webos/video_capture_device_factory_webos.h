@@ -46,7 +46,8 @@ class CAPTURE_EXPORT VideoCaptureDeviceFactoryWebOS
 
   void GetSupportedFormats(const std::string& device_id,
                            VideoCaptureControlSupport* control,
-                           VideoCaptureFormats* supported_formats);
+                           VideoCaptureFormats* supported_formats,
+                           base::Value* info);
   void SetSupportedFormat(VideoCaptureFormats& capture_formats,
                           VideoPixelFormat pixel_format,
                           base::Value* supported_resolutions);

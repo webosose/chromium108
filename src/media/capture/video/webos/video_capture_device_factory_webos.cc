@@ -73,8 +73,17 @@ void VideoCaptureDeviceFactoryWebOS::GetDevicesInfo(
 
   for (size_t i = 0; i < device_ids.size(); i++) {
     std::string device_id = device_ids[i];
-    std::string device_name = camera_service_->GetDeviceName(device_id);
-    VLOG(1) << __func__ << " id=" << device_id << " name=" << device_name;
+    base::Value info;
+    camera_service_->GetDeviceInfo(device_id, &info);
+    std::string* device_name = info.FindStringPath(kName);
+
+    if (!device_name) {
+      LOG(WARNING) << __func__
+                   << " Can not find device name, device id=" << device_id;
+      continue;
+    }
+
+    VLOG(1) << __func__ << " id=" << device_id << " name=" << *device_name;
 
     VideoCaptureFormats supported_formats;
     VideoCaptureControlSupport supported_control;
@@ -96,7 +105,7 @@ void VideoCaptureDeviceFactoryWebOS::GetDevicesInfo(
     if (!found_control || !found_formats) {
       GetSupportedFormats(device_id,
                           found_control ? nullptr : &supported_control,
-                          found_formats ? nullptr : &supported_formats);
+                          found_formats ? nullptr : &supported_formats, &info);
     }
 
     if (supported_formats.empty()) {
@@ -105,7 +114,7 @@ void VideoCaptureDeviceFactoryWebOS::GetDevicesInfo(
     }
 
     devices_info.emplace_back(VideoCaptureDeviceDescriptor(
-        device_name, device_id, device_id, VideoCaptureApi::UNKNOWN,
+        *device_name, device_id, device_id, VideoCaptureApi::UNKNOWN,
         supported_control));
 
     devices_info.back().supported_formats = std::move(supported_formats);
@@ -138,7 +147,8 @@ void VideoCaptureDeviceFactoryWebOS::GetDevicesInfo(
 void VideoCaptureDeviceFactoryWebOS::GetSupportedFormats(
     const std::string& device_id,
     VideoCaptureControlSupport* supported_control,
-    VideoCaptureFormats* supported_formats) {
+    VideoCaptureFormats* supported_formats,
+    base::Value* info) {
   if (!supported_control && !supported_formats)
     return;
 
@@ -150,7 +160,7 @@ void VideoCaptureDeviceFactoryWebOS::GetSupportedFormats(
   }
 
   base::Value properties;
-  if (!camera_service_->GetProperties(camera_handle, &properties) ||
+  if (!camera_service_->GetProperties(device_id, &properties) ||
       !properties.is_dict()) {
     LOG(ERROR) << __func__ << " Failed getting properties for: " << device_id;
     return;
@@ -166,7 +176,7 @@ void VideoCaptureDeviceFactoryWebOS::GetSupportedFormats(
   }
 
   if (supported_formats) {
-    base::Value* formats = properties.FindDictPath(kResolution);
+    base::Value* formats = info->FindDictPath(kResolution);
     if (formats) {
       VideoCaptureFormats capture_formats;
       SetSupportedFormat(capture_formats, PIXEL_FORMAT_YUY2,

@@ -51,9 +51,9 @@ class CAPTURE_EXPORT WebOSCameraService
   void Close(base::PlatformThreadId pid, int handle);
 
   bool GetDeviceIds(std::vector<std::string>* device_ids);
-  std::string GetDeviceName(const std::string& device_id);
+  bool GetDeviceInfo(const std::string& device_id, base::Value* info);
 
-  bool GetProperties(int handle, base::Value* properties);
+  bool GetProperties(const std::string& device_id, base::Value* properties);
   bool SetProperties(int handle, base::Value* properties);
 
   bool SetFormat(int handle,

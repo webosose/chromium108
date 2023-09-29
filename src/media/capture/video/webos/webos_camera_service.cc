@@ -179,13 +179,16 @@ bool WebOSCameraService::GetDeviceIds(std::vector<std::string>* device_ids) {
   return true;
 }
 
-std::string WebOSCameraService::GetDeviceName(const std::string& camera_id) {
+bool WebOSCameraService::GetDeviceInfo(const std::string& camera_id,
+                                       base::Value* info) {
+  DCHECK(luna_call_thread_.task_runner()->BelongsToCurrentThread());
+
   VLOG(1) << __func__;
 
   std::string device_name;
   if (camera_id.empty()) {
     LOG(ERROR) << __func__ << " camera_id is empty";
-    return device_name;
+    return false;
   }
 
   base::DictionaryValue register_root;
@@ -194,7 +197,7 @@ std::string WebOSCameraService::GetDeviceName(const std::string& camera_id) {
   std::string info_payload;
   if (!base::JSONWriter::Write(register_root, &info_payload)) {
     LOG(ERROR) << __func__ << " Failed to write info payload";
-    return device_name;
+    return false;
   }
 
   std::string response;
@@ -202,30 +205,33 @@ std::string WebOSCameraService::GetDeviceName(const std::string& camera_id) {
                             base::LunaServiceClient::URIType::CAMERA, kGetInfo),
                         info_payload, &response)) {
     LOG(ERROR) << __func__ << " Failed luna service call";
-    return device_name;
+    return false;
   }
 
   std::unique_ptr<base::DictionaryValue> root_value;
   if (!GetRootDictionary(response, &root_value))
-    return device_name;
+    return false;
 
   auto info_value = root_value->FindDictPath(kInfo);
-  if (info_value)
-    device_name = *info_value->FindStringPath(kName);
+  if (info && info_value)
+    *info = info_value->Clone();
 
-  return device_name;
+  return true;
 }
 
-bool WebOSCameraService::GetProperties(int handle, base::Value* properties) {
-  VLOG(1) << __func__;
+bool WebOSCameraService::GetProperties(const std::string& device_id,
+                                       base::Value* properties) {
+  DCHECK(luna_call_thread_.task_runner()->BelongsToCurrentThread());
 
-  if (handle < 0) {
-    LOG(ERROR) << __func__ << " Invalid camera handle";
+  VLOG(1) << __func__ << "device_id=" << device_id;
+
+  if (device_id.empty() < 0) {
+    LOG(ERROR) << __func__ << " Invalid camera id";
     return false;
   }
 
   base::DictionaryValue register_root;
-  register_root.SetKey(kHandle, base::Value(handle));
+  register_root.SetKey(kId, base::Value(device_id));
 
   std::string properties_payload;
   if (!base::JSONWriter::Write(register_root, &properties_payload)) {
