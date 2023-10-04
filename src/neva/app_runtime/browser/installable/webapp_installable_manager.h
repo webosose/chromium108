@@ -63,6 +63,10 @@ class WebAppInstallableManager {
                            const GURL& manifest_url,
                            bool valid_manifest_for_web_app,
                            bool is_installable);
+  void OnShouldAppForURLBeUpdated(
+      content::WebContents* web_contents,
+      std::unique_ptr<WebAppInstallInfo> web_app_info,
+      bool should_update);
   void OnIconsDownloadedForUpdate(
       std::unique_ptr<WebAppInstallInfo> web_app_info,
       web_app::IconsDownloadedResult result,

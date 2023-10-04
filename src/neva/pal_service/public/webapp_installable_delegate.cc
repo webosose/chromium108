@@ -43,40 +43,4 @@ WebAppInstallableDelegate::GenerateAppInfo(
   return info;
 }
 
-bool WebAppInstallableDelegate::WebAppInfo::operator==(
-    const WebAppInstallableDelegate::WebAppInfo& other) {
-  if (id_ != other.id_ || title_ != other.title_ ||
-      start_url_ != other.start_url_ ||
-      background_color_ != other.background_color_)
-    return false;
-
-  if (icons_.size() != other.icons_.size())
-    return false;
-
-  // Check that sets of sizes are same for both icon maps
-  for (const auto& it : icons_) {
-    if (other.icons_.count(it.first) != 1)
-      return false;
-  }
-  for (const auto& it : other.icons_) {
-    if (icons_.count(it.first) != 1)
-      return false;
-  }
-
-  // Check binary icons
-  for (const auto& it : icons_) {
-    const SkBitmap& bitmap = it.second;
-    const SkBitmap& other_bitmap = other.icons_.at(it.first);
-    if (!gfx::BitmapsAreEqual(bitmap, other_bitmap))
-      return false;
-  }
-
-  return true;
-}
-
-bool WebAppInstallableDelegate::WebAppInfo::operator!=(
-    const WebAppInstallableDelegate::WebAppInfo& other) {
-  return !(*this == other);
-}
-
 }  // namespace pal

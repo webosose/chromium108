@@ -1,5 +1,5 @@
 {
-    "com.webos.app.enactbrowser": [
+    "com.webos.app.enactbrowser*": [
         "applications",
         "settings.read",
         "signals.all"
@@ -14,12 +14,14 @@
     ],
     "com.webos.chromium.memory.*": [
         "system",
-        "signals.all"
+        "signals.all",
+        "memorymanager.query"
+
     ],
     "com.webos.rm.client.*": [
         "media"
     ],
     "com.webos.chromium.installablemanager.*": [
-        "application.devmode"
+        "applicationinstall.management"
     ]
 }

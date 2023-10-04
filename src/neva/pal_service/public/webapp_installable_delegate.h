@@ -20,6 +20,7 @@
 #include <map>
 #include <string>
 
+#include "base/callback_forward.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "url/gurl.h"
@@ -43,10 +44,6 @@ class WebAppInstallableDelegate {
     }
     int64_t timestamp() const { return timestamp_; }
 
-    // TODO: remove comparisons, they are unused
-    bool operator==(const WebAppInstallableDelegate::WebAppInfo& other);
-    bool operator!=(const WebAppInstallableDelegate::WebAppInfo& other);
-
    private:
     friend class WebAppInstallableDelegate;
 
@@ -62,9 +59,12 @@ class WebAppInstallableDelegate {
 
   virtual bool SaveArtifacts(const WebAppInfo* app_info) = 0;
   virtual bool IsWebAppForUrlInstalled(const GURL& app_start_url) = 0;
+
+  using ResultCallback = base::OnceCallback<void(bool result)>;
   // Call ShouldAppForURLBeUpdated before download resources, will return false
   // when update is in process already, or it was updated not so long ago
-  virtual bool ShouldAppForURLBeUpdated(const GURL& app_start_url) = 0;
+  virtual bool ShouldAppForURLBeUpdated(const GURL& app_start_url,
+                                        ResultCallback) = 0;
   virtual bool isInfoChanged(const WebAppInfo* app_info) = 0;
 
   WebAppInfo GenerateAppInfo(

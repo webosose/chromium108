@@ -43,6 +43,9 @@ const char kApplicationManager[] = "com.webos.applicationManager";
 const char kServiceMemoryManager[] = "com.webos.service.memorymanager";
 const char kNotification[] = "com.webos.notification";
 const char kServiceBus[] = "com.webos.service.bus";
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+const char kAppInstallService[] = "com.webos.appInstallService";
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
 }  // namespace service_uri
 

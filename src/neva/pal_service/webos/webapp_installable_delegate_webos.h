@@ -44,7 +44,8 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
 
   bool SaveArtifacts(const WebAppInfo* app_info) override;
   bool IsWebAppForUrlInstalled(const GURL& url) override;
-  bool ShouldAppForURLBeUpdated(const GURL& app_start_url) override;
+  bool ShouldAppForURLBeUpdated(const GURL& app_start_url,
+                                ResultCallback callback) override;
   bool isInfoChanged(const WebAppInfo* app_info) override;
 
  protected:
@@ -71,10 +72,10 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
 
   static std::unique_ptr<luna::Client> InitLunaClient();
 
-  void CallSamAppUpdate(const std::string& id, const std::string& app_dir);
-  void OnScanApp(pal::luna::Client::ResponseStatus status,
-                 unsigned token,
-                 const std::string& json);
+  void CallAppUpdate(const std::string& id, const std::string& app_dir);
+  void OnInstallApp(pal::luna::Client::ResponseStatus status,
+                    unsigned token,
+                    const std::string& json);
   bool WriteIcons(const base::FilePath& app_dir,
                   const std::vector<Icon>& icons);
   bool WriteIconToFile(const base::FilePath& file_path, const SkBitmap* bitmap);

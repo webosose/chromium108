@@ -121,10 +121,9 @@ void WebAppInstallableManager::OnIconsDownloaded(
   std::move(callback).Run(install_result);
 }
 
-// -----------------------------------------------------------------------------
 // Update
 void WebAppInstallableManager::MaybeUpdate(content::WebContents* web_contents) {
-  VLOG(1) << "Start update of PWA app";
+  VLOG(1) << "Begin update steps of PWA app";
   data_retriever_->CheckInstallabilityAndRetrieveManifest(
       web_contents, true,
       base::BindOnce(&WebAppInstallableManager::OnManifestForUpdate,
@@ -153,8 +152,18 @@ void WebAppInstallableManager::OnManifestForUpdate(
     return;
   }
 
-  if (!pal_installable_delegate_->ShouldAppForURLBeUpdated(
-          web_app_info->start_url)) {
+  pal_installable_delegate_->ShouldAppForURLBeUpdated(
+      web_app_info->start_url,
+      base::BindOnce(&WebAppInstallableManager::OnShouldAppForURLBeUpdated,
+                     weak_factory_.GetWeakPtr(), web_contents,
+                     std::move(web_app_info)));
+}
+
+void WebAppInstallableManager::OnShouldAppForURLBeUpdated(
+    content::WebContents* web_contents,
+    std::unique_ptr<WebAppInstallInfo> web_app_info,
+    bool should_update) {
+  if (!should_update) {
     VLOG(1) << "The app should not be updated now";
     return;
   }

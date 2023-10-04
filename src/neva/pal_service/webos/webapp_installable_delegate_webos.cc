@@ -21,6 +21,8 @@
 #include <ostream>
 #include <string>
 
+#include "base/bind.h"
+#include "base/callback_forward.h"
 #include "base/command_line.h"
 #include "base/files/dir_reader_posix.h"
 #include "base/files/file_path.h"
@@ -40,7 +42,7 @@
 
 namespace {
 
-bool CreateTempAppdir(const std::string& app_id, base::FilePath* out_dir) {
+bool CreateTempAppDir(const std::string& app_id, base::FilePath* out_dir) {
   base::FilePath dir_temp;
   base::PathService::Get(base::DIR_TEMP, &dir_temp);
 
@@ -61,23 +63,20 @@ WebAppInstallableDelegateWebOS::Icon::Icon(Type type,
                                            const SkBitmap* bitmap,
                                            int64_t timestamp)
     : type_(type), bitmap_(bitmap) {
-  std::string timestamp_string = timestamp > 0 ? std::to_string(timestamp) : "";
+  std::string timestamp_string =
+      timestamp > 0 ? "_" + std::to_string(timestamp) : "";
+  appinfo_key_ = WebAppInstallableDelegateWebOS::Icon::icon_types.at(type);
   switch (type) {
     case Type::REGULAR:
-      // TODO: use icon_types map
-      appinfo_key_ = "icon";
       file_name_ = "icon" + timestamp_string + ".png";
       break;
     case Type::MINI:
-      appinfo_key_ = "miniicon";
       file_name_ = "icon-mini" + timestamp_string + ".png";
       break;
     case Type::LARGE:
-      appinfo_key_ = "largeIcon";
       file_name_ = "icon-large" + timestamp_string + ".png";
       break;
     case Type::SPLASH:
-      appinfo_key_ = "splashicon";
       file_name_ = "icon-splash" + timestamp_string + ".png";
       break;
   }
@@ -105,16 +104,17 @@ bool WebAppInstallableDelegateWebOS::IsWebAppForUrlInstalled(
 }
 
 bool WebAppInstallableDelegateWebOS::ShouldAppForURLBeUpdated(
-    const GURL& app_start_url) {
-  // TODO: implement and then use SAM luna API for this
+    const GURL& app_start_url,
+    ResultCallback callback) {
   std::string app_id = GenerateAppId(app_start_url);
+  std::move(callback).Run(true);
   return true;
 }
 
-// Put app contents in a temporary directory and ask SAM to update the app
+// Put app contents in a temporary directory and ask appinstall to update
 bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
   base::FilePath app_dir;
-  if (!CreateTempAppdir(app_info->id(), &app_dir)) {
+  if (!CreateTempAppDir(app_info->id(), &app_dir)) {
     LOG(ERROR) << __func__ << "() Failed to create temporary webapp directory";
     return false;
   }
@@ -132,6 +132,7 @@ bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
   appinfo_content.SetStringKey("title", app_info->title());
   appinfo_content.SetStringKey("main", app_info->start_url().spec());
   appinfo_content.SetStringKey("icon", "icon.png");
+  appinfo_content.SetBoolKey("disallowScrollingInMainFrame", false);
   for (const auto& icon : selected_icons) {
     appinfo_content.SetStringKey(icon.appinfo_key_, icon.file_name_);
   }
@@ -155,16 +156,15 @@ bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
     return false;
   }
 
-  CallSamAppUpdate(app_info->id(), app_dir.value());
+  CallAppUpdate(app_info->id(), app_dir.value());
   return true;
 }
 
-void WebAppInstallableDelegateWebOS::CallSamAppUpdate(
-    const std::string& id,
-    const std::string& app_dir) {
+void WebAppInstallableDelegateWebOS::CallAppUpdate(const std::string& id,
+                                                   const std::string& app_dir) {
   base::Value call_params(base::Value::Type::DICTIONARY);
   call_params.SetStringKey("id", id);
-  call_params.SetStringKey("appContent", app_dir);
+  call_params.SetStringKey("ipkUrl", app_dir);
   std::string call_params_str;
   if (!base::JSONWriter::Write(call_params, &call_params_str)) {
     LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
@@ -173,19 +173,19 @@ void WebAppInstallableDelegateWebOS::CallSamAppUpdate(
 
   if (luna_client_ && luna_client_->IsInitialized()) {
     std::string service_uri = pal::luna::GetServiceURI(
-        pal::luna::service_uri::kApplicationManager, "dev/scanApp");
+        pal::luna::service_uri::kAppInstallService, "install");
     VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
             << service_uri << " " << call_params_str;
     luna_client_->Call(
         std::move(service_uri), std::move(call_params_str),
-        base::BindOnce(&WebAppInstallableDelegateWebOS::OnScanApp,
+        base::BindOnce(&WebAppInstallableDelegateWebOS::OnInstallApp,
                        weak_ptr_factory_.GetWeakPtr()));
   } else {
     LOG(ERROR) << __func__ << "() Luna client not ready";
   }
 }
 
-void WebAppInstallableDelegateWebOS::OnScanApp(
+void WebAppInstallableDelegateWebOS::OnInstallApp(
     pal::luna::Client::ResponseStatus status,
     unsigned,
     const std::string& json) {
@@ -358,10 +358,22 @@ bool WebAppInstallableDelegateWebOS::isInfoChanged(
   VLOG(1) << "Found current WebOS appinfo for: " << fresh_app_info->start_url();
 
   std::string* current_id = current_appinfo_json->FindStringKey("id");
+
+  if (current_id) {
+    VLOG(1) << "Checking ID old/new: " << *current_id << "/"
+            << fresh_app_info->id();
+  }
+
   if (!current_id || *current_id != fresh_app_info->id())
     return true;
 
   std::string* current_title = current_appinfo_json->FindStringKey("title");
+
+  if (current_title) {
+    VLOG(1) << "Checking Title old/new: " << *current_title << "/"
+            << fresh_app_info->title();
+  }
+
   if (!current_title || *current_title != fresh_app_info->title())
     return true;
 
