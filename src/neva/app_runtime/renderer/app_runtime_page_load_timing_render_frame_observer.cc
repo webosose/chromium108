@@ -114,6 +114,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
   if (loading_end_)
     return false;
 
+  if (HasNoRenderFrame())
+    return false;
+
   const blink::WebPerformance& perf =
       render_frame()->GetWebFrame()->Performance();
 
@@ -128,6 +131,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
 bool AppRuntimePageLoadTimingRenderFrameObserver::
     PageLoadTimingIsFirstPaint() {
   if (first_paint_)
+    return false;
+
+  if (HasNoRenderFrame())
     return false;
 
   const blink::WebPerformance& perf =
@@ -146,6 +152,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
   if (first_contentful_paint_)
     return false;
 
+  if (HasNoRenderFrame())
+    return false;
+
   const blink::WebPerformance& perf =
       render_frame()->GetWebFrame()->Performance();
 
@@ -160,6 +169,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
 bool AppRuntimePageLoadTimingRenderFrameObserver::
     PageLoadTimingIsFirstImagePaint() {
   if (first_image_paint_)
+    return false;
+
+  if (HasNoRenderFrame())
     return false;
 
   const blink::WebPerformance& perf =
@@ -178,6 +190,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
   if (first_meaningful_paint_)
     return false;
 
+  if (HasNoRenderFrame())
+    return false;
+
   const blink::WebPerformance& perf =
       render_frame()->GetWebFrame()->Performance();
 
@@ -191,6 +206,9 @@ bool AppRuntimePageLoadTimingRenderFrameObserver::
 
 bool AppRuntimePageLoadTimingRenderFrameObserver::
     PageLoadTimingIsLargestContentfulPaint() {
+  if (HasNoRenderFrame())
+    return false;
+
   const blink::WebPerformance& perf =
       render_frame()->GetWebFrame()->Performance();
 
