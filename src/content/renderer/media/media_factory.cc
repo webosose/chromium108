@@ -127,10 +127,6 @@
 #include "third_party/blink/public/platform/web_media_player_client.h"
 #endif
 
-#if defined(USE_NEVA_WEBRTC)
-#include "third_party/blink/public/platform/media/neva/web_media_player_webrtc.h"
-#endif
-
 #if BUILDFLAG(IS_WIN)
 #include "content/renderer/media/win/dcomp_texture_wrapper_impl.h"
 #include "content/renderer/media/win/overlay_state_observer_impl.h"
@@ -911,35 +907,6 @@ blink::WebMediaPlayer* MediaFactory::CreateWebMediaPlayerForMediaStream(
                             media_log.get(), render_frame_)
           : nullptr;
 
-#if defined(USE_NEVA_WEBRTC)
-  const base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
-  if (!cmd_line->HasSwitch(switches::kDisableWebMediaPlayerNeva) &&
-      cmd_line->HasSwitch(switches::kEnableWebRTCPlatformVideoDecoder) &&
-      !content::RenderThreadImpl::current()->UseVideoDecodeAccelerator()) {
-    const blink::RendererPreferences& renderer_prefs =
-        render_frame_->GetRendererPreferences();
-    media::CreateMediaPlatformAPICB null_cb;
-
-    return new blink::WebMediaPlayerWebRTC(
-        frame, client, GetWebMediaPlayerDelegate(), std::move(media_log),
-        render_frame_->GetTaskRunner(blink::TaskType::kInternalMedia),
-        render_thread->GetIOTaskRunner(),
-        GetOrCreateVideoFrameCompositorTaskRunner(render_frame_),
-        render_thread->GetMediaThreadTaskRunner(),
-        std::move(compositor_worker_task_runner),
-        render_thread->GetGpuFactories(), sink_id,
-        base::BindOnce(&blink::WebSurfaceLayerBridge::Create,
-                       parent_frame_sink_id,
-                       blink::WebSurfaceLayerBridge::ContainsVideo::kYes),
-        std::move(submitter), use_surface_layer,
-        base::BindRepeating(
-            &content::mojom::FrameVideoWindowFactory::CreateVideoWindow,
-            base::Unretained(render_frame_->GetFrameVideoWindowFactory())),
-        blink::WebString::FromUTF8(renderer_prefs.application_id +
-                                   renderer_prefs.display_id),
-        std::move(null_cb));
-  }
-#endif
   return new blink::WebMediaPlayerMS(
       frame, client, GetWebMediaPlayerDelegate(), std::move(media_log),
       render_frame_->GetTaskRunner(blink::TaskType::kInternalMedia),

@@ -14,19 +14,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include "media/webrtc/neva/neva_webrtc_video_decoder_factory.h"
+#include "third_party/blink/renderer/platform/peerconnection/neva/neva_webrtc_video_decoder_factory.h"
 
-#include "media/webrtc/neva/webrtc_pass_through_video_decoder.h"
+#include "third_party/blink/renderer/platform/peerconnection/neva/webrtc_pass_through_video_decoder.h"
 #include "third_party/webrtc/api/video_codecs/sdp_video_format.h"
 #include "third_party/webrtc/media/engine/internal_decoder_factory.h"
 
-namespace media {
+namespace blink {
 
 NevaWebRtcVideoDecoderFactory::NevaWebRtcVideoDecoderFactory(
-    scoped_refptr<base::SequencedTaskRunner> main_task_runner,
+    media::GpuVideoAcceleratorFactories* gpu_factories,
     scoped_refptr<base::SequencedTaskRunner> media_task_runner)
-    : main_task_runner_(main_task_runner),
-      media_task_runner_(media_task_runner) {
+    : gpu_factories_(gpu_factories),
+      media_task_runner_(std::move(media_task_runner)) {
   // We cannot hold empty supported format list because DecoderAdapter
   // requires precise supported format.
   // So now we borrow supported formats from SW codec factory.
@@ -43,7 +43,7 @@ std::unique_ptr<webrtc::VideoDecoder>
 NevaWebRtcVideoDecoderFactory::CreateVideoDecoder(
     const webrtc::SdpVideoFormat& format) {
   return std::move(WebRtcPassThroughVideoDecoder::Create(
-      main_task_runner_, media_task_runner_, format));
+      gpu_factories_, media_task_runner_, format));
 }
 
-}  // namespace media
+}  // namespace blink

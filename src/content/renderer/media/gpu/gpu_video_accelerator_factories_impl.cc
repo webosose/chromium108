@@ -521,9 +521,16 @@ GpuVideoAcceleratorFactoriesImpl::GetTaskRunner() {
 }
 
 #if defined(USE_NEVA_WEBRTC)
-scoped_refptr<base::SequencedTaskRunner>
-GpuVideoAcceleratorFactoriesImpl::GetMainTaskRunner() {
-  return main_thread_task_runner_;
+blink::CreateVideoWindowCallback
+GpuVideoAcceleratorFactoriesImpl::GetCreateVideoWindowCB() {
+  return create_video_window_callback_;
+}
+
+void GpuVideoAcceleratorFactoriesImpl::SetAppIdAndCreateVideoWindowCB(
+    const std::string& app_id,
+    blink::CreateVideoWindowCallback callback) {
+  app_id_ = app_id;
+  create_video_window_callback_ = callback;
 }
 #endif
 

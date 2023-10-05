@@ -14,8 +14,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MEDIA_WEBRTC_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_
-#define MEDIA_WEBRTC_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_
+#ifndef THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_
+#define THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_
 
 #include <deque>
 
@@ -24,11 +24,15 @@
 #include "base/memory/weak_ptr.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/time/time.h"
-#include "media/base/media_export.h"
 #include "media/neva/media_platform_api.h"
+#include "mojo/public/cpp/bindings/receiver.h"
+#include "mojo/public/cpp/bindings/remote.h"
+#include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
+#include "third_party/blink/renderer/platform/platform_export.h"
 #include "third_party/webrtc/api/video/video_codec_type.h"
 #include "third_party/webrtc/api/video_codecs/video_decoder.h"
 #include "ui/gfx/geometry/size.h"
+#include "ui/platform_window/neva/mojom/video_window.mojom.h"
 
 namespace webrtc {
 class EncodedImage;
@@ -37,10 +41,15 @@ struct SdpVideoFormat;
 }  // namespace webrtc
 
 namespace media {
-
+class GpuVideoAcceleratorFactories;
 class VideoFrame;
+}  // namespace media
 
-class MEDIA_EXPORT WebRtcPassThroughVideoDecoder : public webrtc::VideoDecoder {
+namespace blink {
+
+class PLATFORM_EXPORT WebRtcPassThroughVideoDecoder
+    : public webrtc::VideoDecoder,
+      public ui::mojom::VideoWindowClient {
  public:
   // Minimum resolution that we'll consider "not low resolution" for the purpose
   // of falling back to software.
@@ -53,7 +62,7 @@ class MEDIA_EXPORT WebRtcPassThroughVideoDecoder : public webrtc::VideoDecoder {
 
   // Creates and initializes an WebRtcPassThroughVideoDecoder.
   static std::unique_ptr<WebRtcPassThroughVideoDecoder> Create(
-      scoped_refptr<base::SequencedTaskRunner> main_task_runner,
+      media::GpuVideoAcceleratorFactories* gpu_factories,
       scoped_refptr<base::SequencedTaskRunner> media_task_runner,
       const webrtc::SdpVideoFormat& format);
 
@@ -73,80 +82,60 @@ class MEDIA_EXPORT WebRtcPassThroughVideoDecoder : public webrtc::VideoDecoder {
   int32_t Release() override;
   DecoderInfo GetDecoderInfo() const override;
 
-  // Callback to get pipeline data from WebMediaPlayerWebRTC
-  void OnMediaPlayerInitCb(const std::string& app_id,
-                           const std::string& window_id,
-                           const base::RepeatingClosure& suspend_done_cb,
-                           const base::RepeatingClosure& resume_done_cb,
-                           const MediaPlatformAPI::VideoSizeChangedCB& size_cb,
-                           const MediaPlatformAPI::ActiveRegionCB& region_cb);
-
-  // Callback to get the status from WebMediaPlayerWebRTC
-  void OnMediaPlayerSuspendCb(bool suspend);
+  // Implements ui::mojom::VideoWindowClient
+  void OnVideoWindowCreated(const ui::VideoWindowInfo& info) override;
+  void OnVideoWindowDestroyed() override;
+  void OnVideoWindowGeometryChanged(const gfx::Rect& rect) override;
+  void OnVideoWindowVisibilityChanged(bool visibility) override;
+  // End of mojom::VideoWindowClient
 
  private:
   // Called on the worker thread.
   WebRtcPassThroughVideoDecoder(
-      scoped_refptr<base::SequencedTaskRunner> main_task_runner,
+      media::GpuVideoAcceleratorFactories* gpu_factories,
       scoped_refptr<base::SequencedTaskRunner> media_task_runner,
       media::VideoCodec video_codec);
 
+  bool InitializeSync(const media::VideoDecoderConfig& video_config);
+
   void DecodeOnMediaThread();
-  void ReturnEmptyOutputFrame(const base::TimeDelta& timestamp);
-  void SendEmptyRtcFrame(scoped_refptr<media::VideoFrame> encoded_frame);
+  void ReturnOutputFrame(const base::TimeDelta& timestamp);
 
   void CreateMediaPlatformAPI();
   void DestroyMediaPlatformAPI();
 
   void InitMediaPlatformAPI();
-  void ReleaseMediaPlatformAPI();
 
   void OnMediaPlatformAPIInitialized(media::PipelineStatus status);
   void OnPipelineError(media::PipelineStatus status);
+  void OnVideoSizeChanged(const gfx::Size& coded_size,
+                          const gfx::Size& natural_size);
 
-  bool InitializeMediaPlayer(const base::TimeDelta& start_time);
+  bool EnsureVideoWindowCreated();
+  bool EnsureMediaPlatformApiCreated();
 
-  // Construction parameters.
+  void CreateVideoWindow();
+
   media::VideoCodec video_codec_;
+  media::VideoDecoderConfig video_config_;
 
-  gfx::Size frame_size_;
+  std::string app_id_;
 
   scoped_refptr<base::SequencedTaskRunner> main_task_runner_ = nullptr;
-  scoped_refptr<base::SingleThreadTaskRunner> media_task_runner_ = nullptr;
+  scoped_refptr<base::SequencedTaskRunner> media_task_runner_ = nullptr;
 
   webrtc::DecodedImageCallback* decode_complete_callback_ = nullptr;
 
-  std::string app_id_;
-  std::string window_id_;
-
-  bool is_render_mode_texture_ = false;
-
-  bool is_destroying_ = false;
-  bool is_suspended_ = false;
-
-  bool player_load_notified_ = false;
+  bool key_frame_required_ = true;
+  bool have_started_decoding_ = false;
+  bool pipeline_running_ = false;
 
   int32_t outstanding_decode_requests_ = 0;
-  bool key_frame_required_ = true;
-
-  bool have_started_decoding_ = false;
 
   // Shared members.
   base::Lock lock_;
-  webrtc::VideoCodecType video_codec_type_ = webrtc::kVideoCodecGeneric;
   int32_t consecutive_error_count_ = 0;
   bool has_error_ = false;
-
-  base::OnceCallback<void(bool)> pipeline_init_cb_;
-
-  base::RepeatingCallback<void(const std::string&,
-                               const std::string&,
-                               const base::RepeatingClosure&,
-                               const base::RepeatingClosure&,
-                               const MediaPlatformAPI::VideoSizeChangedCB&,
-                               const MediaPlatformAPI::ActiveRegionCB&)>
-      media_player_init_cb_;
-  base::RepeatingCallback<void(bool)> media_player_suspend_cb_;
 
   scoped_refptr<media::MediaPlatformAPI> media_platform_api_ = nullptr;
 
@@ -159,15 +148,23 @@ class MEDIA_EXPORT WebRtcPassThroughVideoDecoder : public webrtc::VideoDecoder {
 
   int32_t current_resolution_ = 0;
 
-  base::RepeatingClosure suspend_done_cb_;
-  base::RepeatingClosure resume_done_cb_;
-  MediaPlatformAPI::VideoSizeChangedCB video_size_changed_cb_;
-  MediaPlatformAPI::ActiveRegionCB active_region_cb_;
+  gfx::Size frame_size_;
+  gfx::Size coded_size_;
+  gfx::Size natural_size_;
+
+  base::OnceCallback<void(bool)> pipeline_init_cb_;
+  base::OnceCallback<void(bool)> video_window_created_cb_;
+
+  CreateVideoWindowCallback create_video_window_callback_;
+  absl::optional<ui::VideoWindowInfo> video_window_info_ = absl::nullopt;
+  mojo::Remote<ui::mojom::VideoWindow> video_window_remote_;
+  mojo::Receiver<ui::mojom::VideoWindowClient> video_window_client_receiver_{
+      this};
 
   base::WeakPtr<WebRtcPassThroughVideoDecoder> weak_this_;
   base::WeakPtrFactory<WebRtcPassThroughVideoDecoder> weak_this_factory_{this};
 };
 
-}  // namespace media
+}  // namespace blink
 
-#endif  // MEDIA_WEBRTC_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_
+#endif  // THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_WEBRTC_PASS_THROUGH_VIDEO_DECODER_H_

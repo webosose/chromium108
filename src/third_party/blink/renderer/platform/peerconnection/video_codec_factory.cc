@@ -30,7 +30,7 @@
 #if defined(USE_NEVA_WEBRTC)
 #include "base/command_line.h"
 #include "media/base/media_switches_neva.h"
-#include "media/webrtc/neva/neva_webrtc_video_decoder_factory.h"
+#include "third_party/blink/renderer/platform/peerconnection/neva/neva_webrtc_video_decoder_factory.h"
 #endif
 
 namespace blink {
@@ -286,9 +286,8 @@ std::unique_ptr<webrtc::VideoDecoderFactory> CreateWebrtcVideoDecoderFactory(
   if (gpu_factories && !gpu_factories->UseVideoDecodeAccelerator() &&
       !cmd_line->HasSwitch(switches::kDisableWebMediaPlayerNeva) &&
       cmd_line->HasSwitch(switches::kEnableWebRTCPlatformVideoDecoder)) {
-    decoder_factory_neva =
-        std::make_unique<media::NevaWebRtcVideoDecoderFactory>(
-            gpu_factories->GetMainTaskRunner(), std::move(media_task_runner));
+    decoder_factory_neva = std::make_unique<NevaWebRtcVideoDecoderFactory>(
+        gpu_factories, std::move(media_task_runner));
   }
   if (decoder_factory_neva) {
     return std::make_unique<DecoderAdapter>(std::move(decoder_factory_neva),

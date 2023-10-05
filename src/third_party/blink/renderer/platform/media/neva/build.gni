@@ -40,7 +40,4 @@ neva = {
     "$_dir/web_media_player_neva_factory.cc",
     "$_dir/web_media_player_neva_factory.h",
   ]
-  if (use_neva_webrtc) {
-    sources += [ "$_dir/web_media_player_webrtc.cc" ]
-  }
 }

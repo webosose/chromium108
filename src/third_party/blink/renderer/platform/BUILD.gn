@@ -1606,6 +1606,11 @@ component("platform") {
     ]
   }
 
+  if (use_neva_webrtc) {
+    import("//third_party/blink/renderer/platform/peerconnection/neva/build.gni")
+    sources += rebase_path(neva_webrtc.sources, ".")
+  }
+
   configs += [
     ":blink_platform_pch",
     ":blink_platform_config",

@@ -220,11 +220,6 @@ class MediaStreamVideoTrack::FrameDeliverer
   // This monotonously increasing value indicates which crop-version
   // is expected for delivered frames.
   uint32_t crop_version_ = 0;
-
-#if defined(USE_NEVA_WEBRTC)
-  base::TimeTicks pending_capture_time_;
-  scoped_refptr<media::VideoFrame> pending_video_frame_ = nullptr;
-#endif
 };
 
 MediaStreamVideoTrack::FrameDeliverer::FrameDeliverer(
@@ -265,20 +260,6 @@ void MediaStreamVideoTrack::FrameDeliverer::AddCallbackOnIO(
   DCHECK(io_task_runner_->BelongsToCurrentThread());
   callbacks_.push_back(VideoIdCallbacks{id, std::move(callback),
                                         CrossThreadBindRepeating([] {})});
-
-#if defined(USE_NEVA_WEBRTC)
-  if (pending_video_frame_) {
-    VLOG(1) << __func__ << " Deliver the pending frame";
-    // scaled_video_frames is empty always
-    std::vector<scoped_refptr<media::VideoFrame>> empty_scaled_frames;
-    io_task_runner_->PostTask(
-        FROM_HERE,
-        base::BindOnce(&FrameDeliverer::DeliverFrameOnIO,
-                       base::Unretained(this), std::move(pending_video_frame_),
-                       empty_scaled_frames, pending_capture_time_));
-    pending_video_frame_ = nullptr;
-  }
-#endif
 }
 
 void MediaStreamVideoTrack::FrameDeliverer::SetNotifyFrameDroppedCallback(
@@ -507,18 +488,6 @@ void MediaStreamVideoTrack::FrameDeliverer::DeliverFrameOnIO(
     video_frame = GetBlackFrame(*frame);
     scaled_video_frames.clear();
   }
-
-#if defined(USE_NEVA_WEBRTC)
-  if (callbacks_.empty() && video_frame->metadata().is_transparent_frame) {
-    // Since callbacks_ is empty, that means WebMediaPlayer is not created yet.
-    // So, store the frame in order to pass to web media player webrtc after it
-    // is created and AddCallbackOnIO is received.
-    VLOG(1) << __func__ << " callback not registered. Store the frame";
-    pending_video_frame_ = std::move(video_frame);
-    pending_capture_time_ = estimated_capture_time;
-    return;
-  }
-#endif
 
   for (const auto& entry : callbacks_) {
     entry.deliver_frame.Run(video_frame, scaled_video_frames,

@@ -14,11 +14,6 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/geometry/rect.h"
 
-#if defined(USE_NEVA_WEBRTC)
-#include "base/callback.h"
-#include "media/neva/media_platform_api.h"
-#endif
-
 namespace media {
 
 // NOTE: When adding new VideoFrameMetadata fields, please ensure you update the
@@ -34,23 +29,6 @@ struct MEDIA_EXPORT VideoFrameMetadata {
 
   // CLear metadata fields that only make sense for texture backed frames.
   void ClearTextureFrameMedatada();
-
-#if defined(USE_NEVA_WEBRTC)
-  // To inform that this is a transparent frame from pass through decoder
-  bool is_transparent_frame = false;
-
-  // Callback passed to WebMediaPlayerWebRTC for receiving player details
-  base::RepeatingCallback<void(const std::string&,
-                               const std::string&,
-                               const base::RepeatingClosure&,
-                               const base::RepeatingClosure&,
-                               const MediaPlatformAPI::VideoSizeChangedCB&,
-                               const MediaPlatformAPI::ActiveRegionCB&)>
-      media_player_init_cb;
-
-  // Callback passed to WebMediaPlayerWebRTC for receiving suspend status
-  base::RepeatingCallback<void(bool)> media_player_suspend_cb;
-#endif
 
   // Sources of VideoFrames use this marker to indicate that the associated
   // VideoFrame can be overlaid, case in which its contents do not need to be

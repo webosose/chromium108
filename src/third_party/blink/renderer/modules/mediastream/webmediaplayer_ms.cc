@@ -193,13 +193,6 @@ class WebMediaPlayerMS::FrameDeliverer {
   void OnVideoFrame(scoped_refptr<media::VideoFrame> frame) {
     DCHECK_CALLED_ON_VALID_THREAD(io_thread_checker_);
 
-#if defined(USE_NEVA_WEBRTC)
-    if (player_ && !player_->HandleVideoFrame(frame) &&
-        frame->metadata().is_transparent_frame) {
-      return;
-    }
-#endif
-
 // On Android, stop passing frames.
 #if BUILDFLAG(IS_ANDROID)
     if (render_frame_suspended_)
@@ -1198,19 +1191,6 @@ void WebMediaPlayerMS::OnIdleTimeout() {}
 void WebMediaPlayerMS::SetVolumeMultiplier(double multiplier) {
   // TODO(perkj, magjed): See TODO in OnPlay().
 }
-
-#if defined(USE_NEVA_WEBRTC)
-void WebMediaPlayerMS::EnqueueFrame(scoped_refptr<media::VideoFrame> frame) {
-  if (frame_deliverer_) {
-    int original_frame_id = frame->unique_id();
-    PostCrossThreadTask(
-        *io_task_runner_, FROM_HERE,
-        CrossThreadBindOnce(&FrameDeliverer::EnqueueFrame,
-                            CrossThreadUnretained(frame_deliverer_.get()),
-                            original_frame_id, std::move(frame)));
-  }
-}
-#endif
 
 void WebMediaPlayerMS::ActivateSurfaceLayerForVideo(
     media::VideoTransformation video_transform) {

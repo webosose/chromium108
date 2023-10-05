@@ -224,6 +224,11 @@ bool MediaPlatformAPIWebOSGmp::Feed(const scoped_refptr<DecoderBuffer>& buffer,
   while (!buffer_queue_->Empty()) {
     FeedStatus feed_status = FeedInternal(buffer_queue_->Front().first,
                                           buffer_queue_->Front().second);
+    if (video_config_.is_live_stream() && feed_status != kFeedSucceeded) {
+      // Return fail immediately without waiting for kMaxPendingFeedSize, if
+      // media pipeline could not process buffer for webrtc than live stream
+      return false;
+    }
     switch (feed_status) {
       case kFeedSucceeded: {
         buffer_queue_->Pop();
@@ -540,6 +545,8 @@ void MediaPlatformAPIWebOSGmp::DispatchCallback(const gint type,
         released_media_resource_ = true;
         load_completed_ = false;
         media_player_client_.reset(NULL);
+        if (error_cb_)
+          std::move(error_cb_).Run(PIPELINE_ERROR_RESOURCE_IS_RELEASED);
       } else if (num_value == GMP_ERROR_STREAM) {
         if (error_cb_)
           std::move(error_cb_).Run(PIPELINE_ERROR_DECODE);

@@ -420,13 +420,6 @@ source_set("base") {
     visibility += [ "//content/renderer/media/audio/neva" ]
   }
 
-  if (use_neva_webrtc) {
-    visibility += [ "//media/webrtc:webrtc" ]
-    public_deps += [
-      "//third_party/webrtc_overrides:webrtc_component",
-    ]
-  }
-
   libs = []
   configs += [
     "//build/config:precompiled_headers",

@@ -27,6 +27,10 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/gpu_memory_buffer.h"
 
+#if defined(USE_NEVA_WEBRTC)
+#include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
+#endif
+
 namespace base {
 class SequencedTaskRunner;
 }  // namespace base
@@ -202,9 +206,19 @@ class MEDIA_EXPORT GpuVideoAcceleratorFactories {
   virtual scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() = 0;
 
 #if defined(USE_NEVA_WEBRTC)
-  // Returns the render thread main task runner. This is needed in
-  // pass through video decoder for creating and binding MediaPlatformAPI
-  virtual scoped_refptr<base::SequencedTaskRunner> GetMainTaskRunner() = 0;
+  // Returns the application id, needed for MediaPlatformAPI creation by
+  // webrtc pass through decoder
+  virtual std::string GetAppId() = 0;
+
+  // Returns the video window creation callback, needed to create video
+  // window by webrtc pass through decoder
+  virtual blink::CreateVideoWindowCallback GetCreateVideoWindowCB() = 0;
+
+  // Sets the application id and create video window callback, needed by
+  // webrtc pass through decoder
+  virtual void SetAppIdAndCreateVideoWindowCB(
+      const std::string& app_id,
+      blink::CreateVideoWindowCallback cb) = 0;
 #endif
 
   virtual viz::RasterContextProvider* GetMediaContextProvider() = 0;

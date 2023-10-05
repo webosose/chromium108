@@ -34,7 +34,4 @@ neva = {
     "$_dir/stream_texture_interface.h",
     "$_dir/video_frame_provider_impl.h",
   ]
-  if (use_neva_webrtc) {
-    sources += [ "$_dir/web_media_player_webrtc.h" ]
-  }
 }

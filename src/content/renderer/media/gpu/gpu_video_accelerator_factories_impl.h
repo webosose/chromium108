@@ -121,7 +121,11 @@ class GpuVideoAcceleratorFactoriesImpl
   base::UnsafeSharedMemoryRegion CreateSharedMemoryRegion(size_t size) override;
   scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() override;
 #if defined(USE_NEVA_WEBRTC)
-  scoped_refptr<base::SequencedTaskRunner> GetMainTaskRunner() override;
+  std::string GetAppId() override { return app_id_; }
+  blink::CreateVideoWindowCallback GetCreateVideoWindowCB() override;
+  void SetAppIdAndCreateVideoWindowCB(
+      const std::string& app_id,
+      blink::CreateVideoWindowCallback callback) override;
 #endif
 
   viz::RasterContextProvider* GetMediaContextProvider() override;
@@ -233,6 +237,11 @@ class GpuVideoAcceleratorFactoriesImpl
 
 #if defined(USE_NEVA_MEDIA)
   bool use_video_decode_accelerator_ = false;
+#endif
+
+#if defined(USE_NEVA_WEBRTC)
+  std::string app_id_;
+  blink::CreateVideoWindowCallback create_video_window_callback_;
 #endif
 
   // SupportedDecoderConfigs state.

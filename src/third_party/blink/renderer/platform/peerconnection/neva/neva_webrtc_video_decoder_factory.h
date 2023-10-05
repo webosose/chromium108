@@ -14,30 +14,29 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef MEDIA_WEBRTC_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_
-#define MEDIA_WEBRTC_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_
+#ifndef THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_
+#define THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_
 
 #include "base/memory/ref_counted.h"
-#include "media/base/media_export.h"
+#include "third_party/blink/renderer/platform/platform_export.h"
 #include "third_party/webrtc/api/video_codecs/video_decoder_factory.h"
 
-namespace base {
-class SequencedTaskRunner;
-class Thread;
-}  // namespace base
+namespace media {
+class GpuVideoAcceleratorFactories;
+}  // namespace media
 
 namespace webrtc {
 class SdpVideoFormat;
 class VideoDecoder;
 }  // namespace webrtc
 
-namespace media {
+namespace blink {
 
-class MEDIA_EXPORT NevaWebRtcVideoDecoderFactory
+class PLATFORM_EXPORT NevaWebRtcVideoDecoderFactory
     : public webrtc::VideoDecoderFactory {
  public:
   explicit NevaWebRtcVideoDecoderFactory(
-      scoped_refptr<base::SequencedTaskRunner> main_task_runner,
+      media::GpuVideoAcceleratorFactories* gpu_factories,
       scoped_refptr<base::SequencedTaskRunner> media_task_runner);
   ~NevaWebRtcVideoDecoderFactory() override = default;
 
@@ -46,12 +45,11 @@ class MEDIA_EXPORT NevaWebRtcVideoDecoderFactory
       const webrtc::SdpVideoFormat& format) override;
 
  private:
-  scoped_refptr<base::SequencedTaskRunner> main_task_runner_;
+  media::GpuVideoAcceleratorFactories* gpu_factories_;
   scoped_refptr<base::SequencedTaskRunner> media_task_runner_;
-
   std::vector<webrtc::SdpVideoFormat> supported_formats_;
 };
 
-}  // namespace media
+}  // namespace blink
 
-#endif  // MEDIA_WEBRTC_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_
+#endif  // THIRD_PARTY_BLINK_RENDERER_PLATFORM_PEERCONNECTION_NEVA_NEVA_WEBRTC_VIDEO_DECODER_FACTORY_H_

@@ -42,9 +42,16 @@ SemiRealtimeAudioWorkletThread::SemiRealtimeAudioWorkletThread(
   // Use a higher priority thread only when it is allowed by Finch.
   if (base::FeatureList::IsEnabled(
           features::kAudioWorkletThreadRealtimePriority)) {
+#if defined(USE_NEVA_WEBRTC)
+    // Without this change, for sites like open webex the waitable event
+    // get stuck at WorkerThread::Start with waitable_event.Wait().
+    // Idea to use kRealtimeAudio is taken from RealtimeAudioWorkletThread
+    params.base_thread_type = base::ThreadType::kRealtimeAudio;
+#else
     // TODO(crbug.com/1022888): The worklet thread priority is always NORMAL on
     // Linux and Chrome OS regardless of this thread priority setting.
     params.base_thread_type = base::ThreadType::kDisplayCritical;
+#endif
   } else {
     params.base_thread_type = base::ThreadType::kDefault;
   }
