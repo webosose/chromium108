@@ -42,8 +42,6 @@ WebOSSystemDataManager::WebOSSystemDataManager(const std::string& json) {
   DoInitialize(json);
 }
 
-WebOSSystemDataManager::~WebOSSystemDataManager() = default;
-
 void WebOSSystemDataManager::DoInitialize(const std::string& json) {
   if (!initialized_ && !json.empty()) {
     Initialize(json, cached_data_keys_);

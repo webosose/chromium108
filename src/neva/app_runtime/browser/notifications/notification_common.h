@@ -32,7 +32,7 @@ class NotificationCommon {
   // A struct that contains extra data about a notification specific to one of
   // the above types.
   struct Metadata {
-    virtual ~Metadata();
+    virtual ~Metadata() = default;
 
     NotificationHandler::Type type;
 
@@ -43,7 +43,7 @@ class NotificationCommon {
 // Metadata for PERSISTENT notifications.
 struct PersistentNotificationMetadata : public NotificationCommon::Metadata {
   PersistentNotificationMetadata();
-  ~PersistentNotificationMetadata() override;
+  ~PersistentNotificationMetadata() override = default;
 
   static const PersistentNotificationMetadata* From(const Metadata* metadata);
 
@@ -53,7 +53,7 @@ struct PersistentNotificationMetadata : public NotificationCommon::Metadata {
 // Metadata for NON_PERSISTENT notifications.
 struct NonPersistentNotificationMetadata : public NotificationCommon::Metadata {
   NonPersistentNotificationMetadata();
-  ~NonPersistentNotificationMetadata() override;
+  ~NonPersistentNotificationMetadata() override = default;
 
   static const NonPersistentNotificationMetadata* From(
       const Metadata* metadata);

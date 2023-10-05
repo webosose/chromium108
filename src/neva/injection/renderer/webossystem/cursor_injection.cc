@@ -24,8 +24,6 @@ gin::WrapperInfo CursorInjection::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 CursorInjection::CursorInjection(Delegate* delegate) : delegate_(delegate) {}
 
-CursorInjection::~CursorInjection() = default;
-
 gin::ObjectTemplateBuilder CursorInjection::GetObjectTemplateBuilder(
     v8::Isolate* isolate) {
   return gin::Wrappable<CursorInjection>::GetObjectTemplateBuilder(isolate)

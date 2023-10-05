@@ -26,6 +26,5 @@ WindowGroupLayerConfiguration::WindowGroupLayerConfiguration(
 WindowGroupConfiguration::WindowGroupConfiguration() : is_anonymous(false) {}
 WindowGroupConfiguration::WindowGroupConfiguration(
     const WindowGroupConfiguration&) = default;
-WindowGroupConfiguration::~WindowGroupConfiguration() = default;
 
 }  // namespace ui

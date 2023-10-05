@@ -27,7 +27,7 @@ namespace injections {
 class WebOSSystemDataManager : public InjectionDataManager {
  public:
   WebOSSystemDataManager(const std::string& json);
-  ~WebOSSystemDataManager() override;
+  ~WebOSSystemDataManager() override = default;
 
   bool GetInitializedStatus() const {
     return initialized_;

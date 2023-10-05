@@ -10,8 +10,6 @@
 
 namespace neva_app_runtime {
 
-NotificationHandler::~NotificationHandler() = default;
-
 void NotificationHandler::OnShow(content::BrowserContext* profile,
                                  const std::string& notification_id) {}
 

@@ -8,13 +8,9 @@
 
 namespace neva_app_runtime {
 
-NotificationCommon::Metadata::~Metadata() = default;
-
 PersistentNotificationMetadata::PersistentNotificationMetadata() {
   type = NotificationHandler::Type::WEB_PERSISTENT;
 }
-
-PersistentNotificationMetadata::~PersistentNotificationMetadata() = default;
 
 // static
 const PersistentNotificationMetadata* PersistentNotificationMetadata::From(
@@ -28,9 +24,6 @@ const PersistentNotificationMetadata* PersistentNotificationMetadata::From(
 NonPersistentNotificationMetadata::NonPersistentNotificationMetadata() {
   type = NotificationHandler::Type::WEB_NON_PERSISTENT;
 }
-
-NonPersistentNotificationMetadata::~NonPersistentNotificationMetadata() =
-    default;
 
 // static
 const NonPersistentNotificationMetadata*

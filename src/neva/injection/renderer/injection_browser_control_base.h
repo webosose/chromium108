@@ -32,7 +32,7 @@ namespace injections {
 class CONTENT_EXPORT InjectionBrowserControlBase {
  public:
   InjectionBrowserControlBase(blink::WebLocalFrame* web_local_frame);
-  ~InjectionBrowserControlBase();
+  ~InjectionBrowserControlBase() = default;
 
   void SendCommand(const std::string& command_name);
   void SendCommand(const std::string& command_name,

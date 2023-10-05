@@ -48,7 +48,7 @@ class NotificationHandler {
     MAX = NOTIFICATIONS_MUTED,
   };
 
-  virtual ~NotificationHandler();
+  virtual ~NotificationHandler() = default;
 
   // Called after a notification has been displayed.
   virtual void OnShow(content::BrowserContext* profile,

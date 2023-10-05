@@ -27,12 +27,12 @@ namespace neva_app_runtime {
 
 class NotificationPlatformBridgeWebos : public NotificationPlatformBridge {
  public:
-  NotificationPlatformBridgeWebos();
+  NotificationPlatformBridgeWebos() = default;
   NotificationPlatformBridgeWebos(const NotificationPlatformBridgeWebos&) =
       delete;
   NotificationPlatformBridgeWebos& operator=(
       const NotificationPlatformBridgeWebos&) = delete;
-  ~NotificationPlatformBridgeWebos() override;
+  ~NotificationPlatformBridgeWebos() override = default;
 
   // NotificationPlatformBridge:
   void Display(NotificationHandler::Type notification_type,

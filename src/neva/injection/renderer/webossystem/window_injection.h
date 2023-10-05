@@ -45,7 +45,7 @@ class WindowInjection : public gin::Wrappable<WindowInjection> {
   explicit WindowInjection(Delegate* delegate);
   WindowInjection(const WindowInjection&) = delete;
   WindowInjection& operator=(const WindowInjection&) = delete;
-  ~WindowInjection() override;
+  ~WindowInjection() override = default;
 
  private:
   // gin::Wrappable.

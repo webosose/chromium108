@@ -26,7 +26,7 @@ namespace injections {
 class WebOSGAVDataManager : public InjectionDataManager {
  public:
   explicit WebOSGAVDataManager(const std::string& json);
-  ~WebOSGAVDataManager() override;
+  ~WebOSGAVDataManager() override = default;
 
   bool GetInitialisedStatus() const { return initialized_; }
 

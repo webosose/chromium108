@@ -45,7 +45,7 @@ class CursorInjection : public gin::Wrappable<CursorInjection> {
   explicit CursorInjection(Delegate* delegate);
   CursorInjection(const CursorInjection&) = delete;
   CursorInjection& operator=(const CursorInjection&) = delete;
-  ~CursorInjection() override;
+  ~CursorInjection() override = default;
 
  private:
   // gin::Wrappable.

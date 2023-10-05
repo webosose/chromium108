@@ -33,8 +33,6 @@ InjectionBrowserControlBase::InjectionBrowserControlBase(
           &webview_controller_interface_);
 }
 
-InjectionBrowserControlBase::~InjectionBrowserControlBase() = default;
-
 void InjectionBrowserControlBase::SendCommand(const std::string& command_name) {
   SendCommand(command_name, std::vector<std::string>());
 }

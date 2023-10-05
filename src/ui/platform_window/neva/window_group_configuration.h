@@ -37,7 +37,7 @@ class COMPONENT_EXPORT(PLATFORM_WINDOW) WindowGroupConfiguration {
  public:
   WindowGroupConfiguration();
   WindowGroupConfiguration(const WindowGroupConfiguration&);
-  ~WindowGroupConfiguration();
+  ~WindowGroupConfiguration() = default;
 
   std::string name;
   bool is_anonymous = false;

@@ -24,8 +24,6 @@ gin::WrapperInfo WindowInjection::kWrapperInfo = {gin::kEmbedderNativeGin};
 
 WindowInjection::WindowInjection(Delegate* delegate) : delegate_(delegate) {}
 
-WindowInjection::~WindowInjection() = default;
-
 gin::ObjectTemplateBuilder WindowInjection::GetObjectTemplateBuilder(
     v8::Isolate* isolate) {
   return gin::Wrappable<WindowInjection>::GetObjectTemplateBuilder(isolate)

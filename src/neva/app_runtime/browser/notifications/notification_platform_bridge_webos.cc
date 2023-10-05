@@ -38,10 +38,6 @@ bool NotificationPlatformBridge::CanHandleType(
   return notification_type != NotificationHandler::Type::TRANSIENT;
 }
 
-NotificationPlatformBridgeWebos::NotificationPlatformBridgeWebos() = default;
-
-NotificationPlatformBridgeWebos::~NotificationPlatformBridgeWebos() = default;
-
 void NotificationPlatformBridgeWebos::Display(
     NotificationHandler::Type notification_type,
     content::BrowserContext* profile,
