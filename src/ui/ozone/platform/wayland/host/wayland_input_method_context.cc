@@ -48,6 +48,12 @@
 #include "chromeos/startup/browser_params_proxy.h"
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME) && defined(OS_WEBOS)
+constexpr SkColor kPreeditHighlightColor =
+    // specified by UX team
+    SkColorSetARGB(0xFF, 198, 176, 186);
+#endif
+
 namespace ui {
 namespace {
 
@@ -424,6 +430,12 @@ void WaylandInputMethodContext::OnPreeditString(
   if (base::IsStringUTF8(text)) {
     composition_text.text = base::UTF8ToUTF16(text);
     composition_text.selection = gfx::Range(0, composition_text.text.length());
+#if defined(OS_WEBOS)
+    composition_text.ime_text_spans.push_back(ui::ImeTextSpan(
+        ui::ImeTextSpan::Type::kComposition, 0, composition_text.text.length(),
+        ui::ImeTextSpan::Thickness::kNone,
+        ui::ImeTextSpan::UnderlineStyle::kNone, kPreeditHighlightColor));
+#endif
   } else {
     composition_text.text = base::ASCIIToUTF16(text);
   }
