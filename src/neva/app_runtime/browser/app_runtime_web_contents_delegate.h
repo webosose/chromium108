@@ -31,7 +31,7 @@ class AppRuntimeWebContentsDelegate : public content::WebContentsDelegate {
   AppRuntimeWebContentsDelegate();
   ~AppRuntimeWebContentsDelegate() override;
 
-  void RunFileChooser(content::RenderFrameHost* render_frame_host,
+  void RunFileChooser(content::RenderFrameHost* rfh,
                       scoped_refptr<content::FileSelectListener> listener,
                       const blink::mojom::FileChooserParams& params) override;
 

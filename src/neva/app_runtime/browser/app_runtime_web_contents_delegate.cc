@@ -37,15 +37,17 @@ AppRuntimeWebContentsDelegate::AppRuntimeWebContentsDelegate() {
 AppRuntimeWebContentsDelegate::~AppRuntimeWebContentsDelegate() = default;
 
 void AppRuntimeWebContentsDelegate::RunFileChooser(
-    content::RenderFrameHost* render_frame_host,
+    content::RenderFrameHost* rfh,
     scoped_refptr<content::FileSelectListener> listener,
     const blink::mojom::FileChooserParams& params) {
   listener->FileSelectionCanceled();
   if (notification_manager_delegate_) {
+    auto* web_contents = content::WebContents::FromRenderFrameHost(rfh);
+    if (!web_contents)
+      return;
+
     std::string app_id =
-        content::WebContents::FromRenderFrameHost(render_frame_host)
-            ->GetMutableRendererPrefs()
-            ->application_id;
+        web_contents->GetMutableRendererPrefs()->application_id;
     notification_manager_delegate_->CreateToast(
         app_id, "File selection is not supported.");
   }
