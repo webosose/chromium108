@@ -205,7 +205,7 @@ std::string SiteFilterServiceImpl::GetDomain(const std::string& url) {
   if (!(decoded_url.is_valid() && decoded_url.IsStandard()))
     return {};
   std::string domain = decoded_url.host();
-  if (!domain.find(kWwwPrefix)) {
+  if (domain.find(kWwwPrefix) == 0) {
     domain = domain.substr(kWwwPrefix.length());
   }
   return domain;
