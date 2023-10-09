@@ -50,6 +50,7 @@ class SiteFilterServiceImpl : public mojom::SiteFilterService {
   void GetURLs(GetURLsCallback callback) override;
   void AddURL(const std::string& url, AddURLCallback callback) override;
   void DeleteURLs(const std::vector<std::string>& urls,
+                  bool is_delete_all,
                   DeleteURLsCallback callback) override;
   void UpdateURL(const std::string& old_url,
                  const std::string& new_url,
