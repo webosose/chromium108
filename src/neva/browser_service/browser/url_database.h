@@ -37,6 +37,7 @@ class URLDatabase {
 
   bool InsertURL(const std::string& url);
   bool DeleteURLs(const std::vector<std::string>& url_list);
+  bool ClearAllURLs();
   bool ModifyURL(const std::string& old_url, const std::string& new_url);
   bool IsURLAvailable(const std::string& url);
 

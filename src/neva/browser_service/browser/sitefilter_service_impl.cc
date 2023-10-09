@@ -132,23 +132,50 @@ void SiteFilterServiceImpl::AddURL(const std::string& url,
 }
 
 void SiteFilterServiceImpl::DeleteURLs(const std::vector<std::string>& urls,
+                                       bool is_delete_all,
                                        DeleteURLsCallback callback) {
-  if (type_ == Type::kDisabled) {
-    LOG(ERROR) << __func__ << " Site Filter type is OFF !";
-    std::move(callback).Run(false);
-    return;
-  }
+  if (!is_delete_all) {
+    if (type_ == Type::kDisabled) {
+      LOG(ERROR) << __func__ << " Site Filter type is OFF !";
+      std::move(callback).Run(false);
+      return;
+    }
 
-  if (!url_list_table_->DeleteURLs(urls)) {
-    LOG(ERROR) << __func__ << " Unable to Remove URLs from DB";
-    std::move(callback).Run(false);
-    return;
-  }
+    if (!url_list_table_->DeleteURLs(urls)) {
+      LOG(ERROR) << __func__ << " Unable to Remove URLs from DB";
+      std::move(callback).Run(false);
+      return;
+    }
 
-  for (const auto& url : urls) {
-    url_list_.erase(url);
+    for (const auto& url : urls) {
+      url_list_.erase(url);
+    }
+  } else {
+    if (url_list_table_) {
+      std::unique_ptr<URLDatabase> remaining_database(new URLDatabase(
+          GetTableName() == kAllowURLTableName ? kBlockURLTableName
+                                               : kAllowURLTableName));
+      if (!url_list_table_->ClearAllURLs() ||
+          !remaining_database->ClearAllURLs()) {
+        LOG(ERROR) << __func__
+                   << " Unable to Remove All URLs from Block and Allow DB";
+        std::move(callback).Run(false);
+        return;
+      }
+    } else {
+      std::unique_ptr<URLDatabase> allow_database(
+          new URLDatabase(kAllowURLTableName));
+      std::unique_ptr<URLDatabase> block_database(
+          new URLDatabase(kBlockURLTableName));
+      if (!allow_database->ClearAllURLs() || !block_database->ClearAllURLs()) {
+        LOG(ERROR) << __func__
+                   << " Unable to Remove All URLs from Block and Allow DB";
+        std::move(callback).Run(false);
+        return;
+      }
+    }
+    url_list_.clear();
   }
-
   std::move(callback).Run(true);
 }
 
