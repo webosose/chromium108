@@ -477,6 +477,10 @@ void WaylandInputMethodContext::OnCommitString(base::StringPiece text) {
     pending_keep_selection_ = false;
     return;
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  ime_delegate_->OnMarkToSendKeyPressEvent();
+#endif
+
   ime_delegate_->OnCommit(base::UTF8ToUTF16(text));
 }
 

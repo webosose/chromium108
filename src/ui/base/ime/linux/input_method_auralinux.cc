@@ -468,6 +468,14 @@ InputMethodAuraLinux::GetVirtualKeyboardController() {
 // Overriden from ui::LinuxInputMethodContextDelegate
 
 void InputMethodAuraLinux::OnCommit(const std::u16string& text) {
+#if defined(USE_NEVA_APPRUNTIME)
+  // NEVA: A workaround is needed on the webOS platform for |ET_KEY_PRESSED|
+  // event with alphabet characters.
+  bool mark_send_key_press_event = false;
+  mark_send_key_press_event = mark_send_key_press_event_;
+  mark_send_key_press_event_ = false;
+#endif
+
   if (IgnoringNonKeyInput() || !GetTextInputClient())
     return;
 
@@ -488,9 +496,19 @@ void InputMethodAuraLinux::OnCommit(const std::u16string& text) {
   if (!is_sync_mode_ && !IsTextInputTypeNone()) {
     ui::KeyEvent event =
         ui::KeyEvent(ui::ET_KEY_PRESSED, ui::VKEY_PROCESSKEY, 0);
-    if (ime_filtered_key_event_.has_value()) {
-      event = std::move(*ime_filtered_key_event_);
-      ime_filtered_key_event_.reset();
+    if (ime_filtered_key_event_.has_value()
+#if defined(USE_NEVA_APPRUNTIME)
+        || mark_send_key_press_event
+#endif
+    ) {
+#if defined(USE_NEVA_APPRUNTIME)
+      if (ime_filtered_key_event_.has_value()) {
+#endif
+        event = std::move(*ime_filtered_key_event_);
+        ime_filtered_key_event_.reset();
+#if defined(USE_NEVA_APPRUNTIME)
+      }
+#endif
       ui::EventDispatchDetails details =
           DispatchImeFilteredKeyPressEvent(&event);
       if (details.target_destroyed || details.dispatcher_destroyed ||
@@ -513,6 +531,12 @@ void InputMethodAuraLinux::OnDeleteSurroundingText(size_t before,
   if (client && composition_.text.empty())
     client->ExtendSelectionAndDelete(before, after);
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+void InputMethodAuraLinux::OnMarkToSendKeyPressEvent() {
+  mark_send_key_press_event_ = true;
+}
+#endif
 
 void InputMethodAuraLinux::OnPreeditChanged(
     const CompositionText& composition_text) {

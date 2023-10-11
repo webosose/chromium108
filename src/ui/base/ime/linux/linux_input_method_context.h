@@ -108,6 +108,10 @@ class COMPONENT_EXPORT(UI_BASE_IME_LINUX) LinuxInputMethodContextDelegate
   // are in UTF-16 code points.
   virtual void OnDeleteSurroundingText(size_t before, size_t after) = 0;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  virtual void OnMarkToSendKeyPressEvent() = 0;
+#endif
+
   // Sets the composition text to the text input client.
   virtual void OnPreeditChanged(const CompositionText& composition_text) = 0;
 
