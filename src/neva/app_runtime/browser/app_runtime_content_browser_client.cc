@@ -42,6 +42,7 @@
 #include "content/public/browser/web_contents_view_delegate.h"
 #include "content/public/common/content_neva_switches.h"
 #include "content/public/common/content_switches.h"
+#include "content/public/common/network_service_util.h"
 #include "crypto/crypto_buildflags.h"
 #include "extensions/browser/extension_navigation_ui_data.h"
 #include "net/base/filename_util.h"
@@ -99,11 +100,6 @@ namespace {
 const char kCacheStoreFile[] = "Cache";
 const char kCookieStoreFile[] = "Cookies";
 const int kDefaultDiskCacheSize = 16 * 1024 * 1024;  // default size is 16MB
-/* TODO(webOS): fixme - M101 Sync
-** https://chromium-review.googlesource.com/c/chromium/src/+/3320484
-*/
-constexpr char kPasswordStore[] = "password-store";
-constexpr char kProductName[] = "webOS";
 }  // namespace
 
 namespace {
@@ -840,25 +836,15 @@ AppRuntimeContentBrowserClient::GetUserAgentMetadata() {
 
 void AppRuntimeContentBrowserClient::OnNetworkServiceCreated(
     network::mojom::NetworkService* network_service) {
-  /* TODO(webOS): fixme - M101 Sync
-  ** https://chromium-review.googlesource.com/c/chromium/src/+/3320484
-  network::mojom::CryptConfigPtr config = network::mojom::CryptConfig::New();
-  content::GetNetworkService()->SetCryptConfig(std::move(config));
-  ** Due to the patch above, the SetCryptConfig has been removed.
-  ** The lines below are the implementations in the SetCryptConfig.
-  ** Since some lines were adapted, there is room to improve details.
-  */
-  auto config = std::make_unique<os_crypt::Config>();
-  config->store = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
-      kPasswordStore);
-  config->product_name = kProductName;
-  config->main_thread_runner = base::ThreadTaskRunnerHandle::Get();
-  config->should_use_preference = false;
-  config->user_data_path = base::FilePath();
-  OSCrypt::SetConfig(std::move(config));
 #if defined(OS_WEBOS)
   network_service->DisableQuic();
 #endif
+
+  // The OSCrypt keys are process bound, so if network service is out of
+  // process, send it the required key.
+  if (content::IsOutOfProcessNetworkService()) {
+    network_service->SetEncryptionKey(OSCrypt::GetRawEncryptionKey());
+  }
 }
 
 void AppRuntimeContentBrowserClient::ConfigureNetworkContextParams(

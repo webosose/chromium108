@@ -58,6 +58,16 @@ const char kSharedMemPressureDivider[] = "shared-mem-pressure-divider";
 const char kSharedMemSystemMemReductionFactor[] =
     "shared-mem-system-mem-reduction-factor";
 
+// Specifies which encryption storage backend to use. Possible values are
+// kwallet, kwallet5, gnome, gnome-keyring, gnome-libsecret, basic. Any other
+// value will lead to Chrome detecting the best backend automatically.
+// TODO(crbug.com/571003): Once PasswordStore no longer uses the Keyring or
+// KWallet for storing passwords, rename this flag to stop referencing
+// passwords. Do not rename it sooner, though; developers and testers might
+// rely on it keeping large amounts of testing passwords out of their Keyrings
+// or KWallets.
+const char kPasswordStore[] = "password-store";
+
 // Specifies a list of hosts for whom we bypass proxy settings and use direct
 // connections. Ignored if --proxy-auto-detect or --no-proxy-server are also
 // specified. This is a comma-separated list of bypass rules. See:

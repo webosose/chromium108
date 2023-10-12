@@ -16,6 +16,8 @@
 
 #include "neva/app_runtime/browser/app_runtime_browser_main_parts.h"
 
+#include <memory>
+
 #include "base/command_line.h"
 #include "base/logging.h"
 #include "base/run_loop.h"
@@ -32,6 +34,7 @@
 #include "net/base/network_change_notifier_factory.h"
 #include "neva/app_runtime/browser/app_runtime_browser_context.h"
 #include "neva/app_runtime/browser/app_runtime_browser_main_extra_parts.h"
+#include "neva/app_runtime/browser/app_runtime_browser_switches.h"
 #include "neva/app_runtime/browser/app_runtime_devtools_manager_delegate.h"
 #include "neva/app_runtime/browser/app_runtime_shared_memory_manager.h"
 #include "neva/app_runtime/browser/net/app_runtime_network_change_notifier.h"
@@ -98,6 +101,12 @@ bool IsWaylandExternal() {
 }
 
 }  // namespace
+
+#if defined(OS_WEBOS)
+constexpr char kProductName[] = "webOS";
+#else   // defined(OS_WEBOS)
+constexpr char kProductName[] = "neva";
+#endif  // defined(OS_WEBOS)
 
 class AppRuntimeNetworkChangeNotifierFactory
     : public net::NetworkChangeNotifierFactory {
@@ -176,6 +185,11 @@ void AppRuntimeBrowserMainParts::PostCreateMainMessageLoop() {
   ui::OzonePlatform::GetInstance()->PostCreateMainMessageLoop(
       std::move(shutdown_cb));
 #endif  // defined(USE_OZONE)
+
+  // Set up crypt config. This needs to be done before anything starts the
+  // network service, as the raw encryption key needs to be shared with the
+  // network service for encrypted cookie storage.
+  CreateOSCryptConfig();
 }
 
 int AppRuntimeBrowserMainParts::PreMainMessageLoopRun() {
@@ -210,8 +224,6 @@ int AppRuntimeBrowserMainParts::PreMainMessageLoopRun() {
 
   aura::Env::GetInstance();
 #endif
-
-  CreateOSCryptConfig();
 
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
   // TODO(pikulik): Looks like it's better to move the following code to
@@ -327,11 +339,13 @@ AppRuntimeBrowserMainParts::GetDefaultBrowserContext() const {
 }
 
 void AppRuntimeBrowserMainParts::CreateOSCryptConfig() {
-  std::unique_ptr<os_crypt::Config> config(new os_crypt::Config());
+  std::unique_ptr<os_crypt::Config> config =
+      std::make_unique<os_crypt::Config>();
   // Forward to os_crypt the flag to use a specific password store.
-  config->store = "";
-  // Forward the product name
-  config->product_name = "";
+  config->store = base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+      kPasswordStore);
+  // Use the product name
+  config->product_name = kProductName;
   // OSCrypt may target keyring, which requires calls from the main thread.
   config->main_thread_runner = content::GetUIThreadTaskRunner({});
   // OSCrypt can be disabled in a special settings file.

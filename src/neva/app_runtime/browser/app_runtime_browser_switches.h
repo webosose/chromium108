@@ -30,6 +30,7 @@ extern const char kQuotaPoolSizeRatio[];
 extern const char kSharedMemMinimalLimitMB[];
 extern const char kSharedMemPressureDivider[];
 extern const char kSharedMemSystemMemReductionFactor[];
+extern const char kPasswordStore[];
 extern const char kProxyBypassList[];
 extern const char kDisableDropAllPeerConnections[];
 extern const char kWebOSJavaScriptFlags[];
