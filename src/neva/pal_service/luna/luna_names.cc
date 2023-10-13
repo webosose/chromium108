@@ -16,6 +16,7 @@
 
 #include "neva/pal_service/luna/luna_names.h"
 
+#include "base/check.h"
 #include "base/logging.h"
 #include "base/rand_util.h"
 
@@ -56,6 +57,7 @@ const char kSettingsClient[] = "com.webos.settingsservice.client";
 }  // namespace service_name
 
 std::string GetServiceURI(const char* uri, const char* action) {
+  CHECK(uri && action);
   std::string result(kLunaScheme);
   return result.append(uri).append("/").append(action);
 }
@@ -63,6 +65,7 @@ std::string GetServiceURI(const char* uri, const char* action) {
 std::string GetServiceName(const char* name,
                            int suffix,
                            const char* delimiter) {
+  CHECK(name && delimiter);
   std::string result(name);
   return result.append(delimiter).append(std::to_string(suffix));
 }
