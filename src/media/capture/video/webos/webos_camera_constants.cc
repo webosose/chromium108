@@ -26,8 +26,8 @@ const char kGetInfo[] = "getInfo";
 const char kGetProperties[] = "getProperties";
 const char kSetProperties[] = "setProperties";
 const char kSetFormat[] = "setFormat";
-const char kStartPreview[] = "startPreview";
-const char kStopPreview[] = "stopPreview";
+const char kStartCamera[] = "startCamera";
+const char kStopCamera[] = "stopCamera";
 const char kGetEventNotification[] = "getEventNotification";
 
 // webOS camera service payload key names

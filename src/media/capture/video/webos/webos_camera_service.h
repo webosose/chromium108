@@ -61,8 +61,8 @@ class CAPTURE_EXPORT WebOSCameraService
                  int height,
                  const std::string& format,
                  int fps);
-  int StartPreview(int handle);
-  void StopPreview(int handle);
+  int StartCamera(int handle);
+  void StopCamera(int handle);
 
   void SubscribeCameraChange(ResponseCB cb);
   void SubscribeFaultEvent(ResponseCB cb);

@@ -335,7 +335,7 @@ bool WebOSCameraService::SetFormat(int handle,
   return GetRootDictionary(response, nullptr);
 }
 
-int WebOSCameraService::StartPreview(int handle) {
+int WebOSCameraService::StartCamera(int handle) {
   VLOG(1) << __func__ << " handle=" << handle;
 
   if (handle < 0) {
@@ -351,17 +351,17 @@ int WebOSCameraService::StartPreview(int handle) {
   preview_root.SetKey(kHandle, base::Value(handle));
   preview_root.SetKey(kParams, param_value.Clone());
 
-  std::string preview_payload;
-  if (!base::JSONWriter::Write(preview_root, &preview_payload)) {
-    LOG(ERROR) << __func__ << " Failed to write startPreview payload";
+  std::string camera_payload;
+  if (!base::JSONWriter::Write(preview_root, &camera_payload)) {
+    LOG(ERROR) << __func__ << " Failed to write startCamera payload";
     return -1;
   }
 
   std::string response;
   if (!LunaCallInternal(
           base::LunaServiceClient::GetServiceURI(
-              base::LunaServiceClient::URIType::CAMERA, kStartPreview),
-          preview_payload, &response)) {
+              base::LunaServiceClient::URIType::CAMERA, kStartCamera),
+          camera_payload, &response)) {
     LOG(ERROR) << __func__ << " Failed luna service call";
     return false;
   }
@@ -380,7 +380,7 @@ int WebOSCameraService::StartPreview(int handle) {
   return *shmem_key;
 }
 
-void WebOSCameraService::StopPreview(int handle) {
+void WebOSCameraService::StopCamera(int handle) {
   VLOG(1) << __func__ << " handle=" << handle;
 
   if (handle < 0) {
@@ -391,16 +391,16 @@ void WebOSCameraService::StopPreview(int handle) {
   base::DictionaryValue preview_root;
   preview_root.SetKey(kHandle, base::Value(handle));
 
-  std::string preview_payload;
-  if (!base::JSONWriter::Write(preview_root, &preview_payload)) {
-    LOG(ERROR) << __func__ << " Failed to write stopPreview payload";
+  std::string camera_payload;
+  if (!base::JSONWriter::Write(preview_root, &camera_payload)) {
+    LOG(ERROR) << __func__ << " Failed to write stopCamera payload";
     return;
   }
 
   if (!LunaCallInternal(
           base::LunaServiceClient::GetServiceURI(
-              base::LunaServiceClient::URIType::CAMERA, kStopPreview),
-          preview_payload, nullptr)) {
+              base::LunaServiceClient::URIType::CAMERA, kStopCamera),
+          camera_payload, nullptr)) {
     LOG(ERROR) << __func__ << " Failed luna service call";
   }
 }

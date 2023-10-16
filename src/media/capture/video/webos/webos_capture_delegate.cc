@@ -147,7 +147,7 @@ void WebOSCaptureDelegate::AllocateAndStart(
     return;
   }
 
-  shmem_key_ = camera_service_->StartPreview(camera_handle_);
+  shmem_key_ = camera_service_->StartCamera(camera_handle_);
   if (shmem_key_ == -1) {
     SetErrorState(VideoCaptureError::kV4L2ThisIsNotAV4L2VideoCaptureDevice,
                   FROM_HERE, "Failed to start camera preview");
@@ -180,7 +180,7 @@ void WebOSCaptureDelegate::StopAndDeAllocate(base::PlatformThreadId pid) {
 
   is_capturing_ = false;
   if (camera_handle_ > 0) {
-    camera_service_->StopPreview(camera_handle_);
+    camera_service_->StopCamera(camera_handle_);
     camera_service_->Close(pid, camera_handle_);
     camera_handle_ = -1;
   }

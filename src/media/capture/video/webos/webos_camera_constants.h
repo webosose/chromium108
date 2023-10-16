@@ -29,8 +29,8 @@ CAPTURE_EXPORT extern const char kGetInfo[];
 CAPTURE_EXPORT extern const char kGetProperties[];
 CAPTURE_EXPORT extern const char kSetProperties[];
 CAPTURE_EXPORT extern const char kSetFormat[];
-CAPTURE_EXPORT extern const char kStartPreview[];
-CAPTURE_EXPORT extern const char kStopPreview[];
+CAPTURE_EXPORT extern const char kStartCamera[];
+CAPTURE_EXPORT extern const char kStopCamera[];
 CAPTURE_EXPORT extern const char kGetEventNotification[];
 
 // webOS camera service payload key names
