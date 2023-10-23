@@ -805,6 +805,9 @@ bool WaylandWindow::Initialize(PlatformWindowInitProperties properties) {
   delegate_->OnAcceleratedWidgetAvailable(GetWidget());
 
   std::vector<gfx::Rect> region{gfx::Rect{size_px_}};
+#if defined(OS_WEBOS)
+  if (IsOpaqueWindow())
+#endif
   root_surface_->set_opaque_region(&region);
   root_surface_->ApplyPendingState();
   connection_->Flush();
