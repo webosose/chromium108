@@ -92,26 +92,6 @@ bool URLDatabase::DeleteURLs(const std::vector<std::string>& url_list) {
   return true;
 }
 
-bool URLDatabase::ClearAllURLs() {
-  if (!db_.BeginTransaction()) {
-    LOG(ERROR) << __func__ << "Failed to begin the transaction.";
-    return false;
-  }
-
-  const std::string query =
-      base::StringPrintf("DELETE FROM %s", table_name_.c_str());
-  sql::Statement statement(
-      db_.GetCachedStatement(SQL_FROM_HERE, query.c_str()));
-
-  if (!statement.Run()) {
-    LOG(ERROR) << __func__ << "Deletion from DB Failed";
-    return false;
-  }
-
-  db_.CommitTransaction();
-  return true;
-}
-
 bool URLDatabase::ModifyURL(const std::string& old_url,
                             const std::string& new_url) {
   const std::string query = base::StringPrintf(

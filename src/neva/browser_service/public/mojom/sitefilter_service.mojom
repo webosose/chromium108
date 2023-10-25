@@ -27,7 +27,7 @@ interface SiteFilterService {
   [Sync] AddURL(string url) => (bool result);
 
   // Delete a list of URLs from the set filter type DB
-  DeleteURLs(array<string> urls, bool is_delete_all) => (bool result);
+  DeleteURLs(array<string> urls) => (bool result);
 
   // Update an URL in the set filter type DB
   [Sync] UpdateURL(string old_url, string new_url) => (bool result);

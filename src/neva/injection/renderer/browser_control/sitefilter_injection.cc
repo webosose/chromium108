@@ -158,8 +158,7 @@ bool SiteFilterInjection::AddURL(gin::Arguments* args) {
 
 bool SiteFilterInjection::DeleteURLs(gin::Arguments* args) {
   std::vector<std::string> url_list;
-  bool is_delete_all = false;
-  if (!args->GetNext(&url_list) || !args->GetNext(&is_delete_all)) {
+  if (!args->GetNext(&url_list)) {
     LOG(ERROR) << __func__ << ", wrong argument";
     return false;
   }
@@ -173,7 +172,7 @@ bool SiteFilterInjection::DeleteURLs(gin::Arguments* args) {
   auto callback_ptr = std::make_unique<v8::Persistent<v8::Function>>(
       args->isolate(), local_func);
   remote_sitefilter_->DeleteURLs(
-      url_list, is_delete_all,
+      url_list,
       base::BindOnce(&SiteFilterInjection::OnDeleteURLsRespond,
                      base::Unretained(this), std::move(callback_ptr)));
   return true;
