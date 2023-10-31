@@ -29,7 +29,7 @@ class KeycodeConverter {
   KeycodeConverter() = delete;
 
   static uint32_t KeyNumberFromKeySymCode(uint32_t key_sym, uint32_t modifiers);
-  static uint32_t GetModifierKey(IMEModifierFlags key_sym);
+  static int GetModifierKey(IMEModifierFlags key_sym);
   static bool IsKeyCodeNonPrintable(uint16_t keycode);
   static bool IsUnknown(uint32_t keycode);
 };

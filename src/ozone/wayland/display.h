@@ -266,7 +266,7 @@ class WaylandDisplay : public ui::SurfaceFactoryOzone,
                              uint32_t width,
                              uint32_t height);
   void InputPanelStateChanged(unsigned handle, webos::InputPanelState state);
-  void TextInputModifier(uint32_t state, uint32_t modifier);
+  void TextInputModifier(uint32_t state, int modifier);
 #endif
 
   // Additional notification for app-runtime

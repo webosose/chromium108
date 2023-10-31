@@ -881,7 +881,7 @@ void WaylandDisplay::InputPanelStateChanged(unsigned handle,
   }
 }
 
-void WaylandDisplay::TextInputModifier(uint32_t state, uint32_t modifier) {
+void WaylandDisplay::TextInputModifier(uint32_t state, int modifier) {
   NOTIMPLEMENTED();
 }
 

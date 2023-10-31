@@ -135,7 +135,7 @@ uint32_t KeycodeConverter::KeyNumberFromKeySymCode(uint32_t key_sym,
 }
 
 // static
-uint32_t KeycodeConverter::GetModifierKey(IMEModifierFlags key_sym) {
+int KeycodeConverter::GetModifierKey(IMEModifierFlags key_sym) {
   return ui::EF_NONE;
 }
 
