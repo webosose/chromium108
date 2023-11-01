@@ -43,6 +43,8 @@ source_set("pal_service_webos") {
 
 if (enable_pwa_manager_webapi) {
     sources += [
+      "webapp_browsernavigation_delegate_webos.cc",
+      "webapp_browsernavigation_delegate_webos.h",
       "webapp_installable_delegate_webos.cc",
       "webapp_installable_delegate_webos.h",
     ]

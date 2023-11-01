@@ -86,6 +86,7 @@ void GetPluginsCallback(const std::vector<content::WebPluginInfo>& plugins) {}
 #endif
 
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "base/strings/string_util.h"
 #include "components/webapps/browser/installable/installable_manager.h"
 #include "extensions/shell/neva/web_view_guest_installable_manager.h"
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
@@ -161,6 +162,10 @@ WebView::WebView(int width, int height, WebViewProfile* profile)
 
 WebView::~WebView() {
   SetCorsCorbDisabled(false);
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  GetAppRuntimeContentBrowserClient()->RemovePwaAppOrigin(
+      web_contents_->GetPrimaryMainFrame()->GetProcess()->GetID());
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
   web_contents_->SetDelegate(nullptr);
 }
 
@@ -243,7 +248,11 @@ std::string WebView::UserAgent() const {
 
 void WebView::LoadUrl(const GURL& url) {
   TRACE_EVENT1("neva", "WebView::LoadUrl", "url", url.spec());
-
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  if (is_pwa_)
+    GetAppRuntimeContentBrowserClient()->SetPwaAppOrigin(
+        web_contents_->GetPrimaryMainFrame()->GetProcess()->GetID(), url);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
   content::NavigationController::LoadURLParams params(url);
   params.transition_type = ui::PageTransitionFromInt(
       ui::PAGE_TRANSITION_TYPED | ui::PAGE_TRANSITION_FROM_API);
@@ -568,6 +577,10 @@ void WebView::SetShouldSuppressDialogs(bool suppress) {
 
 void WebView::SetAppId(const std::string& app_id) {
   TRACE_EVENT1("neva", "WebView::SetAppId", "app_id", app_id);
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  is_pwa_ = base::StartsWith(app_id, kPwaAppNamePrefix);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
   blink::RendererPreferences* renderer_prefs =
       web_contents_->GetMutableRendererPrefs();
@@ -1207,8 +1220,9 @@ void WebView::DidFinishLoad(content::RenderFrameHost* render_frame_host,
   // In original Chromium the update scheduled in PrimaryPageChanged, but in our
   // case in PrimaryPageChanged WebContents did not navigate to the correct URL.
   // So for now use Finish.
-  if (validated_url.SchemeIsHTTPOrHTTPS())
+  if (validated_url.SchemeIsHTTPOrHTTPS() && pwa_is_starting_)
     installable_manager_->MaybeUpdate();
+  pwa_is_starting_ = false;
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
   // Async notification is required for webOS WAM app exit logic which
   // depends on loading about:blank page

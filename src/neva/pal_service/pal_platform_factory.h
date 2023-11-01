@@ -27,6 +27,7 @@
 #include "neva/pal_service/public/proxy_setting_delegate.h"
 #include "neva/pal_service/public/system_servicebridge_delegate.h"
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "neva/pal_service/public/webapp_browsernavigation_delegate.h"
 #include "neva/pal_service/public/webapp_installable_delegate.h"
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
 namespace pal {
@@ -67,6 +68,8 @@ class COMPONENT_EXPORT(PAL_SERVICE) PlatformFactory {
 
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
   std::unique_ptr<WebAppInstallableDelegate> CreateWebAppInstallableDelegate();
+  std::unique_ptr<WebAppBrowserNavigationDelegate>
+  CreateWebAppBrowserNavigationDelegate();
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
 
  private:

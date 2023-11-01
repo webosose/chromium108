@@ -315,7 +315,12 @@ class WebView : public AppRuntimeWebContentsDelegate,
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
   std::unique_ptr<neva_app_runtime::WebViewGuestInstallableManager>
       installable_manager_;
-#endif
+  bool is_pwa_ = false;
+  // PWA initial load. Used to check if an update
+  // is available only when the application is started
+  bool pwa_is_starting_ = true;
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+
   base::WeakPtrFactory<WebView> weak_factory_{this};
 };
 

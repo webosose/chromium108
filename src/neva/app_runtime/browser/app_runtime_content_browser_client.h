@@ -29,6 +29,11 @@
 #include "storage/browser/quota/quota_settings.h"
 #include "third_party/blink/public/mojom/badging/badging.mojom.h"
 
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include <memory>
+#include "neva/pal_service/public/webapp_browsernavigation_delegate.h"
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
+
 namespace pal {
 class ProxySettingDelegate;
 }  // namespace pal
@@ -133,10 +138,6 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
       bool is_for_isolated_world,
       network::mojom::URLLoaderFactoryParams* factory_params) override;
 
-  std::vector<std::unique_ptr<content::NavigationThrottle>>
-  CreateThrottlesForNavigation(
-      content::NavigationHandle* navigation_handle) override;
-
   void RegisterNonNetworkNavigationURLLoaderFactories(
       int frame_tree_node_id,
       ukm::SourceIdObj ukm_source_id,
@@ -216,7 +217,12 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
       network::mojom::NetworkContextParams* network_context_params,
       cert_verifier::mojom::CertVerifierCreationParams*
           cert_verifier_creation_params) override;
-
+///@name USE_NEVA_CHROME_EXTENSIONS | ENABLE_PWA_MANAGER_WEBAPI
+///@{
+  std::vector<std::unique_ptr<content::NavigationThrottle>>
+  CreateThrottlesForNavigation(
+      content::NavigationHandle* navigation_handle) override;
+///@}
   AppRuntimeBrowserMainParts* GetMainParts() { return main_parts_; }
 
   void SetProxyServer(const content::ProxySettings& proxy_settings) override;
@@ -243,6 +249,12 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
 
   void SetCorsCorbDisabled(int process_id, bool disabled);
   void SetCorsCorbDisabledForURL(const GURL& url, bool disabled);
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  void SetPwaAppOrigin(int child_process_id, const GURL& url);
+  void RemovePwaAppOrigin(int child_process_id);
+  void OpenUrlInBrowser(const std::string& url);
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 
  private:
   class StubBadgeService;
@@ -282,6 +294,12 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
   // related to native scroll when use_native_scroll flag for the render process
   // is true.
   std::map<int, bool> use_native_scroll_map_;
+
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  std::map<int, GURL> pwa_origins_;
+  std::unique_ptr<pal::WebAppBrowserNavigationDelegate>
+      pal_browsernavigation_delegate_;
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
 };
 
 }  // namespace neva_app_runtime

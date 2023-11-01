@@ -28,6 +28,7 @@ source_set("pal_service_delegates") {
 
   if (enable_pwa_manager_webapi) {
     sources += [
+      "webapp_browsernavigation_delegate.h",
       "webapp_installable_delegate.cc",
       "webapp_installable_delegate.h",
     ]

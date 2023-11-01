@@ -27,6 +27,7 @@
 #include "neva/pal_service/webos/platform_system_delegate_webos.h"
 #include "neva/pal_service/webos/system_servicebridge_delegate_webos.h"
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
+#include "neva/pal_service/webos/webapp_browsernavigation_delegate_webos.h"
 #include "neva/pal_service/webos/webapp_installable_delegate_webos.h"
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
 namespace pal {
@@ -85,6 +86,11 @@ PlatformFactory::CreateNotificationManagerDelegate() {
 std::unique_ptr<WebAppInstallableDelegate>
 PlatformFactory::CreateWebAppInstallableDelegate() {
   return std::make_unique<webos::WebAppInstallableDelegateWebOS>();
+}
+
+std::unique_ptr<WebAppBrowserNavigationDelegate>
+PlatformFactory::CreateWebAppBrowserNavigationDelegate() {
+  return std::make_unique<webos::WebAppBrowserNavigationDelegateWebOS>();
 }
 #endif  // defined(ENABLE_PWA_MANAGER_WEBAPI)
 

@@ -40,6 +40,7 @@ extern const char kAppInstallService[];
 namespace service_name {
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
 extern const char kChromiumInstallableManager[];
+extern const char kChromiumPwa[];
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
 extern const char kChromiumMedia[];
 extern const char kChromiumMemory[];
