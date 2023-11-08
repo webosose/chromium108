@@ -179,7 +179,7 @@ EGLImageKHR WebOSVideoUtils::CreateEGLImage(
   attrs.push_back(EGL_HEIGHT);
   attrs.push_back(size.height());
   attrs.push_back(EGL_LINUX_DRM_FOURCC_EXT);
-  attrs.push_back(MCILPixelFormatToDrmFormat(pixel_format));
+  attrs.push_back(DrmPixelFormatFrom(pixel_format));
 
   for (size_t plane = 0; plane < num_planes; ++plane) {
     attrs.push_back(EGL_DMA_BUF_PLANE0_FD_EXT + plane * 3);

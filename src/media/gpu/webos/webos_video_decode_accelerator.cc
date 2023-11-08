@@ -703,7 +703,7 @@ void WebOSVideoDecodeAccelerator::InitializeTask(const Config& config,
   mcil::DecoderConfig decoder_config;
   decoder_config.frameWidth = config.initial_expected_coded_size.width();
   decoder_config.frameHeight = config.initial_expected_coded_size.height();
-  decoder_config.profile = static_cast<mcil::VideoCodecProfile>(config.profile);
+  decoder_config.profile = MCILVideoCodecProfileFrom(config.profile);
   decoder_config.outputMode = static_cast<mcil::OutputMode>(config.output_mode);
   mcil::DecoderClientConfig client_config;
   bool init_result =

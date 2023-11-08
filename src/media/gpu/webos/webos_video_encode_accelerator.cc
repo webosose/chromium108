@@ -50,6 +50,8 @@ namespace {
 const uint8_t kH264StartCode[] = {0, 0, 0, 1};
 const size_t kH264StartCodeSize = sizeof(kH264StartCode);
 
+const int32_t kMaxEncoderFramerate = 30;
+
 static void CopyNALUPrependingStartCode(const uint8_t* src,
                                         size_t src_size,
                                         uint8_t** dst,
@@ -181,14 +183,15 @@ WebOSVideoEncodeAccelerator::GetSupportedProfiles() {
 
   SupportedProfiles profiles;
   for (const auto& supported_profile : supported_profiles) {
-    SupportedProfile profile;
-    profile.max_framerate_numerator = 30;
-    profile.max_framerate_denominator = 1;
-    profile.profile = VideoCodecProfileFrom(supported_profile.profile);
+    SupportedRateControlMode rc_modes =
+        static_cast<VideoEncodeAccelerator::SupportedRateControlMode>(
+            supported_profile.rc_modes);
+    SupportedProfile profile(VideoCodecProfileFrom(supported_profile.profile),
+                             gfx::Size(supported_profile.max_resolution.width,
+                                       supported_profile.max_resolution.height),
+                             kMaxEncoderFramerate, 1, rc_modes);
     profile.min_resolution = gfx::Size(supported_profile.min_resolution.width,
                                        supported_profile.min_resolution.height);
-    profile.max_resolution = gfx::Size(supported_profile.max_resolution.width,
-                                       supported_profile.max_resolution.height);
     profiles.push_back(profile);
   }
 
@@ -451,17 +454,16 @@ uint8_t WebOSVideoEncodeAccelerator::GetH264LevelLimit(
   uint8_t h264_level = config->h264OutputLevel;
 
   // Check whether the h264 level is valid.
-  if (!CheckH264LevelLimits(static_cast<VideoCodecProfile>(config->profile),
-                            h264_level, config->bitRate, config->frameRate,
+  if (!CheckH264LevelLimits(VideoCodecProfileFrom(config->profile), h264_level,
+                            config->bitRate, config->frameRate,
                             framesize_in_mbs)) {
     absl::optional<uint8_t> valid_level = FindValidH264Level(
-        static_cast<VideoCodecProfile>(config->profile), config->bitRate,
+        VideoCodecProfileFrom(config->profile), config->bitRate,
         config->frameRate, framesize_in_mbs);
     if (!valid_level) {
       gfx::Size input_visible_size(config->width, config->height);
       LOG(ERROR) << __func__ << " Could not find a valid h264 level for"
-                 << " profile="
-                 << static_cast<VideoCodecProfile>(config->profile)
+                 << " profile=" << VideoCodecProfileFrom(config->profile)
                  << " bitrate=" << config->bitRate
                  << " framerate=" << config->frameRate
                  << " size=" << input_visible_size.ToString();
@@ -536,9 +538,8 @@ void WebOSVideoEncodeAccelerator::InitializeTask(const Config& config,
 
   VideoCodec video_codec = VideoCodecProfileToVideoCodec(config.output_profile);
   mcil::EncoderConfig encoder_config;
-  encoder_config.pixelFormat = mcil::PIXEL_FORMAT_I420;
-  encoder_config.profile =
-      static_cast<mcil::VideoCodecProfile>(config.output_profile);
+  encoder_config.pixelFormat = MCILVideoPixelFormatFrom(config.input_format);
+  encoder_config.profile = MCILVideoCodecProfileFrom(config.output_profile);
   encoder_config.width = encoder_input_visible_rect_.width();
   encoder_config.height = encoder_input_visible_rect_.height();
   encoder_config.bitRate = config.bitrate.target_bps();
@@ -591,7 +592,8 @@ void WebOSVideoEncodeAccelerator::InitializeTask(const Config& config,
         image_processor_->output_config().planes[0].stride,
         image_processor_->output_config().size.height());
     mcil::VideoPixelFormat format =
-        static_cast<mcil::VideoPixelFormat>(device_input_layout_->format());
+        MCILVideoPixelFormatFrom(device_input_layout_->format());
+
     if (!video_encoder_api_->NegotiateInputFormat(format, output_buf_size)) {
       gfx::Size op_buffer_size =
           gfx::Size(output_buf_size.width, output_buf_size.height);
@@ -1173,10 +1175,12 @@ mcil::scoped_refptr<mcil::VideoFrame> WebOSVideoEncodeAccelerator::ToMcilFrame(
   mcil_frame->timestamp.tv_usec =
       video_frame->timestamp().InMicroseconds() -
       video_frame->timestamp().InSeconds() * base::Time::kMicrosecondsPerSecond;
-  mcil_frame->format =
-      static_cast<mcil::VideoPixelFormat>(video_frame->format());
-  for (size_t i = 0; i < mcil::VideoFrame::kMaxPlanes; ++i)
+  mcil_frame->format = MCILVideoPixelFormatFrom(video_frame->format());
+
+  size_t num_planes = VideoFrame::NumPlanes(video_frame->format());
+  for (size_t i = 0; i < num_planes; ++i)
     mcil_frame->data[i] = video_frame->data(i);
+
   return mcil_frame;
 }
 

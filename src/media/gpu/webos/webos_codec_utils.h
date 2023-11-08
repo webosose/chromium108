@@ -27,10 +27,12 @@
 
 namespace media {
 
-uint32_t MCILPixelFormatToDrmFormat(uint32_t format);
+uint32_t DrmPixelFormatFrom(mcil::VideoPixelFormat format);
 
+mcil::VideoPixelFormat MCILVideoPixelFormatFrom(VideoPixelFormat pixel_format);
 VideoPixelFormat VideoPixelFormatFrom(mcil::VideoPixelFormat pixel_format);
 
+mcil::VideoCodecProfile MCILVideoCodecProfileFrom(VideoCodecProfile profile);
 VideoCodecProfile VideoCodecProfileFrom(mcil::VideoCodecProfile profile);
 
 absl::optional<VideoFrameLayout> VideoFrameLayoutFrom(
