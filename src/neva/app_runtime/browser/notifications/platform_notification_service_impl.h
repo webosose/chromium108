@@ -9,6 +9,7 @@
 
 #include "components/keyed_service/core/keyed_service.h"
 #include "content/public/browser/platform_notification_service.h"
+#include "ui/message_center/public/cpp/notification.h"
 
 namespace content {
 class BrowserContext;
@@ -59,6 +60,17 @@ class PlatformNotificationServiceImpl
       const content::NotificationDatabaseData& data) override;
 
  private:
+  // Creates a new Web Notification-based Notification object. Should only be
+  // called when the notification is first shown. |web_app_hint_url| is used to
+  // find a corresponding web app, it can be a service worker scope or document
+  // url.
+  message_center::Notification CreateNotificationFromData(
+      const GURL& origin,
+      const std::string& notification_id,
+      const blink::PlatformNotificationData& notification_data,
+      const blink::NotificationResources& notification_resources,
+      const GURL& web_app_hint_url) const;
+
   content::BrowserContext* context_ = nullptr;
 };
 

@@ -18,7 +18,7 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "url/gurl.h"
 
-#include "components/prefs/pref_service.h"
+class PrefService;
 
 namespace user_prefs {
 class PrefRegistrySyncable;
@@ -46,8 +46,7 @@ class PushMessagingAppIdentifier {
   static PushMessagingAppIdentifier Generate(
       const GURL& origin,
       int64_t service_worker_registration_id,
-      const absl::optional<base::Time>& expiration_time = absl::nullopt,
-      const std::string& web_app_id = std::string());
+      const absl::optional<base::Time>& expiration_time = absl::nullopt);
 
   // Looks up an app identifier by app_id. If not found, is_null() will be true.
   static PushMessagingAppIdentifier FindByAppId(PrefService* pref_service,
@@ -108,11 +107,6 @@ class PushMessagingAppIdentifier {
     expiration_time_ = expiration_time;
   }
 
-  const std::string& web_app_id() const {
-    DCHECK(!is_null());
-    return web_app_id_;
-  }
-
   bool IsExpired() const;
 
   absl::optional<base::Time> expiration_time() const {
@@ -138,8 +132,7 @@ class PushMessagingAppIdentifier {
       const GURL& origin,
       int64_t service_worker_registration_id,
       bool use_instance_id,
-      const absl::optional<base::Time>& expiration_time = absl::nullopt,
-      const std::string& web_app_id = std::string());
+      const absl::optional<base::Time>& expiration_time = absl::nullopt);
 
   // Constructs an invalid app identifier.
   PushMessagingAppIdentifier();
@@ -148,8 +141,7 @@ class PushMessagingAppIdentifier {
       const std::string& app_id,
       const GURL& origin,
       int64_t service_worker_registration_id,
-      const absl::optional<base::Time>& expiration_time = absl::nullopt,
-      const std::string& web_app_id = std::string());
+      const absl::optional<base::Time>& expiration_time = absl::nullopt);
 
   // Validates that all the fields contain valid values.
   void DCheckValid() const;
@@ -158,7 +150,6 @@ class PushMessagingAppIdentifier {
   GURL origin_;
   int64_t service_worker_registration_id_;
   absl::optional<base::Time> expiration_time_;
-  std::string web_app_id_;
 };
 
 #endif  // NEVA_APP_RUNTIME_BROWSER_PUSH_MESSAGING_PUSH_MESSAGING_APP_IDENTIFIER_H_

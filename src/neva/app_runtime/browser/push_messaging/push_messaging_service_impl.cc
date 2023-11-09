@@ -45,7 +45,6 @@
 #include "neva/app_runtime/browser/push_messaging/push_messaging_service_factory.h"
 #include "neva/app_runtime/browser/push_messaging/push_messaging_utils.h"
 #include "third_party/blink/public/common/permissions/permission_utils.h"
-#include "third_party/blink/public/common/renderer_preferences/renderer_preferences.h"
 #include "third_party/blink/public/mojom/devtools/console_message.mojom.h"
 #include "third_party/blink/public/mojom/permissions/permission_status.mojom.h"
 #include "third_party/blink/public/mojom/push_messaging/push_messaging_status.mojom.h"
@@ -513,19 +512,11 @@ void PushMessagingServiceImpl::SubscribeFromDocument(
   LOG(INFO) << __func__
             << " app_identifier.is_null()=" << app_identifier.is_null();
 
-  content::RenderFrameHost* render_frame_host =
-      content::RenderFrameHost::FromID(render_process_id, render_frame_id);
-
   // If there is no existing app identifier for the given Service Worker,
   // generate a new one. This will create a new subscription on the server.
   if (app_identifier.is_null()) {
-    content::WebContents* web_contents =
-        content::WebContents::FromRenderFrameHost(render_frame_host);
-    blink::RendererPreferences* renderer_prefs =
-        web_contents->GetMutableRendererPrefs();
     app_identifier = PushMessagingAppIdentifier::Generate(
-        requesting_origin, service_worker_registration_id, absl::nullopt,
-        renderer_prefs->application_id);
+        requesting_origin, service_worker_registration_id);
   }
 
   if (push_subscription_count_ + pending_push_subscription_count_ >=
@@ -534,6 +525,9 @@ void PushMessagingServiceImpl::SubscribeFromDocument(
                           blink::mojom::PushRegistrationStatus::LIMIT_REACHED);
     return;
   }
+
+  content::RenderFrameHost* render_frame_host =
+      content::RenderFrameHost::FromID(render_process_id, render_frame_id);
 
   if (!render_frame_host) {
     // It is possible for `render_frame_host` to be nullptr here due to a race

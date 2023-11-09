@@ -19,7 +19,6 @@
 #include "components/pref_registry/pref_registry_syncable.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
-#include "net/dns/dns_util.h"
 
 constexpr char kPushMessagingAppIdentifierPrefix[] = "wp:";
 constexpr char kInstanceIDGuidSuffix[] = "-V2";
@@ -57,28 +56,23 @@ bool FromStringToTime(const std::string& time_string,
 std::string MakePrefValue(
     const GURL& origin,
     int64_t service_worker_registration_id,
-    const absl::optional<base::Time>& expiration_time = absl::nullopt,
-    const std::string& web_app_id = std::string()) {
+    const absl::optional<base::Time>& expiration_time = absl::nullopt) {
   std::string result = origin.spec() + kPrefValueSeparator +
                        base::NumberToString(service_worker_registration_id);
-  result += kPrefValueSeparator;
   if (expiration_time)
-    result += FromTimeToString(*expiration_time);
-  if (!web_app_id.empty())
-    result += kPrefValueSeparator + web_app_id;
+    result += kPrefValueSeparator + FromTimeToString(*expiration_time);
   return result;
 }
 
 bool DisassemblePrefValue(const std::string& pref_value,
                           GURL* origin,
                           int64_t* service_worker_registration_id,
-                          absl::optional<base::Time>* expiration_time,
-                          std::string* web_app_id) {
+                          absl::optional<base::Time>* expiration_time) {
   std::vector<std::string> parts =
       base::SplitString(pref_value, std::string(1, kPrefValueSeparator),
                         base::TRIM_WHITESPACE, base::SPLIT_WANT_ALL);
 
-  if (parts.size() < 3 || parts.size() > 4)
+  if (parts.size() < 2 || parts.size() > 3)
     return false;
 
   if (!base::StringToInt64(parts[1], service_worker_registration_id))
@@ -88,14 +82,8 @@ bool DisassemblePrefValue(const std::string& pref_value,
   if (!origin->is_valid())
     return false;
 
-  if (!parts[2].empty() && !FromStringToTime(parts[2], expiration_time))
-    return false;
-
-  if (parts.size() == 4) {
-    *web_app_id = parts[3];
-    if (!net::IsValidDNSDomain(*web_app_id))
-      return false;
-  }
+  if (parts.size() == 3)
+    return FromStringToTime(parts[2], expiration_time);
 
   return true;
 }
@@ -122,12 +110,10 @@ bool PushMessagingAppIdentifier::UseInstanceID(const std::string& app_id) {
 PushMessagingAppIdentifier PushMessagingAppIdentifier::Generate(
     const GURL& origin,
     int64_t service_worker_registration_id,
-    const absl::optional<base::Time>& expiration_time,
-    const std::string& web_app_id) {
+    const absl::optional<base::Time>& expiration_time) {
   // All new push subscriptions use Instance ID tokens.
   return GenerateInternal(origin, service_worker_registration_id,
-                          true /* use_instance_id */, expiration_time,
-                          web_app_id);
+                          true /* use_instance_id */, expiration_time);
 }
 
 // static
@@ -144,8 +130,7 @@ PushMessagingAppIdentifier PushMessagingAppIdentifier::GenerateInternal(
     const GURL& origin,
     int64_t service_worker_registration_id,
     bool use_instance_id,
-    const absl::optional<base::Time>& expiration_time,
-    const std::string& web_app_id) {
+    const absl::optional<base::Time>& expiration_time) {
   // Use uppercase GUID for consistency with GUIDs Push has already sent to GCM.
   // Also allows detecting case mangling; see code commented "crbug.com/461867".
   std::string guid = base::ToUpperASCII(base::GenerateGUID());
@@ -157,9 +142,8 @@ PushMessagingAppIdentifier PushMessagingAppIdentifier::GenerateInternal(
   std::string app_id = kPushMessagingAppIdentifierPrefix + origin.spec() +
                        kPrefValueSeparator + guid;
 
-  PushMessagingAppIdentifier app_identifier(app_id, origin,
-                                            service_worker_registration_id,
-                                            expiration_time, web_app_id);
+  PushMessagingAppIdentifier app_identifier(
+      app_id, origin, service_worker_registration_id, expiration_time);
   app_identifier.DCheckValid();
   return app_identifier;
 }
@@ -191,19 +175,17 @@ PushMessagingAppIdentifier PushMessagingAppIdentifier::FindByAppId(
   GURL origin;
   int64_t service_worker_registration_id;
   absl::optional<base::Time> expiration_time;
-  std::string web_app_id;
   // Try disassemble the pref value, return an invalid app identifier if the
   // pref value is corrupted
   if (!DisassemblePrefValue(*map_value, &origin,
-                            &service_worker_registration_id, &expiration_time,
-                            &web_app_id)) {
+                            &service_worker_registration_id,
+                            &expiration_time)) {
     NOTREACHED();
     return PushMessagingAppIdentifier();
   }
 
-  PushMessagingAppIdentifier app_identifier(app_id, origin,
-                                            service_worker_registration_id,
-                                            expiration_time, web_app_id);
+  PushMessagingAppIdentifier app_identifier(
+      app_id, origin, service_worker_registration_id, expiration_time);
   app_identifier.DCheckValid();
   return app_identifier;
 }
@@ -268,15 +250,13 @@ PushMessagingAppIdentifier::PushMessagingAppIdentifier(
     const std::string& app_id,
     const GURL& origin,
     int64_t service_worker_registration_id,
-    const absl::optional<base::Time>& expiration_time,
-    const std::string& web_app_id)
+    const absl::optional<base::Time>& expiration_time)
     : app_id_(app_id),
       origin_(origin),
       service_worker_registration_id_(service_worker_registration_id),
-      expiration_time_(expiration_time),
-      web_app_id_(web_app_id) {}
+      expiration_time_(expiration_time) {}
 
-PushMessagingAppIdentifier::~PushMessagingAppIdentifier() {}
+PushMessagingAppIdentifier::~PushMessagingAppIdentifier() = default;
 
 bool PushMessagingAppIdentifier::IsExpired() const {
   return (expiration_time_) ? *expiration_time_ < base::Time::Now() : false;
