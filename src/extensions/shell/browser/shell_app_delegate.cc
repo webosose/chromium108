@@ -137,6 +137,8 @@ void ShellAppDelegate::RenderFrameCreated(
                                std::string("{}"));
     client->AddInjectionToLoad(std::string("v8/mediacapture"),
                                std::string("{}"));
+    client->AddInjectionToLoad(std::string("v8/customuseragent"),
+                               std::string("{}"));
 #endif
 
 #if defined(OS_WEBOS)

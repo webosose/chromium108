@@ -36,6 +36,8 @@ source_set("renderer") {
       "browser_control_webapi.h",
       "cookiemanager_webapi.cc",
       "cookiemanager_webapi.h",
+      "customuseragent_webapi.cc",
+      "customuseragent_webapi.h",
       "mediacapture_webapi.cc",
       "mediacapture_webapi.h",
       "popupblocker_webapi.cc",

@@ -42,6 +42,7 @@ COMPONENT_EXPORT(INJECTION) extern const char kWebOSServiceBridge[];
 COMPONENT_EXPORT(INJECTION) extern const char kWebOSServiceBridgeObsolete[];
 COMPONENT_EXPORT(INJECTION) extern const char kWebOSSystem[];
 COMPONENT_EXPORT(INJECTION) extern const char kWebOSSystemObsolete[];
+COMPONENT_EXPORT(INJECTION) extern const char kCustomUserAgent[];
 
 }  // namespace webapi
 

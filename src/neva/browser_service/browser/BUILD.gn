@@ -28,6 +28,8 @@ source_set("browser_service_browser") {
   sources = [
     "cookiemanager_service_impl.cc",
     "cookiemanager_service_impl.h",
+    "customuseragent_service_impl.h",
+    "customuseragent_service_impl.cc",
     "mediacapture_service_impl.cc",
     "mediacapture_service_impl.h",
     "popupblocker_service_impl.cc",

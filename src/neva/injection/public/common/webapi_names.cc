@@ -39,6 +39,7 @@ const char kWebOSServiceBridge[] = "v8/webosservicebridge";
 const char kWebOSServiceBridgeObsolete[] = "v8/palmservicebridge";
 const char kWebOSSystem[] = "v8/webossystem";
 const char kWebOSSystemObsolete[]= "v8/palmsystem";
+const char kCustomUserAgent[] = "v8/customuseragent";
 
 }  // namespace webapi
 

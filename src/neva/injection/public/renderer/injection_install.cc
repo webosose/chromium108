@@ -21,6 +21,7 @@
 #include "neva/injection/public/common/webapi_names.h"
 
 #include "neva/injection/public/renderer/cookiemanager_webapi.h"
+#include "neva/injection/public/renderer/customuseragent_webapi.h"
 #include "neva/injection/public/renderer/mediacapture_webapi.h"
 #include "neva/injection/public/renderer/popupblocker_webapi.h"
 #include "neva/injection/public/renderer/sitefilter_webapi.h"
@@ -105,6 +106,11 @@ bool GetInjectionInstallAPI(const std::string& name, InstallAPI* api) {
   if (name == webapi::kUserPermission) {
     api->install_func = UserPermissionWebAPI::Install;
     api->uninstall_func = UserPermissionWebAPI::Uninstall;
+    return true;
+  }
+  if (name == webapi::kCustomUserAgent) {
+    api->install_func = CustomUserAgentWebAPI::Install;
+    api->uninstall_func = CustomUserAgentWebAPI::Uninstall;
     return true;
   }
 #if defined(USE_GAV)

@@ -48,4 +48,9 @@ void BrowserService::BindMediaCaptureService(
   browser::MediaCaptureServiceImpl::Get()->AddBinding(std::move(receiver));
 }
 
+void BrowserService::BindCustomUserAgentService(
+    mojo::PendingReceiver<mojom::CustomUserAgentService> receiver) {
+  browser::CustomUserAgentServiceImpl::Get()->AddBinding(std::move(receiver));
+}
+
 }  // namespace browser

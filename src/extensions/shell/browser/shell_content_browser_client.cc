@@ -383,6 +383,14 @@ void ShellContentBrowserClient::ExposeInterfacesToRenderer(
       };
   registry->AddInterface(base::BindRepeating(mediacapture_service),
                          content::GetUIThreadTaskRunner({}));
+  auto customuseragent_service =
+      [](mojo::PendingReceiver<browser::mojom::CustomUserAgentService>
+             receiver) {
+        browser::BrowserService::GetBrowserService()
+            ->BindCustomUserAgentService(std::move(receiver));
+      };
+  registry->AddInterface(base::BindRepeating(customuseragent_service),
+                         content::GetUIThreadTaskRunner({}));
 #endif
 }
 
