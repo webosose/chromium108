@@ -204,6 +204,10 @@ class COMPONENT_EXPORT(URL) Origin {
                                           std::string host,
                                           uint16_t port);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  static void SetFileOriginChanged(bool changed);
+#endif
+
   ~Origin();
 
   // For opaque origins, these return ("", "", 0).

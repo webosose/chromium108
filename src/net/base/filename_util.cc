@@ -89,16 +89,13 @@ bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   }
   std::replace(path.begin(), path.end(), '/', '\\');
 #else   // BUILDFLAG(IS_WIN)
-#if !defined(USE_NEVA_APPRUNTIME)
   // On POSIX, there's no obvious interpretation of file:// URLs with a host.
   // Usually, remote mounts are still mounted onto the local filesystem.
   // Therefore, we discard all URLs that are not obviously local to prevent
   // spoofing attacks using file:// URLs. See crbug.com/881675.
-  // NOTE(webOS): webOS webapp uses appid as host.
   if (!url.host().empty() && !net::IsLocalhost(url)) {
     return false;
   }
-#endif
   std::string path = url.path();
 #endif  // !BUILDFLAG(IS_WIN)
 

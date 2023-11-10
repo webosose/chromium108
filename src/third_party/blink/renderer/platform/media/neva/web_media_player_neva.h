@@ -105,7 +105,6 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerNeva
       scoped_refptr<base::SingleThreadTaskRunner> compositor_task_runner,
       CreateVideoWindowCallback create_video_window_cb,
       const WebString& application_id,
-      const WebString& file_security_origin,
       bool use_unlimited_media_policy,
       media::CreateMediaPlayerNevaCB create_media_player_neva_cb);
 
@@ -122,7 +121,6 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerNeva
       media::MediaPlayerType media_player_type,
       CreateVideoWindowCallback create_video_window_cb,
       const WebString& application_id,
-      const WebString& file_security_origin,
       bool use_unlimited_media_policy,
       media::CreateMediaPlayerNevaCB create_media_player_neva_cb);
   WebMediaPlayerNeva(const WebMediaPlayerNeva&) = delete;
@@ -438,7 +436,6 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerNeva
   WebMediaPlayer::RenderMode render_mode_;
 
   std::string app_id_;
-  std::string file_security_origin_;
 
   bool is_loading_;
   LoadType pending_load_type_ = WebMediaPlayer::kLoadTypeURL;

@@ -107,7 +107,6 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerBuilder {
       scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces,
       CreateVideoWindowCallback create_video_window_callback,
       const WebString& application_id,
-      const WebString& file_security_origin,
       bool use_unlimited_media_policy,
       bool use_neva_media,
       media::CreateMediaPlayerNevaCB create_media_player_neva_cb,

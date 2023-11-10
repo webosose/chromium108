@@ -6767,19 +6767,6 @@ KURL Document::CompleteURLWithOverride(const String& url,
                                        const KURL& base_url_override) const {
   DCHECK(base_url_override.IsEmpty() || base_url_override.IsValid());
 
-#if defined(USE_NEVA_APPRUNTIME)
-  // Add file security origin if it is missing.
-  KURL kurl(url);
-  if (kurl.IsLocalFile()) {
-    if (kurl.Host().empty() || kurl.Host().IsNull()) {
-      String file_security_origin =
-          GetPage()->GetChromeClient().FileSecurityOrigin();
-      kurl.SetHost(file_security_origin);
-      return kurl;
-    }
-  }
-#endif
-
   // Always return a null URL when passed a null string.
   // FIXME: Should we change the KURL constructor to have this behavior?
   // See also [CSS]StyleSheet::completeURL(const String&)

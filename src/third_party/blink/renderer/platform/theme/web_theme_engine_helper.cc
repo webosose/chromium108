@@ -67,6 +67,13 @@ void WebThemeEngineHelper::DidUpdateRendererPreferences(
       renderer_prefs.arrow_bitmap_width_horizontal_scroll_bar_in_dips);
 #endif
 
+// TODO(neva, 92.0.4515.0): Need to migrate conceptually unrelated
+// code out of this class.
+#if defined(USE_NEVA_APPRUNTIME)
+  if (!renderer_prefs.file_security_origin.empty())
+    url::Origin::SetFileOriginChanged(true);
+  SetMutableLocalOrigin(renderer_prefs.file_security_origin);
+
 #if defined(USE_NEVA_MEDIA)
   std::string media_codec_capability = renderer_prefs.media_codec_capability;
   if (!media_codec_capability.empty())
@@ -77,6 +84,7 @@ void WebThemeEngineHelper::DidUpdateRendererPreferences(
   if (!media_preferences.empty())
     media::MediaPreferences::Get()->Update(media_preferences);
 #endif  // defined(USE_NEVA_MEDIA)
+#endif  // defined(USE_NEVA_APPRUNTIME)
 }
 
 }  // namespace blink

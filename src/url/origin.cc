@@ -30,6 +30,15 @@
 
 namespace url {
 
+#if defined(USE_NEVA_APPRUNTIME)
+bool Origin::file_origin_changed_ = false;
+
+// static
+void Origin::SetFileOriginChanged(bool changed) {
+  file_origin_changed_ = changed;
+}
+#endif
+
 Origin::Origin() : nonce_(Nonce()) {}
 
 Origin Origin::Create(const GURL& url) {
@@ -137,8 +146,7 @@ std::string Origin::Serialize() const {
     return "null";
 
 #if defined(USE_NEVA_APPRUNTIME)
-  // webapp will use appid as a host and it needs to be used as a origin.
-  if (scheme() == kFileScheme && host().empty())
+  if (scheme() == kFileScheme && !file_origin_changed_)
 #else
   if (scheme() == kFileScheme)
 #endif
@@ -152,8 +160,7 @@ GURL Origin::GetURL() const {
     return GURL();
 
 #if defined(USE_NEVA_APPRUNTIME)
-  // webapp will use appid as a host and it needs to be used as a origin.
-  if (scheme() == kFileScheme && host().empty())
+  if (scheme() == kFileScheme && !file_origin_changed_)
 #else
   if (scheme() == kFileScheme)
 #endif
@@ -167,6 +174,13 @@ const base::UnguessableToken* Origin::GetNonceForSerialization() const {
 }
 
 bool Origin::IsSameOriginWith(const Origin& other) const {
+#if defined(USE_NEVA_APPRUNTIME)
+  // Avoid file-scheme tuples equality check fail below since app_id is appended
+  // to default file-scheme origin value to trigger separate local storage
+  // creation for each webapp.
+  if (scheme() == kFileScheme && other.scheme() == kFileScheme)
+    return true;
+#endif
   // scheme/host/port must match, even for opaque origins where |tuple_| holds
   // the precursor origin.
   return std::tie(tuple_, nonce_) == std::tie(other.tuple_, other.nonce_);

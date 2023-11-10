@@ -540,8 +540,6 @@ class CORE_EXPORT ChromeClient : public GarbageCollected<ChromeClient> {
   virtual void NotifyVizFMPSwap(LocalFrame& frame,
                                 bool is_first_contentful_paint,
                                 bool did_reset_container_state) {}
-  virtual String ApplicationId() const { return String(); }
-  virtual String FileSecurityOrigin() const { return String(); }
 #endif
 
   // Enable or disable BeginMainFrameNotExpected signals from the compositor of

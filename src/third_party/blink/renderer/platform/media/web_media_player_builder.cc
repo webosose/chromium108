@@ -71,7 +71,6 @@ WebMediaPlayer* WebMediaPlayerBuilder::Build(
     scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces,
     CreateVideoWindowCallback create_video_window_callback,
     const WebString& application_id,
-    const WebString& file_security_origin,
     bool use_unlimited_media_policy,
     bool use_neva_media,
     media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
@@ -98,8 +97,7 @@ WebMediaPlayer* WebMediaPlayerBuilder::Build(
         is_background_video_track_optimization_supported,
         std::move(demuxer_override), std::move(remote_interfaces),
         std::move(create_video_window_callback), application_id,
-        file_security_origin, use_unlimited_media_policy,
-        std::move(create_media_player_neva_cb),
+        use_unlimited_media_policy, std::move(create_media_player_neva_cb),
         std::move(create_media_platform_api_cb));
   }
 #endif

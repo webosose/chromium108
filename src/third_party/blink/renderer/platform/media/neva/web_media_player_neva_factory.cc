@@ -75,7 +75,6 @@ WebMediaPlayer* WebMediaPlayerNevaFactory::CreateWebMediaPlayerNeva(
     scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces,
     CreateVideoWindowCallback create_video_window_callback,
     const WebString& application_id,
-    const WebString& file_security_origin,
     bool use_unlimited_media_policy,
     media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
     media::CreateMediaPlatformAPICB create_media_platform_api_cb) {
@@ -107,8 +106,7 @@ WebMediaPlayer* WebMediaPlayerNevaFactory::CreateWebMediaPlayerNeva(
           std::move(defer_load_cb), std::move(audio_renderer_sink),
           std::move(compositor_task_runner),
           std::move(create_video_window_callback), application_id,
-          file_security_origin, use_unlimited_media_policy,
-          std::move(create_media_player_neva_cb));
+          use_unlimited_media_policy, std::move(create_media_player_neva_cb));
     default:
       NOTREACHED();
       return nullptr;

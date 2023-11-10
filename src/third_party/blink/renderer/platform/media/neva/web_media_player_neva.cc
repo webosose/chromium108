@@ -149,7 +149,6 @@ WebMediaPlayer* WebMediaPlayerNeva::Create(
     scoped_refptr<base::SingleThreadTaskRunner> compositor_task_runner,
     CreateVideoWindowCallback create_video_window_callback,
     const WebString& application_id,
-    const WebString& file_security_origin,
     bool use_unlimited_media_policy,
     media::CreateMediaPlayerNevaCB create_media_player_neva_cb) {
   WebMediaPlayer::LoadType load_type = client->LoadType();
@@ -162,7 +161,7 @@ WebMediaPlayer* WebMediaPlayerNeva::Create(
         frame, client, delegate, std::move(media_log), std::move(defer_load_cb),
         std::move(audio_renderer_sink), std::move(compositor_task_runner),
         media_player_type, std::move(create_video_window_callback),
-        application_id, file_security_origin, use_unlimited_media_policy,
+        application_id, use_unlimited_media_policy,
         std::move(create_media_player_neva_cb));
   return nullptr;
 }
@@ -186,7 +185,6 @@ WebMediaPlayerNeva::WebMediaPlayerNeva(
     media::MediaPlayerType media_player_type,
     CreateVideoWindowCallback create_video_window_callback,
     const WebString& application_id,
-    const WebString& file_security_origin,
     bool use_unlimited_media_policy,
     media::CreateMediaPlayerNevaCB create_media_player_neva_cb)
     : frame_(frame),
@@ -214,7 +212,6 @@ WebMediaPlayerNeva::WebMediaPlayerNeva(
                                   : base::ThreadTaskRunnerHandle::Get()),
       render_mode_(WebMediaPlayer::RenderModeNone),
       app_id_(application_id.Utf8().data()),
-      file_security_origin_(file_security_origin.Utf8().data()),
       is_loading_(false),
       create_video_window_callback_(std::move(create_video_window_callback)) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
@@ -397,17 +394,8 @@ void WebMediaPlayerNeva::LoadMedia() {
   pending_request_.pending_load_ = absl::nullopt;
 #endif
 
-  std::string media_uri = url_.spec();
-  // Drop host part if url is local resource
-  if (url_.host() == file_security_origin_) {
-    GURL::Replacements replacement;
-    replacement.ClearHost();
-    replacement.ClearPort();
-    media_uri = url_.ReplaceComponents(replacement).spec();
-  }
-
   player_api_->Initialize(
-      GetClient()->IsVideo(), CurrentTime(), media_uri,
+      GetClient()->IsVideo(), CurrentTime(), url_.spec(),
       std::string(GetClient()->ContentMIMEType().Utf8().data()),
       std::string(GetClient()->Referrer().Utf8().data()),
       std::string(GetClient()->UserAgent().Utf8().data()),

@@ -1024,15 +1024,6 @@ void ChromeClientImpl::NotifyVizFMPSwap(LocalFrame& frame,
   widget->NotifyVizFMPSwap(is_first_contentful_paint,
                            did_reset_container_state);
 }
-
-String ChromeClientImpl::ApplicationId() const {
-  return String::FromUTF8(web_view_->GetRendererPreferences().application_id);
-}
-
-String ChromeClientImpl::FileSecurityOrigin() const {
-  return String::FromUTF8(
-      web_view_->GetRendererPreferences().file_security_origin);
-}
 #endif
 
 void ChromeClientImpl::RequestBeginMainFrameNotExpected(LocalFrame& frame,
