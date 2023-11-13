@@ -57,18 +57,16 @@ class WebRiskDataStore : public base::RefCounted<WebRiskDataStore> {
   virtual bool IsHashPrefixExpired() = 0;
 
 #if defined(USE_WEBRISK_DATABASE)
+  virtual bool InsertOrUpdateVersionToken(const std::string& version_token,
+                                          bool is_insert_token) = 0;
+  virtual std::string GetVersionToken() = 0;
   virtual bool MigrateDataFromLocalFile() = 0;
 #endif
 
   base::TimeDelta GetFirstUpdateTime();
   base::TimeDelta GetNextUpdateTime(const std::string& recommended_time);
 
-  // Currently, version token is not use. We could use it to improve the update
-  // database process.
-  void SetNewVersionToken(const std::string& version_token);
-
   base::TimeDelta update_time_;
-  std::string version_token_;
 
  protected:
   friend class RefCounted<WebRiskDataStore>;

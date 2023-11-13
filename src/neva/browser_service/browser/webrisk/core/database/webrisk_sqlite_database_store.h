@@ -37,7 +37,8 @@ class WebRiskSQLiteDatabaseStore : public webrisk::WebRiskDataStore {
       delete;
 
   bool Initialize() override;
-  void InsertThreatEntries(const std::string& raw_hashes);
+  bool InsertThreatEntries(const std::string& raw_hashes);
+  bool DeleteThreatEntries(const std::vector<int>& removals);
   bool InsertThreatEntry(const std::string& hash_prefix);
   bool DeleteThreatEntry(const std::string& hash_prefix);
   bool DeleteAllEntries();
@@ -47,11 +48,15 @@ class WebRiskSQLiteDatabaseStore : public webrisk::WebRiskDataStore {
   bool IsHashPrefixExpired() override;
   bool IsHashPrefixAvailable(const std::string& hash_prefix) override;
   bool MigrateDataFromLocalFile() override;
+  bool InsertOrUpdateVersionToken(const std::string& version_token,
+                                  bool is_insert_token) override;
+  std::string GetVersionToken() override;
 
  private:
-  void CreateEntryListFromRawHashes(
-      const std::string& raw_hashes,
-      std::vector<WebriskThreatEntry>& entry_list);
+  std::vector<WebriskThreatEntry> CreateEntryListFromRawHashes(
+      const std::string& raw_hashes);
+  std::vector<int> CreateRemovalEntryList(
+      const ComputeThreatListDiffResponse& file_format);
 
   SEQUENCE_CHECKER(sequence_checker_);
   webrisk::WebRiskDatabase webrisk_db_;

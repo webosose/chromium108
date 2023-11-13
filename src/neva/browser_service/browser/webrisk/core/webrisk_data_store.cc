@@ -36,9 +36,4 @@ base::TimeDelta WebRiskDataStore::GetNextUpdateTime(
   base::TimeDelta next_update_time = update_time - base::Time::Now();
   return std::max(next_update_time, kDefaultUpdateInterval);
 }
-
-void WebRiskDataStore::SetNewVersionToken(const std::string& version_token) {
-  version_token_ = version_token;
-}
-
 }  // namespace webrisk

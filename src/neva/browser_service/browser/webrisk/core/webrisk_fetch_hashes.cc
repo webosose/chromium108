@@ -72,10 +72,12 @@ void WebRiskFetchHashes::ComputeDiffRequest() {
   VLOG(2) << __func__;
 
   const std::string kMethod = "GET";
+  const std::string version_token = webrisk_data_store_->GetVersionToken();
   const std::string api_endpoint_url = base::StringPrintf(
       "https://webrisk.googleapis.com/v1/threatLists:computeDiff?"
       "threatType=%s"
 #if defined(USE_WEBRISK_DATABASE)
+      "&versionToken=%s"
       "&constraints.maxDiffEntries=%d"
       "&constraints.maxDatabaseEntries=%d"
 #endif
@@ -83,7 +85,7 @@ void WebRiskFetchHashes::ComputeDiffRequest() {
       "&key=%s",
       WebRiskDataStore::kThreatTypeMalware,
 #if defined(USE_WEBRISK_DATABASE)
-      kMaxDiffEntries, kMaxDatabaseEntries,
+      version_token.c_str(), kMaxDiffEntries, kMaxDatabaseEntries,
 #endif
       kCompressionTypeRAW, webrisk_key_.c_str());
   auto request = std::make_unique<network::ResourceRequest>();
@@ -243,9 +245,16 @@ bool WebRiskFetchHashes::ParseJSONToUpdateResponse(
 
   const std::string* response_type =
       response_dict->FindStringKey("responseType");
-  if (response_type && !response_type->compare("RESET"))
-    file_format.set_response_type(ComputeThreatListDiffResponse::RESET);
-
+  if (response_type) {
+    if (!response_type->compare("RESET")) {
+      file_format.set_response_type(ComputeThreatListDiffResponse::RESET);
+    } else if (!response_type->compare("DIFF")) {
+      file_format.set_response_type(ComputeThreatListDiffResponse::DIFF);
+    } else {
+      file_format.set_response_type(
+          ComputeThreatListDiffResponse::RESPONSE_TYPE_UNSPECIFIED);
+    }
+  }
   base::Value* addition_data = response_dict->FindDictKey("additions");
   if (addition_data) {
     // Null check is not required for "ThreatEntryAdditions*" and "Checksum*"
@@ -261,6 +270,21 @@ bool WebRiskFetchHashes::ParseJSONToUpdateResponse(
           const std::string* hashlist_b64 = item.FindStringKey("rawHashes");
           if (hashlist_b64)
             raw_hash_list->set_raw_hashes(*hashlist_b64);
+        }
+      }
+    }
+  }
+
+  base::Value* removal_data = response_dict->FindDictKey("removals");
+  if (removal_data) {
+    ThreatEntryRemovals* removals = file_format.mutable_removals();
+    base::Value* raw_indices = removal_data->FindDictKey("rawIndices");
+    if (raw_indices) {
+      base::Value* indices = raw_indices->FindListKey("indices");
+      if (indices) {
+        for (const base::Value& item : indices->GetList()) {
+          const int idx = item.GetInt();
+          removals->mutable_raw_indices()->add_indices(idx);
         }
       }
     }

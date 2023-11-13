@@ -47,17 +47,23 @@ class WebRiskDatabase {
 
   bool Init();
   bool InsertThreatEntry(const WebriskThreatEntry& entry);
-  bool InsertThreatEntries(const std::vector<WebriskThreatEntry>& entry_list);
+  bool InsertThreatEntries(const std::vector<WebriskThreatEntry>& entries);
   bool DeleteThreatEntry(const WebriskThreatEntry& entry);
-  bool DeleteThreatEntries(const std::vector<WebriskThreatEntry>& entry_list);
+  bool DeleteThreatEntries(const std::vector<WebriskThreatEntry>& entries);
+  bool DeleteThreatEntries(const std::vector<int>& removals);
   bool DeleteAllEntries();
+  bool InsertOrUpdateVersionToken(const std::string& version_token,
+                                  bool is_insert_token);
+  std::string GetVersionToken();
   bool IsHashPrefixAvailable(const std::string& hash_prefix);
   void CloseDatabase();
 
  private:
-  bool CreateTableIfNeeded();
   WebRiskDatabase(const WebRiskDatabase&) = delete;
   WebRiskDatabase& operator=(const WebRiskDatabase&) = delete;
+
+  bool CreateTablesIfNeeded();
+  bool CreateTable(const char* table_name);
 
   sql::Database db_;
   base::FilePath db_file_path_;

@@ -74,35 +74,74 @@ bool WebRiskSQLiteDatabaseStore::WriteDataToDisk(
     const ComputeThreatListDiffResponse& file_format) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   VLOG(2) << __func__;
-  DeleteAllEntries();
+  bool is_write_data_succeed = false;
+
+  // Removals entries
+  if (!(file_format.response_type() == ComputeThreatListDiffResponse::RESET)) {
+    std::vector<int> removals = CreateRemovalEntryList(file_format);
+    is_write_data_succeed &= DeleteThreatEntries(removals);
+  } else {
+    is_write_data_succeed &= DeleteAllEntries();
+  }
+
+  // Addition entries
   std::string raw_hashes;
   raw_hashes = file_format.additions().raw_hashes(0).raw_hashes();
-  InsertThreatEntries(raw_hashes);
-  return true;
+  is_write_data_succeed &= InsertThreatEntries(raw_hashes);
+
+  // Insert/Update new version token
+  std::string new_version_token = file_format.new_version_token();
+  std::string old_version_token = GetVersionToken();
+  is_write_data_succeed &=
+      InsertOrUpdateVersionToken(new_version_token, old_version_token.empty());
+
+  return is_write_data_succeed;
 }
 
-void WebRiskSQLiteDatabaseStore::InsertThreatEntries(
+bool WebRiskSQLiteDatabaseStore::InsertThreatEntries(
     const std::string& raw_hashes) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   if (!is_initialized_) {
-    return;
+    return false;
   }
-  std::vector<WebriskThreatEntry> entry_list;
-  CreateEntryListFromRawHashes(raw_hashes, entry_list);
-  webrisk_db_.InsertThreatEntries(entry_list);
+  std::vector<WebriskThreatEntry> entries =
+      CreateEntryListFromRawHashes(raw_hashes);
+  return webrisk_db_.InsertThreatEntries(entries);
 }
 
-void WebRiskSQLiteDatabaseStore::CreateEntryListFromRawHashes(
-    const std::string& raw_hashes,
-    std::vector<WebriskThreatEntry>& entry_list) {
+bool WebRiskSQLiteDatabaseStore::DeleteThreatEntries(
+    const std::vector<int>& removals) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!is_initialized_) {
+    return false;
+  }
+  return webrisk_db_.DeleteThreatEntries(removals);
+}
+
+std::vector<WebriskThreatEntry>
+WebRiskSQLiteDatabaseStore::CreateEntryListFromRawHashes(
+    const std::string& raw_hashes) {
   std::string hash_list;
+  std::vector<WebriskThreatEntry> entries;
   base::Base64Decode(raw_hashes, &hash_list);
   for (int i = 0; i < hash_list.length(); i += kHashPrefixSize) {
     std::string hash_prefix = hash_list.substr(i, kHashPrefixSize);
     WebriskThreatEntry entry;
     entry.hash_prefix = hash_prefix;
-    entry_list.push_back(entry);
+    entries.push_back(entry);
   }
+  return entries;
+}
+
+std::vector<int> WebRiskSQLiteDatabaseStore::CreateRemovalEntryList(
+    const ComputeThreatListDiffResponse& file_format) {
+  std::vector<int> removals;
+  int indices_size = file_format.removals().raw_indices().indices_size();
+  for (int i = 0; i < indices_size; i++) {
+    int idx = file_format.removals().raw_indices().indices(i);
+    removals.push_back(idx);
+  }
+  return removals;
 }
 
 bool WebRiskSQLiteDatabaseStore::IsHashPrefixExpired() {
@@ -139,6 +178,23 @@ bool WebRiskSQLiteDatabaseStore::MigrateDataFromLocalFile() {
     return is_data_migrated;
   }
   return false;
+}
+
+bool WebRiskSQLiteDatabaseStore::InsertOrUpdateVersionToken(
+    const std::string& version_token,
+    bool is_insert_token) {
+  DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  if (!is_initialized_) {
+    return false;
+  }
+  return webrisk_db_.InsertOrUpdateVersionToken(version_token, is_insert_token);
+}
+
+std::string WebRiskSQLiteDatabaseStore::GetVersionToken() {
+  if (!is_initialized_) {
+    return std::string();
+  }
+  return webrisk_db_.GetVersionToken();
 }
 
 }  // namespace webrisk
