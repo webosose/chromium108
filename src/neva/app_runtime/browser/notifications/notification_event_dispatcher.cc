@@ -21,8 +21,7 @@
 #include "base/notreached.h"
 #include "content/browser/notifications/notification_event_dispatcher_impl.h"
 #include "neva/app_runtime/browser/app_runtime_browser_context.h"
-#include "neva/app_runtime/browser/app_runtime_browser_context_adapter.h"
-
+#include "neva/app_runtime/webview_profile.h"
 namespace neva_app_runtime {
 
 NotificationEventDispatcher* GetNotificationEventDispatcher() {
@@ -60,11 +59,11 @@ void NotificationEventDispatcherImpl::Click(
 
   GURL gurl(origin);
 
-  neva_app_runtime::BrowserContextAdapter* adapter =
-      neva_app_runtime::BrowserContextAdapter::GetDefaultContext();
+  neva_app_runtime::WebViewProfile* profile =
+      neva_app_runtime::WebViewProfile::GetDefaultProfile();
 
   content::NotificationEventDispatcherImpl::GetInstance()
-      ->DispatchNotificationClickEvent(adapter->GetBrowserContext(),
+      ->DispatchNotificationClickEvent(profile->GetBrowserContext(),
                                        notification_id, gurl, index, text,
                                        base::DoNothing());
 }
