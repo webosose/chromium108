@@ -26,10 +26,6 @@ MEDIA_EXPORT extern const char kDisableWebMediaPlayerNeva[];
 MEDIA_EXPORT extern const char kFakeUrlMediaDuration[];
 MEDIA_EXPORT extern const char kEnableAccurateSeek[];
 
-#if defined(USE_NEVA_WEBRTC)
-MEDIA_EXPORT extern const char kEnableWebRTCPlatformVideoDecoder[];
-#endif
-
 }  // namespace switches
 
 #endif  // MEDIA_BASE_MEDIA_SWITCHES_NEVA_H_

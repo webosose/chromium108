@@ -120,13 +120,6 @@ class GpuVideoAcceleratorFactoriesImpl
   void DestroyContext();
   base::UnsafeSharedMemoryRegion CreateSharedMemoryRegion(size_t size) override;
   scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() override;
-#if defined(USE_NEVA_WEBRTC)
-  std::string GetAppId() override { return app_id_; }
-  blink::CreateVideoWindowCallback GetCreateVideoWindowCB() override;
-  void SetAppIdAndCreateVideoWindowCB(
-      const std::string& app_id,
-      blink::CreateVideoWindowCallback callback) override;
-#endif
 
   viz::RasterContextProvider* GetMediaContextProvider() override;
 
@@ -134,11 +127,6 @@ class GpuVideoAcceleratorFactoriesImpl
 
   void SetRenderingColorSpace(const gfx::ColorSpace& color_space) override;
   const gfx::ColorSpace& GetRenderingColorSpace() const override;
-
-#if defined(USE_NEVA_MEDIA)
-  void SetUseVideoDecodeAccelerator(bool use) override;
-  bool UseVideoDecodeAccelerator() const override;
-#endif
 
   // Called on the main thread. Returns whether the media thread has seen the
   // ContextProvider become lost, in which case this class should be replaced
@@ -234,15 +222,6 @@ class GpuVideoAcceleratorFactoriesImpl
 
   mojo::Remote<media::mojom::InterfaceFactory> interface_factory_;
   mojo::Remote<media::mojom::VideoEncodeAcceleratorProvider> vea_provider_;
-
-#if defined(USE_NEVA_MEDIA)
-  bool use_video_decode_accelerator_ = false;
-#endif
-
-#if defined(USE_NEVA_WEBRTC)
-  std::string app_id_;
-  blink::CreateVideoWindowCallback create_video_window_callback_;
-#endif
 
   // SupportedDecoderConfigs state.
   mojo::Remote<media::mojom::VideoDecoder> video_decoder_;

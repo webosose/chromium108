@@ -3526,9 +3526,6 @@ void RenderProcessHostImpl::PropagateBrowserCommandLineToRenderer(
     switches::kDisableWebMediaPlayerNeva,
     switches::kFakeUrlMediaDuration,
 #endif
-#if defined(USE_NEVA_WEBRTC)
-    switches::kEnableWebRTCPlatformVideoDecoder,
-#endif
 #if defined(USE_NEVA_APPRUNTIME)
     switches::kEnableNotificationForUnsupportedFeatures,
     switches::kEnableSampleInjection,

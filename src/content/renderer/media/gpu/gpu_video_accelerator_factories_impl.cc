@@ -173,13 +173,6 @@ void GpuVideoAcceleratorFactoriesImpl::BindOnTaskRunner(
     OnEncoderSupportFailed();
   }
 
-#if defined(USE_NEVA_MEDIA)
-  if (!use_video_decode_accelerator_) {
-    OnDecoderSupportFailed();
-    return;
-  }
-#endif
-
 #if BUILDFLAG(ENABLE_MOJO_VIDEO_DECODER)
   if (video_decode_accelerator_enabled_) {
     // Note: This is a bit of a hack, since we don't specify the implementation
@@ -520,20 +513,6 @@ GpuVideoAcceleratorFactoriesImpl::GetTaskRunner() {
   return task_runner_;
 }
 
-#if defined(USE_NEVA_WEBRTC)
-blink::CreateVideoWindowCallback
-GpuVideoAcceleratorFactoriesImpl::GetCreateVideoWindowCB() {
-  return create_video_window_callback_;
-}
-
-void GpuVideoAcceleratorFactoriesImpl::SetAppIdAndCreateVideoWindowCB(
-    const std::string& app_id,
-    blink::CreateVideoWindowCallback callback) {
-  app_id_ = app_id;
-  create_video_window_callback_ = callback;
-}
-#endif
-
 absl::optional<media::VideoEncodeAccelerator::SupportedProfiles>
 GpuVideoAcceleratorFactoriesImpl::GetVideoEncodeAcceleratorSupportedProfiles() {
   base::AutoLock lock(supported_profiles_lock_);
@@ -561,16 +540,6 @@ const gfx::ColorSpace&
 GpuVideoAcceleratorFactoriesImpl::GetRenderingColorSpace() const {
   return rendering_color_space_;
 }
-
-#if defined(USE_NEVA_MEDIA)
-void GpuVideoAcceleratorFactoriesImpl::SetUseVideoDecodeAccelerator(bool use) {
-  use_video_decode_accelerator_ = use;
-}
-
-bool GpuVideoAcceleratorFactoriesImpl::UseVideoDecodeAccelerator() const {
-  return use_video_decode_accelerator_;
-}
-#endif
 
 bool GpuVideoAcceleratorFactoriesImpl::CheckContextProviderLostOnMainThread() {
   DCHECK(main_thread_task_runner_->RunsTasksInCurrentSequence());

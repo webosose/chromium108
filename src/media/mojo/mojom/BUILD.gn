@@ -127,9 +127,6 @@ mojom("mojom") {
   if (use_neva_media) {
     enabled_features += [ "use_neva_media" ]
     public_deps += [ "//media/mojo/mojom/neva:mojom" ]
-    if (use_neva_webrtc) {
-      enabled_features += [ "use_neva_webrtc" ]
-    }
   }
 
   shared_typemaps = [

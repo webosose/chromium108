@@ -27,10 +27,6 @@
 #include "third_party/abseil-cpp/absl/types/optional.h"
 #include "ui/gfx/gpu_memory_buffer.h"
 
-#if defined(USE_NEVA_WEBRTC)
-#include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
-#endif
-
 namespace base {
 class SequencedTaskRunner;
 }  // namespace base
@@ -205,22 +201,6 @@ class MEDIA_EXPORT GpuVideoAcceleratorFactories {
   // Returns the task runner the video accelerator runs on.
   virtual scoped_refptr<base::SequencedTaskRunner> GetTaskRunner() = 0;
 
-#if defined(USE_NEVA_WEBRTC)
-  // Returns the application id, needed for MediaPlatformAPI creation by
-  // webrtc pass through decoder
-  virtual std::string GetAppId() = 0;
-
-  // Returns the video window creation callback, needed to create video
-  // window by webrtc pass through decoder
-  virtual blink::CreateVideoWindowCallback GetCreateVideoWindowCB() = 0;
-
-  // Sets the application id and create video window callback, needed by
-  // webrtc pass through decoder
-  virtual void SetAppIdAndCreateVideoWindowCB(
-      const std::string& app_id,
-      blink::CreateVideoWindowCallback cb) = 0;
-#endif
-
   virtual viz::RasterContextProvider* GetMediaContextProvider() = 0;
 
   virtual const gpu::Capabilities* ContextCapabilities() = 0;
@@ -228,11 +208,6 @@ class MEDIA_EXPORT GpuVideoAcceleratorFactories {
   // Sets or gets the current pipeline rendering color space.
   virtual void SetRenderingColorSpace(const gfx::ColorSpace& color_space) = 0;
   virtual const gfx::ColorSpace& GetRenderingColorSpace() const = 0;
-
-#if defined(USE_NEVA_MEDIA)
-  virtual void SetUseVideoDecodeAccelerator(bool use) {}
-  virtual bool UseVideoDecodeAccelerator() const { return false; }
-#endif
 
   virtual ~GpuVideoAcceleratorFactories() = default;
 };

@@ -258,10 +258,6 @@
 #include "content/renderer/java/gin_java_bridge_dispatcher.h"
 #endif
 
-#if defined(USE_NEVA_WEBRTC)
-#include "media/video/gpu_video_accelerator_factories.h"
-#endif
-
 using base::Time;
 using blink::ContextMenuData;
 using blink::WebContentDecryptionModule;
@@ -1957,22 +1953,6 @@ void RenderFrameImpl::Initialize(blink::WebFrame* parent) {
   agent_scheduling_group_.AddFrameRoute(
       routing_id_, this,
       GetTaskRunner(blink::TaskType::kInternalNavigationAssociated));
-
-#if defined(USE_NEVA_WEBRTC)
-  auto gpu_factories = blink::Platform::Current()->GetGpuFactories();
-  if (gpu_factories && is_main_frame_) {
-    const blink::RendererPreferences& prefs = GetRendererPreferences();
-    if (!prefs.application_id.empty()) {
-      std::string app_id = prefs.application_id + prefs.display_id;
-      VLOG(1) << "[" << this << "] " << __func__ << " app_id=" << app_id;
-      gpu_factories->SetAppIdAndCreateVideoWindowCB(
-          app_id,
-          base::BindRepeating(
-              &content::mojom::FrameVideoWindowFactory::CreateVideoWindow,
-              base::Unretained(GetFrameVideoWindowFactory())));
-    }
-  }
-#endif
 }
 
 void RenderFrameImpl::GetInterface(

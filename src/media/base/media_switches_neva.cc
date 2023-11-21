@@ -23,11 +23,6 @@ const char kDisableNevaMediaService[] = "disable-neva-media-service";
 // Disable WebMdiaPlayerNeva integration
 const char kDisableWebMediaPlayerNeva[] = "disable-web-media-player-neva";
 const char kFakeUrlMediaDuration[] = "fake-url-media-duration";
-#if defined(USE_NEVA_WEBRTC)
-// Enables platforms to provide HW accelarated video decoder.
-const char kEnableWebRTCPlatformVideoDecoder[] =
-    "enable-webrtc-platform-video-decoder";
-#endif
 // Enable 'accurate seek' which decodes more frames from a keyframe to the frame
 // to seek with some delay. Without this flag, URI video seek just jumps to a
 // keyframe which is a little before the frame pointed without delay for

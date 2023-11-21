@@ -98,9 +98,6 @@ declare_args() {
   # Use code cache for local script resource
   use_filescheme_codecache = true
 
-  # Use Neva WebRTC
-  use_neva_webrtc = false
-
   # Use Neva chrome extensions support
   use_neva_chrome_extensions = false
 

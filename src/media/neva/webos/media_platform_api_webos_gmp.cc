@@ -224,11 +224,6 @@ bool MediaPlatformAPIWebOSGmp::Feed(const scoped_refptr<DecoderBuffer>& buffer,
   while (!buffer_queue_->Empty()) {
     FeedStatus feed_status = FeedInternal(buffer_queue_->Front().first,
                                           buffer_queue_->Front().second);
-    if (video_config_.is_live_stream() && feed_status != kFeedSucceeded) {
-      // Return fail immediately without waiting for kMaxPendingFeedSize, if
-      // media pipeline could not process buffer for webrtc than live stream
-      return false;
-    }
     switch (feed_status) {
       case kFeedSucceeded: {
         buffer_queue_->Pop();
@@ -793,9 +788,6 @@ bool MediaPlatformAPIWebOSGmp::MakeLoadData(int64_t start_time, void* data) {
     load_data->extraSize = video_config_.extra_data().size();
 #if defined(USE_GAV)
     load_data->windowId = const_cast<char*>(get_media_layer_id().c_str());
-#endif
-#if defined(USE_NEVA_WEBRTC)
-    load_data->liveStream = video_config_.is_live_stream();
 #endif
   }
 

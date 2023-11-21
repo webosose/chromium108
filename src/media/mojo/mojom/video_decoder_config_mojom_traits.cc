@@ -63,10 +63,6 @@ bool StructTraits<media::mojom::VideoDecoderConfigDataView,
 
   output->set_level(input.level());
 
-#if defined(USE_NEVA_WEBRTC)
-  output->set_live_stream(input.is_live_stream());
-#endif
-
   if (!output->IsValidConfig())
     return false;
 
