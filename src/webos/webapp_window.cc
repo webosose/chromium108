@@ -149,8 +149,12 @@ void WebAppWindow::OnMouseEvent(ui::MouseEvent* event) {
       break;
     }
     case ui::EventType::ET_MOUSE_EXITED: {
+      /* "Leave" sending is blocked. This is a temporary workaround
+      caused by "Leave" handling in enact/spotlight/src/spotlight.js
+      and used until it will be fixed (see more details in WRQ-1854)
+
       WebOSMouseEvent ev(WebOSEvent::Type::Leave, x, y);
-      HandleEvent(&ev);
+      HandleEvent(&ev);*/
       break;
     }
     case ui::EventType::ET_MOUSEWHEEL: {
