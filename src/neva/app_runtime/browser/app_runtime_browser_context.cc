@@ -51,6 +51,7 @@
 #include "neva/app_runtime/browser/media/webrtc/device_media_stream_access_handler.h"
 #include "neva/app_runtime/browser/media/webrtc/media_capture_devices_dispatcher.h"
 #include "neva/app_runtime/browser/notifications/notifier_client.h"
+#include "neva/app_runtime/browser/notifications/platform_notification_service_factory.h"
 #include "neva/app_runtime/browser/notifications/platform_notification_service_impl.h"
 #include "neva/app_runtime/browser/permissions/permission_manager_factory.h"
 #include "neva/app_runtime/browser/push_messaging/push_messaging_app_identifier.h"
@@ -130,7 +131,7 @@ AppRuntimeBrowserContext::GetSpecialStoragePolicy() {
 
 content::PlatformNotificationService*
 AppRuntimeBrowserContext::GetPlatformNotificationService() {
-  return nullptr;
+  return PlatformNotificationServiceFactory::GetForProfile(this);
 }
 
 content::PushMessagingService*

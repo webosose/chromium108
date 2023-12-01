@@ -59,8 +59,6 @@
 #include "neva/app_runtime/browser/app_runtime_web_contents_view_delegate_creator.h"
 #include "neva/app_runtime/browser/app_runtime_webview_controller_impl.h"
 #include "neva/app_runtime/browser/app_runtime_webview_host_impl.h"
-#include "neva/app_runtime/browser/notifications/platform_notification_service_factory.h"
-#include "neva/app_runtime/browser/notifications/platform_notification_service_impl.h"
 #include "neva/app_runtime/common/app_runtime_file_access_controller.h"
 #include "neva/app_runtime/public/app_runtime_switches.h"
 #include "neva/app_runtime/public/proxy_settings.h"
