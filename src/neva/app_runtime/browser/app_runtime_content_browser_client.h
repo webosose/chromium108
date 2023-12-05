@@ -98,6 +98,16 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
   content::GeneratedCodeCacheSettings GetGeneratedCodeCacheSettings(
       content::BrowserContext* context) override;
 
+  void RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+      content::BrowserContext* browser_context,
+      NonNetworkURLLoaderFactoryMap* factories) override;
+
+  void RegisterNonNetworkSubresourceURLLoaderFactories(
+      int render_process_id,
+      int render_frame_id,
+      const absl::optional<url::Origin>& request_initiator_origin,
+      NonNetworkURLLoaderFactoryMap* factories) override;
+
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
   void RenderProcessWillLaunch(content::RenderProcessHost* host) override;
 
@@ -129,16 +139,6 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
 
   void RegisterNonNetworkWorkerMainResourceURLLoaderFactories(
       content::BrowserContext* browser_context,
-      NonNetworkURLLoaderFactoryMap* factories) override;
-
-  void RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
-      content::BrowserContext* browser_context,
-      NonNetworkURLLoaderFactoryMap* factories) override;
-
-  void RegisterNonNetworkSubresourceURLLoaderFactories(
-      int render_process_id,
-      int render_frame_id,
-      const absl::optional<url::Origin>& request_initiator_origin,
       NonNetworkURLLoaderFactoryMap* factories) override;
 
   bool ShouldSendOutermostOriginToRenderer(

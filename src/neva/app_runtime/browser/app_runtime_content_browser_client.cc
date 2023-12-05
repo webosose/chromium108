@@ -488,6 +488,52 @@ AppRuntimeContentBrowserClient::GetGeneratedCodeCacheSettings(
   return content::GeneratedCodeCacheSettings(true, 0, context->GetPath());
 }
 
+void AppRuntimeContentBrowserClient::
+    RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
+        BrowserContext* browser_context,
+        NonNetworkURLLoaderFactoryMap* factories) {
+  if (browser_context) {
+    factories->emplace(url::kFileScheme,
+                       content::FileURLLoaderFactory::Create(
+                           browser_context->GetPath(),
+                           browser_context->GetSharedCorsOriginAccessList(),
+                           base::TaskPriority::USER_VISIBLE));
+  }
+
+#if defined(USE_NEVA_CHROME_EXTENSIONS)
+  factories->emplace(
+      extensions::kExtensionScheme,
+      extensions::CreateExtensionServiceWorkerScriptURLLoaderFactory(
+          browser_context));
+#endif
+}
+
+void AppRuntimeContentBrowserClient::
+    RegisterNonNetworkSubresourceURLLoaderFactories(
+        int render_process_id,
+        int render_frame_id,
+        const absl::optional<url::Origin>& request_initiator_origin,
+        NonNetworkURLLoaderFactoryMap* factories) {
+  content::RenderProcessHost* process =
+      RenderProcessHost::FromID(render_process_id);
+  if (process) {
+    content::BrowserContext* browser_context = process->GetBrowserContext();
+    if (browser_context) {
+      factories->emplace(url::kFileScheme,
+                         content::FileURLLoaderFactory::Create(
+                             browser_context->GetPath(),
+                             browser_context->GetSharedCorsOriginAccessList(),
+                             base::TaskPriority::USER_VISIBLE));
+    }
+  }
+
+#if defined(USE_NEVA_CHROME_EXTENSIONS)
+  factories->emplace(extensions::kExtensionScheme,
+                     extensions::CreateExtensionURLLoaderFactory(
+                         render_process_id, render_frame_id));
+#endif
+}
+
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
 // TODO(pikulik): I think it makes sense to take into account that we can
 // have more than one default BrowserContext.
@@ -604,32 +650,6 @@ void AppRuntimeContentBrowserClient::
       extensions::kExtensionScheme,
       extensions::CreateExtensionWorkerMainResourceURLLoaderFactory(
           browser_context));
-}
-
-void AppRuntimeContentBrowserClient::
-    RegisterNonNetworkServiceWorkerUpdateURLLoaderFactories(
-        content::BrowserContext* browser_context,
-        NonNetworkURLLoaderFactoryMap* factories) {
-  DCHECK(browser_context);
-  DCHECK(factories);
-
-  factories->emplace(
-      extensions::kExtensionScheme,
-      extensions::CreateExtensionServiceWorkerScriptURLLoaderFactory(
-          browser_context));
-}
-
-void AppRuntimeContentBrowserClient::
-    RegisterNonNetworkSubresourceURLLoaderFactories(
-        int render_process_id,
-        int render_frame_id,
-        const absl::optional<url::Origin>& request_initiator_origin,
-        NonNetworkURLLoaderFactoryMap* factories) {
-  DCHECK(factories);
-
-  factories->emplace(extensions::kExtensionScheme,
-                     extensions::CreateExtensionURLLoaderFactory(
-                         render_process_id, render_frame_id));
 }
 
 bool AppRuntimeContentBrowserClient::ShouldSendOutermostOriginToRenderer(
