@@ -34,6 +34,10 @@
 #include "third_party/blink/public/mojom/service_worker/service_worker_registration_options.mojom.h"
 #include "url/origin.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace content {
 
 namespace {
@@ -292,8 +296,23 @@ void ServiceWorkerRegistry::FindRegistrationForScope(
 
 void ServiceWorkerRegistry::FindRegistrationForId(
     int64_t registration_id,
-    const blink::StorageKey& key,
+    const blink::StorageKey& const_key,
     FindRegistrationCallback callback) {
+  blink::StorageKey key = const_key;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // From FindServiceWorkerRegistration
+  // (content/browser/notifications/notification_event_dispatcher_impl.cc)
+  // blink::StorageKey may not contain host field in the origin if it is file
+  // scheme. Service worker needs host field for the file scheme as well.
+  // So we replace origin to file-security-origin
+  if (key.origin().scheme() == url::kFileScheme &&
+      key.origin().get_webapp_id()) {
+    key = blink::StorageKey(neva_app_runtime::CreateFileSecurityOriginForApp(
+        *key.origin().get_webapp_id()));
+  }
+#endif
+
   FindRegistrationForIdInternal(registration_id, key, std::move(callback));
 }
 
@@ -390,7 +409,11 @@ void ServiceWorkerRegistry::StoreRegistration(
   data->registration_id = registration->id();
   data->scope = registration->scope();
 #if defined(USE_NEVA_APPRUNTIME)
-  data->app_id = registration->app_id();
+  // type of above data->scope is string so webapp_id needs to be stored
+  // separately.
+  data->app_id = (registration->scope().get_webapp_id()
+                      ? *registration->scope().get_webapp_id()
+                      : std::string());
 #endif
   data->key = registration->key();
   data->script = version->script_url();
@@ -893,6 +916,8 @@ ServiceWorkerRegistry::GetOrCreateRegistration(
     return registration;
 
 #if defined(USE_NEVA_APPRUNTIME)
+  // storage::mojom::ServiceWorkerRegistrationData uses string type for the
+  // scope so it needs to set app_id explicitly to pass app_id.
   blink::mojom::ServiceWorkerRegistrationOptions options(
       data.scope, data.script_type, data.update_via_cache, data.app_id);
 #else

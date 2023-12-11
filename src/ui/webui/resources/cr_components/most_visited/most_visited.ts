@@ -688,7 +688,10 @@ export class MostVisitedElement extends MostVisitedElementBase {
   }
 
   private async onSave_() {
-    const newUrl = {url: normalizeUrl(this.dialogTileUrl_)!.href};
+    const newUrl = {
+      url: normalizeUrl(this.dialogTileUrl_)!.href,
+      webappId: undefined
+    };
     this.$.dialog.close();
     let newTitle = this.dialogTileTitle_.trim();
     if (newTitle.length === 0) {

@@ -66,7 +66,7 @@ class Notification {
   virtual const std::string& Origin() const = 0;
   virtual const std::u16string& Title() const = 0;
   virtual const std::u16string& Message() const = 0;
-  virtual const std::string& AppId() const = 0;
+  virtual std::string AppId() const = 0;
   virtual const std::vector<ButtonInfo>& Buttons() const = 0;
 
   virtual ~Notification() {}

@@ -1559,6 +1559,7 @@ class CONTENT_EXPORT RenderFrameHostImpl
 
 #if defined(USE_NEVA_APPRUNTIME)
   void DropAllPeerConnections(base::OnceClosure cb) override;
+  std::string GetWebAppId() override;
 #endif  // defined(USE_NEVA_APPRUNTIME)
 
 #if defined(USE_NEVA_MEDIA)

@@ -23,6 +23,11 @@ struct StructTraits<url::mojom::UrlDataView, ::blink::KURL> {
 
     return blinkUrl.GetString();
   }
+#if defined(USE_NEVA_APPRUNTIME)
+  static absl::optional<WTF::String> webapp_id(const ::blink::KURL& blinkUrl) {
+    return absl::nullopt;
+  }
+#endif
   static bool Read(url::mojom::UrlDataView data, ::blink::KURL* out) {
     WTF::String urlString;
     if (!data.ReadUrl(&urlString))

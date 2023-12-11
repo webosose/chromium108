@@ -866,6 +866,7 @@ class CONTENT_EXPORT RenderFrameHost : public IPC::Listener,
 
 #if defined(USE_NEVA_APPRUNTIME)
   virtual void DropAllPeerConnections(base::OnceClosure cb) = 0;
+  virtual std::string GetWebAppId() = 0;
 #endif  // defined(USE_NEVA_APPRUNTIME)
 
 #if defined(USE_NEVA_MEDIA)

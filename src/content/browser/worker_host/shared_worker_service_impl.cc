@@ -190,6 +190,10 @@ void SharedWorkerServiceImpl::ConnectToWorker(
     return;
   }
   auto partition_domain = site_instance->GetPartitionDomain(storage_partition_);
+#if defined(USE_NEVA_APPRUNTIME)
+  // info->url also is passed from renderer without webapp_id info.
+  info->url.set_webapp_id(render_frame_host->GetWebAppId());
+#endif
   SharedWorkerInstance instance(info->url, info->options->type,
                                 info->options->credentials, info->options->name,
                                 storage_key, creation_context_type);

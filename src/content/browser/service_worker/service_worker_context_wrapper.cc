@@ -67,6 +67,10 @@
 #include "third_party/blink/public/common/service_worker/service_worker_status_code.h"
 #include "third_party/blink/public/mojom/service_worker/service_worker_registration.mojom.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace content {
 
 namespace {

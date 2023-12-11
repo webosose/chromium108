@@ -65,8 +65,19 @@ void PlatformNotificationServiceProxy::VerifyServiceWorkerScope(
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   base::OnceClosure task;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  if (status == blink::ServiceWorkerStatusCode::kOk &&
+      (registration->key().origin().GetURL() == data.origin ||
+       // allow both are file scheme
+       (registration->key().origin().GetURL().SchemeIsFile() &&
+        data.origin.SchemeIsFile())) &&
+      // allow only for the same webapp
+      (registration->key().origin().get_webapp_id() ==
+       data.origin.get_webapp_id())) {
+#else
   if (status == blink::ServiceWorkerStatusCode::kOk &&
       registration->key().origin().GetURL() == data.origin) {
+#endif
     DoDisplayNotification(data, registration->scope(), std::move(callback));
   } else {
     std::move(callback).Run(/* success= */ false, /* notification_id= */ "");

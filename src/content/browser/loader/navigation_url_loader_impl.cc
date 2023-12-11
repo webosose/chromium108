@@ -223,6 +223,26 @@ std::unique_ptr<network::ResourceRequest> CreateResourceRequest(
 
   new_request->method = request_info.common_params->method;
   new_request->url = request_info.common_params->url;
+#if defined(USE_NEVA_APPRUNTIME)
+  // navigation url is passed to ServiceWorkerContainerHost and it is used for
+  // the storage key when calling RegisterServiceWorker. The origin of the
+  // storage key is bind to the origin when service worker uses permission
+  // service. So here we set webapp_id to the url of the request.
+  //
+  // Calling stack of the passing the url to ServiceWorkerContainerHost
+  // content::ServiceWorkerContainerHost::UpdateUrls
+  // content::ServiceWorkerControlleeRequestHandler::InitializeContainerHost
+  // content::ServiceWorkerControlleeRequestHandler::MaybeCreateLoader
+  // content::ServiceWorkerMainResourceLoaderInterceptor::MaybeCreateLoader
+  // content::NavigationURLLoaderImpl::MaybeStartLoader
+  // content::NavigationURLLoaderImpl::Restart
+  // content::NavigationURLLoaderImpl::StartImpl
+  // content::NavigationURLLoaderImpl::Start
+  if (frame_tree_node && frame_tree_node->current_frame_host()) {
+    new_request->url.set_webapp_id(
+        frame_tree_node->current_frame_host()->GetWebAppId());
+  }
+#endif
   new_request->navigation_redirect_chain.push_back(new_request->url);
   new_request->site_for_cookies =
       request_info.isolation_info.site_for_cookies();

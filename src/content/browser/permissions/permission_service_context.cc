@@ -106,11 +106,21 @@ PermissionServiceContext::~PermissionServiceContext() {
 void PermissionServiceContext::CreateService(
     mojo::PendingReceiver<blink::mojom::PermissionService> receiver) {
   DCHECK(render_frame_host_);
-  services_.Add(
-      std::make_unique<PermissionServiceImpl>(
-          this, url::Origin::Create(PermissionUtil::GetLastCommittedOriginAsURL(
-                    render_frame_host_))),
-      std::move(receiver));
+  auto origin = url::Origin::Create(
+      PermissionUtil::GetLastCommittedOriginAsURL(render_frame_host_));
+#if defined(USE_NEVA_APPRUNTIME)
+  // LastCommittedOrigin has a file-security-origin in the part of file scheme
+  // url. Remove domain part of file scheme because this may break compraing
+  // the origin from the other url info. (normal url doesn't have domain name
+  // for the file scheme)
+  if (origin.scheme() == url::kFileScheme) {
+    auto webapp_id = origin.get_webapp_id().value();
+    origin = url::Origin::CreateFromNormalizedTuple(url::kFileScheme, "", 0);
+    origin.set_webapp_id(webapp_id);
+  }
+#endif
+  services_.Add(std::make_unique<PermissionServiceImpl>(this, origin),
+                std::move(receiver));
 }
 
 void PermissionServiceContext::CreateServiceForWorker(

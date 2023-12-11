@@ -52,8 +52,11 @@ const std::u16string& NotificationWrapper::Message() const {
   return notification_.message();
 }
 
-const std::string& NotificationWrapper::AppId() const {
-  return metadata_->web_app_id;
+std::string NotificationWrapper::AppId() const {
+  if (notification_.origin_url().get_webapp_id()) {
+    return notification_.origin_url().get_webapp_id().value();
+  }
+  return std::string();
 }
 
 const std::vector<ButtonInfo>& NotificationWrapper::Buttons() const {

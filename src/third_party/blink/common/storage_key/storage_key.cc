@@ -267,6 +267,13 @@ StorageKey StorageKey::WithOrigin(const url::Origin& origin) const {
                                  ancestor_chain_bit_);
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+StorageKey::StorageKey(const StorageKey& other, const std::string& app_id)
+    : StorageKey(other) {
+  origin_.set_webapp_id(app_id);
+}
+
+#endif
 std::string StorageKey::Serialize() const {
   using EncodedAttribute = StorageKey::EncodedAttribute;
   DCHECK(!origin_.opaque());

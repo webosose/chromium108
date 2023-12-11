@@ -1671,10 +1671,17 @@ ServiceWorkerDatabase::Status ServiceWorkerDatabase::ParseRegistrationData(
     return Status::kErrorCorrupted;
 
   GURL scope_url(data.scope_url());
-#if defined(USE_NEVA_APPRUNTIME)
-  std::string app_id(data.app_id());
-#endif
   GURL script_url(data.script_url());
+#if defined(USE_NEVA_APPRUNTIME)
+  // scope and script are stored as a string so they need to be recover
+  // webapp_id info
+  std::string webapp_id;
+  if (data.has_app_id()) {
+    webapp_id = data.app_id();
+    script_url.set_webapp_id(data.app_id());
+    scope_url.set_webapp_id(data.app_id());
+  }
+#endif
   if (!scope_url.is_valid() || !script_url.is_valid() ||
       scope_url.DeprecatedGetOriginAsURL() !=
           script_url.DeprecatedGetOriginAsURL() ||
@@ -1699,11 +1706,11 @@ ServiceWorkerDatabase::Status ServiceWorkerDatabase::ParseRegistrationData(
   *out = mojom::ServiceWorkerRegistrationData::New();
   (*out)->registration_id = data.registration_id();
   (*out)->scope = scope_url;
-#if defined(USE_NEVA_APPRUNTIME)
-  (*out)->app_id = app_id;
-#endif
   (*out)->script = script_url;
   (*out)->key = key;
+#if defined(USE_NEVA_APPRUNTIME)
+  (*out)->app_id = webapp_id;
+#endif
   (*out)->version_id = data.version_id();
   (*out)->is_active = data.is_active();
   // The old protobuf may not have fetch_handler_type.
@@ -1979,7 +1986,10 @@ void ServiceWorkerDatabase::WriteRegistrationDataInBatch(
   data.set_registration_id(registration.registration_id);
   data.set_scope_url(registration.scope.spec());
 #if defined(USE_NEVA_APPRUNTIME)
-  data.set_app_id(registration.app_id);
+  // scope and script are stored as a string so app_id needs to be store
+  // separately.
+  if (!registration.app_id.empty())
+    data.set_app_id(registration.app_id);
 #endif
   data.set_script_url(registration.script.spec());
   // Do not store the StorageKey, it's already encoded in the registration key

@@ -34,7 +34,7 @@ class NotificationWrapper : public Notification {
   const std::string& Origin() const override;
   const std::u16string& Title() const override;
   const std::u16string& Message() const override;
-  const std::string& AppId() const override;
+  std::string AppId() const override;
   const std::vector<ButtonInfo>& Buttons() const override;
 
  private:

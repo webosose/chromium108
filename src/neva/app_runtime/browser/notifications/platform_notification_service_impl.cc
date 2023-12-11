@@ -83,7 +83,9 @@ void PlatformNotificationServiceImpl::DisplayPersistentNotification(
     LOG(WARNING) << __func__ << ", There is no service worker registration";
     return;
   }
-  metadata->web_app_id = registration->app_id();
+  metadata->web_app_id = registration->scope().get_webapp_id()
+                             ? *registration->scope().get_webapp_id()
+                             : std::string();
 
   NotificationDisplayServiceFactory::GetForProfile(context_)->Display(
       NotificationHandler::Type::WEB_PERSISTENT, notification,

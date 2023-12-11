@@ -256,9 +256,6 @@ ServiceWorkerVersion::ServiceWorkerVersion(
       script_url_(script_url),
       key_(registration->key()),
       scope_(registration->scope()),
-#if defined(USE_NEVA_APPRUNTIME)
-      app_id_(registration->app_id()),
-#endif
       script_type_(script_type),
       registration_status_(registration->status()),
       ancestor_frame_type_(registration->ancestor_frame_type()),
@@ -1463,7 +1460,8 @@ void ServiceWorkerVersion::GetClientInternal(const std::string& client_uuid,
 void ServiceWorkerVersion::OpenNewTab(const GURL& url,
                                       OpenNewTabCallback callback) {
 #if defined(USE_NEVA_APPRUNTIME)
-  if (app_id_.empty()) {
+  auto webapp_id = script_url_.get_webapp_id();
+  if (!webapp_id || webapp_id->empty()) {
     LOG(INFO) << __func__ << " is called with the empty app_id";
     return;
   }
@@ -1478,28 +1476,30 @@ void ServiceWorkerVersion::OpenNewTab(const GURL& url,
 
     auto params = pal::mojom::ConnectionParams::New(
         absl::make_optional<std::string>(),
-        absl::make_optional<std::string>(app_id_), -1);
+        absl::make_optional<std::string>(*webapp_id), -1);
 
     remote_system_bridge_->Connect(
         std::move(params),
         base::BindOnce(
-            [](base::WeakPtr<ServiceWorkerVersion> version, const GURL url,
+            [](base::WeakPtr<ServiceWorkerVersion> version,
+               const std::string& webapp_id, const GURL& url,
                OpenNewTabCallback callback,
                mojo::PendingAssociatedReceiver<
                    pal::mojom::SystemServiceBridgeClient> client) {
               if (version)
-                version->LaunchWebApp(url, std::move(callback));
+                version->LaunchWebApp(webapp_id, url, std::move(callback));
             },
-            weak_factory_.GetWeakPtr(), url, std::move(callback)));
+            weak_factory_.GetWeakPtr(), *webapp_id, url, std::move(callback)));
     return;
   }
 
-  LaunchWebApp(url, std::move(callback));
+  LaunchWebApp(*webapp_id, url, std::move(callback));
 #endif
 }
 
 #if defined(USE_NEVA_APPRUNTIME)
-void ServiceWorkerVersion::LaunchWebApp(const GURL url,
+void ServiceWorkerVersion::LaunchWebApp(const std::string& webapp_id,
+                                        const GURL& url,
                                         OpenNewTabCallback callback) {
   if (!remote_system_bridge_) {
     LOG(ERROR) << __func__ << " remote_system_bridge_ is not bound.";
@@ -1508,7 +1508,7 @@ void ServiceWorkerVersion::LaunchWebApp(const GURL url,
 
   std::string payload = base::StringPrintf(
       R"Payload({"id":"%s", "params": {"sw_clients_openwindow":"%s"}})Payload",
-      app_id_.c_str(), url.spec().c_str());
+      webapp_id.c_str(), url.spec().c_str());
 
   remote_system_bridge_->Call("palm://com.webos.applicationManager/launch",
                               payload);

@@ -205,6 +205,9 @@ class COMPONENT_EXPORT(URL) Origin {
                                           uint16_t port);
 
 #if defined(USE_NEVA_APPRUNTIME)
+  absl::optional<std::string> get_webapp_id() const { return webapp_id_; }
+  void set_webapp_id(const std::string& webapp_id) { webapp_id_ = webapp_id; }
+
   static void SetFileOriginChanged(bool changed);
 #endif
 
@@ -443,6 +446,12 @@ class COMPONENT_EXPORT(URL) Origin {
   SchemeHostPort tuple_;
 
 #if defined(USE_NEVA_APPRUNTIME)
+  // webapp_id_ denotes the webapp-id that the Origin is created for and it is
+  // used to check permission of the url(origin). This value is only used in
+  // browser browser process and it needs to be set from browser process
+  // explicitly when it is created.
+  absl::optional<std::string> webapp_id_;
+
   static bool file_origin_changed_;
 #endif
 

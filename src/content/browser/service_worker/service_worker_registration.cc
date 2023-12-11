@@ -50,11 +50,14 @@ ServiceWorkerRegistration::ServiceWorkerRegistration(
     int64_t registration_id,
     base::WeakPtr<ServiceWorkerContextCore> context,
     blink::mojom::AncestorFrameType ancestor_frame_type)
-    : scope_(options.scope),
+    :
 #if defined(USE_NEVA_APPRUNTIME)
-      app_id_(options.app_id),
-#endif
+      scope_(GURL(options.scope), options.app_id),
+      key_(key, options.app_id),
+#else
+      scope_(options.scope),
       key_(key),
+#endif
       update_via_cache_(options.update_via_cache),
       registration_id_(registration_id),
       status_(Status::kIntact),

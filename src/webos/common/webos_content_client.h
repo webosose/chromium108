@@ -29,6 +29,9 @@ class WebOSContentClient : public neva_app_runtime::AppRuntimeContentClient {
 
   // content::ContentClient implementation
   void AddPlugins(std::vector<content::ContentPluginInfo>* plugins) override;
+
+  // neva_app_runtime::AppRuntimeContentClient implementation
+  std::string FileSchemeHostForApp(const std::string& app_id) override;
 };
 
 }  // namespace webos

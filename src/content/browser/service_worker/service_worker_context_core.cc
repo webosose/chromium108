@@ -53,6 +53,10 @@
 #include "third_party/blink/public/mojom/service_worker/service_worker_registration_options.mojom.h"
 #include "url/gurl.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace content {
 namespace {
 
@@ -656,8 +660,19 @@ void ServiceWorkerContextCore::NotifyClientIsExecutionReady(
 }
 
 bool ServiceWorkerContextCore::MaybeHasRegistrationForStorageKey(
-    const blink::StorageKey& key) {
+    const blink::StorageKey& const_key) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+
+  blink::StorageKey key = const_key;
+#if defined(USE_NEVA_APPRUNTIME)
+  // Other components checks without host part for the file scheme but we use
+  // file security origin for handling service worker.
+  if (key.origin().scheme() == url::kFileScheme &&
+      key.origin().get_webapp_id()) {
+    key = key.WithOrigin(neva_app_runtime::CreateFileSecurityOriginForApp(
+        *key.origin().get_webapp_id()));
+  }
+#endif
   if (!registrations_initialized_) {
     return true;
   }

@@ -59,6 +59,11 @@ std::string MakePrefValue(
     const absl::optional<base::Time>& expiration_time = absl::nullopt) {
   std::string result = origin.spec() + kPrefValueSeparator +
                        base::NumberToString(service_worker_registration_id);
+  if (origin.get_webapp_id())
+    result += kPrefValueSeparator + origin.get_webapp_id().value();
+  else
+    result += kPrefValueSeparator + std::string("<null-id>");
+
   if (expiration_time)
     result += kPrefValueSeparator + FromTimeToString(*expiration_time);
   return result;
@@ -72,7 +77,7 @@ bool DisassemblePrefValue(const std::string& pref_value,
       base::SplitString(pref_value, std::string(1, kPrefValueSeparator),
                         base::TRIM_WHITESPACE, base::SPLIT_WANT_ALL);
 
-  if (parts.size() < 2 || parts.size() > 3)
+  if (parts.size() < 3 || parts.size() > 4)
     return false;
 
   if (!base::StringToInt64(parts[1], service_worker_registration_id))
@@ -82,8 +87,10 @@ bool DisassemblePrefValue(const std::string& pref_value,
   if (!origin->is_valid())
     return false;
 
-  if (parts.size() == 3)
-    return FromStringToTime(parts[2], expiration_time);
+  origin->set_webapp_id(parts[2]);
+
+  if (parts.size() == 4)
+    return FromStringToTime(parts[3], expiration_time);
 
   return true;
 }

@@ -40,6 +40,10 @@
 #include "third_party/blink/public/mojom/permissions_policy/permissions_policy_feature.mojom.h"
 #include "url/gurl.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace permissions {
 namespace {
 
@@ -345,10 +349,26 @@ ContentSetting PermissionContextBase::GetPermissionStatusInternal(
     content::RenderFrameHost* render_frame_host,
     const GURL& requesting_origin,
     const GURL& embedding_origin) const {
+  GURL origin = requesting_origin;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // To use per app based permission control we replace to app-id based origin
+  // with file scheme. When we are ready to control based on a pair of app-id
+  // and domain this workaround needs to be removed.
+  if (requesting_origin.get_webapp_id()) {
+    origin = GURL(
+        std::string("file://") +
+        neva_app_runtime::GetAppRuntimeContentClient()->GetFileSecurityOrigin(
+            *requesting_origin.get_webapp_id()));
+  } else {
+    LOG(ERROR) << __func__ << " requesting_origin(" << requesting_origin
+               << ") doesn't have a webapp id.";
+  }
+#endif
+
   return PermissionsClient::Get()
       ->GetSettingsMap(browser_context_)
-      ->GetContentSetting(requesting_origin, embedding_origin,
-                          content_settings_type_);
+      ->GetContentSetting(origin, embedding_origin, content_settings_type_);
 }
 
 void PermissionContextBase::DecidePermission(

@@ -70,6 +70,9 @@ class BLINK_COMMON_EXPORT StorageKey {
   StorageKey WithOrigin(const url::Origin& origin) const;
 
   // Copyable and Moveable.
+#if defined(USE_NEVA_APPRUNTIME)
+  StorageKey(const StorageKey& other, const std::string& app_id);
+#endif
   StorageKey(const StorageKey& other) = default;
   StorageKey& operator=(const StorageKey& other) = default;
   StorageKey(StorageKey&& other) noexcept = default;

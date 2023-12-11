@@ -89,6 +89,9 @@ bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   }
   std::replace(path.begin(), path.end(), '/', '\\');
 #else   // BUILDFLAG(IS_WIN)
+#if !defined(USE_NEVA_APPRUNTIME)
+  // NOTE(webOS): service worker script uses host part for the file scheme
+
   // On POSIX, there's no obvious interpretation of file:// URLs with a host.
   // Usually, remote mounts are still mounted onto the local filesystem.
   // Therefore, we discard all URLs that are not obviously local to prevent
@@ -96,6 +99,7 @@ bool FileURLToFilePath(const GURL& url, base::FilePath* file_path) {
   if (!url.host().empty() && !net::IsLocalhost(url)) {
     return false;
   }
+#endif
   std::string path = url.path();
 #endif  // !BUILDFLAG(IS_WIN)
 

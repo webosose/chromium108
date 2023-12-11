@@ -38,6 +38,10 @@
 #include "components/offline_pages/core/request_header/offline_page_header.h"
 #endif  // BUILDFLAG(ENABLE_OFFLINE_PAGES)
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace content {
 
 namespace {
@@ -213,6 +217,19 @@ void ServiceWorkerControlleeRequestHandler::InitializeContainerHost(
   stripped_url_ = net::SimplifyUrlForRequest(tentative_resource_request.url);
 
   storage_key_ = storage_key;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  if (stripped_url_.SchemeIsFile() && stripped_url_.get_webapp_id()) {
+    GURL::Replacements repl;
+    std::string host =
+        neva_app_runtime::FileSchemeHostForApp(*stripped_url_.get_webapp_id());
+    repl.SetHostStr(host.c_str());
+    stripped_url_ = stripped_url_.ReplaceComponents(repl);
+    storage_key_ = storage_key_.WithOrigin(
+        neva_app_runtime::CreateFileSecurityOriginForApp(
+            *stripped_url_.get_webapp_id()));
+  }
+#endif
 
   container_host_->UpdateUrls(stripped_url_,
                               // TODO(1199077): Use top_frame_origin from

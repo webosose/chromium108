@@ -10,4 +10,6 @@ const uint32 kMaxURLChars = 2097152;
 [Stable]
 struct Url {
   string url;
+[EnableIf=use_neva_appruntime]
+  string? webapp_id;
 };

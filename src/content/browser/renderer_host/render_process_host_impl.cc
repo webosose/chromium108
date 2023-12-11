@@ -2093,9 +2093,22 @@ void RenderProcessHostImpl::CreatePaymentManagerForOrigin(
 
 void RenderProcessHostImpl::CreateNotificationService(
     int render_frame_id,
-    const url::Origin& origin,
+    const url::Origin& const_origin,
     mojo::PendingReceiver<blink::mojom::NotificationService> receiver) {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+
+  url::Origin origin = const_origin;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Origin may contain file security origin if it is created from service
+  // worker. we drop file security origin for notification service since we are
+  // using file security origin only for service worker blink::StorageKey
+  if (origin.scheme() == url::kFileScheme) {
+    origin = url::Origin::CreateFromNormalizedTuple(url::kFileScheme, "", 0);
+    if (const_origin.get_webapp_id())
+      origin.set_webapp_id(*const_origin.get_webapp_id());
+  }
+#endif
 
   // For workers:
   if (render_frame_id == MSG_ROUTING_NONE) {

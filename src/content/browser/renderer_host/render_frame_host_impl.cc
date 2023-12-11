@@ -4056,6 +4056,9 @@ void RenderFrameHostImpl::DidNavigate(
 
 void RenderFrameHostImpl::SetLastCommittedOrigin(const url::Origin& origin) {
   last_committed_origin_ = origin;
+#if defined(USE_NEVA_APPRUNTIME)
+  last_committed_origin_.set_webapp_id(GetWebAppId());
+#endif
 }
 
 void RenderFrameHostImpl::SetLastCommittedOriginForTesting(
@@ -4426,6 +4429,9 @@ void RenderFrameHostImpl::ResetChildren() {
 
 void RenderFrameHostImpl::SetLastCommittedUrl(const GURL& url) {
   last_committed_url_ = url;
+#if defined(USE_NEVA_APPRUNTIME)
+  last_committed_url_.set_webapp_id(GetWebAppId());
+#endif
 }
 
 void RenderFrameHostImpl::Detach() {
@@ -7240,6 +7246,12 @@ void RenderFrameHostImpl::SetKeepAliveTimeoutForTesting(
 #if defined(USE_NEVA_APPRUNTIME)
 void RenderFrameHostImpl::DropAllPeerConnections(base::OnceClosure cb) {
   GetPeerConnectionTrackerHost().DropAllConnections(cb);
+}
+
+std::string RenderFrameHostImpl::GetWebAppId() {
+  blink::RendererPreferences* renderer_prefs =
+      WebContents::FromRenderFrameHost(this)->GetMutableRendererPrefs();
+  return renderer_prefs->application_id;
 }
 #endif  // defined(USE_NEVA_APPRUNTIME)
 
@@ -10915,8 +10927,23 @@ void RenderFrameHostImpl::CreateWebTransportConnector(
 
 void RenderFrameHostImpl::CreateNotificationService(
     mojo::PendingReceiver<blink::mojom::NotificationService> receiver) {
+#if defined(USE_NEVA_APPRUNTIME)
+  auto origin = GetLastCommittedOrigin();
+  // LastCommittedOrigin has a file-security-origin in the part of file scheme
+  // url. Remove domain part of file scheme because this may break compraing
+  // the origin from the other url info. (normal url doesn't have domain name
+  // for the file scheme)
+  if (origin.scheme() == url::kFileScheme) {
+    auto webapp_id = origin.get_webapp_id().value();
+    origin = url::Origin::CreateFromNormalizedTuple(url::kFileScheme, "", 0);
+    origin.set_webapp_id(webapp_id);
+  }
+  GetProcess()->CreateNotificationService(GetRoutingID(), origin,
+                                          std::move(receiver));
+#else
   GetProcess()->CreateNotificationService(
       GetRoutingID(), GetLastCommittedOrigin(), std::move(receiver));
+#endif
 }
 
 void RenderFrameHostImpl::CreateInstalledAppProvider(

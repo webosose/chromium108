@@ -56,6 +56,12 @@ bool DeserializeNotificationDatabaseData(const std::string& input,
 
   output->notification_id = message.notification_id();
   output->origin = GURL(message.origin());
+#if defined(USE_NEVA_APPRUNTIME)
+  // Restore webapp_id to origin.
+  if (message.has_origin_webapp_id()) {
+    output->origin.set_webapp_id(message.origin_webapp_id());
+  }
+#endif
   output->service_worker_registration_id =
       message.service_worker_registration_id();
   output->replaced_existing_notification =
@@ -271,6 +277,12 @@ bool SerializeNotificationDatabaseData(const NotificationDatabaseData& input,
   NotificationDatabaseDataProto message;
   message.set_notification_id(input.notification_id);
   message.set_origin(input.origin.spec());
+#if defined(USE_NEVA_APPRUNTIME)
+  // Store webapp_id separately since origin is stored as plain string.
+  if (input.origin.get_webapp_id().has_value()) {
+    message.set_origin_webapp_id(input.origin.get_webapp_id().value());
+  }
+#endif
   message.set_service_worker_registration_id(
       input.service_worker_registration_id);
   message.set_allocated_notification_data(payload.release());

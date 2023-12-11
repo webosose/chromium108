@@ -26,6 +26,9 @@ GURL::GURL() : is_valid_(false) {
 GURL::GURL(const GURL& other)
     : spec_(other.spec_),
       is_valid_(other.is_valid_),
+#if defined(USE_NEVA_APPRUNTIME)
+      webapp_id_(other.webapp_id_),
+#endif
       parsed_(other.parsed_) {
   if (other.inner_url_)
     inner_url_ = std::make_unique<GURL>(*other.inner_url_);
@@ -33,9 +36,18 @@ GURL::GURL(const GURL& other)
   DCHECK(!is_valid_ || !SchemeIsFileSystem() || inner_url_);
 }
 
+#if defined(USE_NEVA_APPRUNTIME)
+GURL::GURL(const GURL& other, const std::string& webapp_id) : GURL(other) {
+  webapp_id_ = webapp_id;
+}
+#endif
+
 GURL::GURL(GURL&& other) noexcept
     : spec_(std::move(other.spec_)),
       is_valid_(other.is_valid_),
+#if defined(USE_NEVA_APPRUNTIME)
+      webapp_id_(std::move(other.webapp_id_)),
+#endif
       parsed_(other.parsed_),
       inner_url_(std::move(other.inner_url_)) {
   other.is_valid_ = false;
@@ -140,6 +152,10 @@ GURL& GURL::operator=(const GURL& other) {
   else
     inner_url_ = std::make_unique<GURL>(*other.inner_url_);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  webapp_id_ = other.webapp_id_;
+#endif
+
   return *this;
 }
 
@@ -148,6 +164,10 @@ GURL& GURL::operator=(GURL&& other) noexcept {
   is_valid_ = other.is_valid_;
   parsed_ = other.parsed_;
   inner_url_ = std::move(other.inner_url_);
+
+#if defined(USE_NEVA_APPRUNTIME)
+  webapp_id_ = std::move(other.webapp_id_);
+#endif
 
   other.is_valid_ = false;
   other.parsed_ = url::Parsed();
@@ -238,6 +258,12 @@ GURL GURL::ReplaceComponents(const Replacements& replacements) const {
   output.Complete();
 
   result.ProcessFileSystemURLAfterReplaceComponents();
+
+#if defined(USE_NEVA_APPRUNTIME)
+  if (webapp_id_) {
+    result.set_webapp_id(webapp_id_.value());
+  }
+#endif
   return result;
 }
 
@@ -257,6 +283,12 @@ GURL GURL::ReplaceComponents(const ReplacementsW& replacements) const {
   output.Complete();
 
   result.ProcessFileSystemURLAfterReplaceComponents();
+
+#if defined(USE_NEVA_APPRUNTIME)
+  if (webapp_id_) {
+    result.set_webapp_id(webapp_id_.value());
+  }
+#endif
 
   return result;
 }
@@ -285,6 +317,15 @@ GURL GURL::DeprecatedGetOriginAsURL() const {
   replacements.ClearPath();
   replacements.ClearQuery();
   replacements.ClearRef();
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // set webapp_id if exists
+  if (get_webapp_id().has_value()) {
+    GURL origin = ReplaceComponents(replacements);
+    origin.set_webapp_id(get_webapp_id().value());
+    return origin;
+  }
+#endif
 
   return ReplaceComponents(replacements);
 }
@@ -526,6 +567,11 @@ void GURL::WriteIntoTrace(perfetto::TracedValue context) const {
 }
 
 std::ostream& operator<<(std::ostream& out, const GURL& url) {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (url.get_webapp_id().has_value()) {
+    out << "[" << url.get_webapp_id().value() << "]:";
+  }
+#endif
   return out << url.possibly_invalid_spec();
 }
 

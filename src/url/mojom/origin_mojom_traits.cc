@@ -18,6 +18,12 @@ bool StructTraits<url::mojom::OriginDataView, url::Origin>::Read(
       !data.ReadNonceIfOpaque(&nonce_if_opaque))
     return false;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  absl::optional<std::string> webapp_id;
+  if (!data.ReadWebappId(&webapp_id))
+    return false;
+#endif
+
   absl::optional<url::Origin> creation_result =
       nonce_if_opaque
           ? url::Origin::UnsafelyCreateOpaqueOriginWithoutNormalization(
@@ -28,6 +34,11 @@ bool StructTraits<url::mojom::OriginDataView, url::Origin>::Read(
     return false;
 
   *out = std::move(creation_result.value());
+
+#if defined(USE_NEVA_APPRUNTIME)
+  if (webapp_id)
+    out->set_webapp_id(*webapp_id);
+#endif
   return true;
 }
 

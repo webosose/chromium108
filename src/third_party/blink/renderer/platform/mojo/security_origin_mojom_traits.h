@@ -60,6 +60,15 @@ struct StructTraits<url::mojom::OriginDataView,
       const scoped_refptr<const ::blink::SecurityOrigin>& origin) {
     return UrlOriginAdapter::GetOriginOrPrecursorOriginIfOpaque(origin)->Port();
   }
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // Added for ignore compile error and it is not used in blink side
+  static const absl::optional<std::string> webapp_id(
+      const scoped_refptr<const ::blink::SecurityOrigin>& origin) {
+    return absl::nullopt;
+  }
+#endif
+
   static mojo::OptionalAsPointer<const base::UnguessableToken> nonce_if_opaque(
       const scoped_refptr<const ::blink::SecurityOrigin>& origin) {
     return mojo::MakeOptionalAsPointer(

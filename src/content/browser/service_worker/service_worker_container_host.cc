@@ -31,6 +31,10 @@
 #include "third_party/blink/public/common/storage_key/storage_key.h"
 #include "third_party/blink/public/mojom/service_worker/service_worker_registration_options.mojom.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "neva/app_runtime/public/file_security_origin.h"
+#endif
+
 namespace content {
 
 namespace {
@@ -163,13 +167,41 @@ ServiceWorkerContainerHost::~ServiceWorkerContainerHost() {
 }
 
 void ServiceWorkerContainerHost::Register(
-    const GURL& script_url,
+    const GURL& script_url_const,
     blink::mojom::ServiceWorkerRegistrationOptionsPtr options,
     blink::mojom::FetchClientSettingsObjectPtr
         outside_fetch_client_settings_object,
     RegisterCallback callback) {
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
 
+#if defined(USE_NEVA_APPRUNTIME)
+  // This is called from the renderer process
+  // WebServiceWorkerProviderImpl::RegisterServiceWorker
+  // (content/renderer/service_worker/web_service_worker_provider_impl.cc)
+  // script_url and options->scope converted from std::string
+  // so here we fill app_id to GURL of script_url, options->scope to use app_id
+  // during service worker registration.
+  // Also it replaces host part with file_security_origin if the scheme is file
+  // so that file_security_origin can be used as storagekey. It will help to
+  // handle service worker registration per app.
+  GURL script_url = script_url_const;
+
+  GURL::Replacements repl;
+  std::string host = neva_app_runtime::FileSchemeHostForApp(options->app_id);
+  repl.SetHostStr(host.c_str());
+
+  if (script_url_const.SchemeIsFile()) {
+    script_url = script_url.ReplaceComponents(repl);
+  }
+  script_url.set_webapp_id(options->app_id);
+
+  if (options->scope.SchemeIsFile()) {
+    options->scope = options->scope.ReplaceComponents(repl);
+  }
+  options->scope.set_webapp_id(options->app_id);
+#else
+  const GURL& script_url = script_url_const;
+#endif
   if (!CanServeContainerHostMethods(
           &callback, options->scope, script_url,
           base::StringPrintf(
@@ -898,6 +930,16 @@ void ServiceWorkerContainerHost::UpdateUrls(
   url_ = url;
   top_frame_origin_ = top_frame_origin;
   key_ = storage_key;
+#if defined(USE_NEVA_APPRUNTIME)
+  // Use file security origin as a storage key if url is file scheme.
+  // The storage key will be used for the service worker and we supposed to have
+  // file security origin as host value of the storage key origin.
+  // This will help to cleanup service worker registration of the app when the
+  // app is removed.
+  if (key_.origin().scheme() == url::kFileScheme && url.SchemeIsFile()) {
+    key_ = blink::StorageKey(url::Origin::Create(url));
+  }
+#endif
 
 #if DCHECK_IS_ON()
   const url::Origin origin_to_dcheck = IsContainerForClient()

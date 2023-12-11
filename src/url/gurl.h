@@ -21,6 +21,10 @@
 #include "url/url_canon_stdstring.h"
 #include "url/url_constants.h"
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "third_party/abseil-cpp/absl/types/optional.h"
+#endif
+
 // Represents a URL. GURL is Google's URL parsing library.
 //
 // A parsed canonicalized URL is guaranteed to be UTF-8. Any non-ASCII input
@@ -55,6 +59,9 @@ class COMPONENT_EXPORT(URL) GURL {
   // Copy construction is relatively inexpensive, with most of the time going
   // to reallocating the string. It does not re-parse.
   GURL(const GURL& other);
+#if defined(USE_NEVA_APPRUNTIME)
+  GURL(const GURL& other, const std::string& webapp_id);
+#endif
   GURL(GURL&& other) noexcept;
 
   // The strings to this contructor should be UTF-8 / UTF-16.
@@ -445,6 +452,11 @@ class COMPONENT_EXPORT(URL) GURL {
   // See base/trace_event/memory_usage_estimator.h for more info.
   size_t EstimateMemoryUsage() const;
 
+#if defined(USE_NEVA_APPRUNTIME)
+  absl::optional<std::string> get_webapp_id() const { return webapp_id_; }
+  void set_webapp_id(const std::string& webapp_id) { webapp_id_ = webapp_id; }
+#endif
+
   // Helper used by GURL::IsAboutUrl and KURL::IsAboutURL.
   static bool IsAboutPath(base::StringPiece actual_path,
                           base::StringPiece allowed_path);
@@ -491,6 +503,14 @@ class COMPONENT_EXPORT(URL) GURL {
   // components, but they may not identify valid resources (for example, an
   // invalid port number, invalid characters in the scheme, etc.).
   bool is_valid_;
+
+#if defined(USE_NEVA_APPRUNTIME)
+  // webapp_id_ denotes the webapp-id that the GURL is created for and it is
+  // used to check permission of the url(origin). This value is only used in
+  // browser browser process and it needs to be set from browser process
+  // explicitly when it is created.
+  absl::optional<std::string> webapp_id_ = absl::nullopt;
+#endif
 
   // Identified components of the canonical spec.
   url::Parsed parsed_;

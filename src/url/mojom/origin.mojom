@@ -12,6 +12,9 @@ struct Origin {
   string host;
   uint16 port;
 
+[EnableIf=use_neva_appruntime]
+  string? webapp_id;
+
   // When a nonce is provided, this origin is opaque. The scheme/host/port do
   // not need to be valid, but if they are, they identify the tuple origin
   // from which this opaque origin is derived.

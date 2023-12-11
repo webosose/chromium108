@@ -22,6 +22,7 @@
 #include "base/strings/utf_string_conversions.h"
 #include "content/public/common/content_plugin_info.h"
 #include "ppapi/shared_impl/ppapi_permissions.h"
+#include "webos/webview_base.h"
 
 #if defined(ENABLE_PLAYREADY_CDM)
 #include "third_party/playready/cdm/playready_cdm_version.h"
@@ -82,6 +83,11 @@ void WebOSContentClient::AddPlugins(
     skip_playready_cdm_file_check = true;
   }
 #endif
+}
+
+std::string WebOSContentClient::FileSchemeHostForApp(
+    const std::string& app_id) {
+  return app_id + WebViewBase::kSecurityOriginPostfix;
 }
 
 }  // namespace webos

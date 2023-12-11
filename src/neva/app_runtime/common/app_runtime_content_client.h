@@ -43,6 +43,10 @@ class AppRuntimeContentClient : public content::ContentClient {
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
   void AddAdditionalSchemes(Schemes* schemes) override;
 #endif  // defined(USE_NEVA_CHROME_EXTENSIONS)
+
+  virtual std::string FileSchemeHostForApp(const std::string& app_id) {
+    return app_id;
+  }
 };
 
 }  // namespace neva_app_runtime

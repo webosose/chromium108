@@ -91,4 +91,8 @@ message NotificationDatabaseDataProto {
   // Flag for notifications shown by the browser that should not be visible to
   // the origin when requesting a list of notifications.
   optional bool is_shown_by_browser = 15;
+
+  // @@ USE_NEVA_APPRUNTIME
+  optional string origin_webapp_id = 16;
+  // @@
 }
