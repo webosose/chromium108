@@ -1475,8 +1475,8 @@ void ServiceWorkerVersion::OpenNewTab(const GURL& url,
         remote_system_bridge_.BindNewPipeAndPassReceiver());
 
     auto params = pal::mojom::ConnectionParams::New(
-        absl::make_optional<std::string>(),
-        absl::make_optional<std::string>(*webapp_id), -1);
+        absl::make_optional<std::string>("com.webos.chromium.service_worker"),
+        absl::make_optional<std::string>(), -1);
 
     remote_system_bridge_->Connect(
         std::move(params),
