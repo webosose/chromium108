@@ -28,7 +28,6 @@ BASE_EXPORT extern const char kEnableNotificationForUnsupportedFeatures[];
 
 BASE_EXPORT extern const char kLocalStorageLimitPerSecondLevelDomain[];
 BASE_EXPORT extern const char kNevaCertificatesPath[];
-BASE_EXPORT extern const char kPwaInstallPath[];
 
 }  // namespace switches
 

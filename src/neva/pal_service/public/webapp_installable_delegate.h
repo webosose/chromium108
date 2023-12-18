@@ -18,6 +18,7 @@
 #define NEVA_PAL_SERVICE_PUBLIC_WEBAPP_INSTALLABLE_DELEGATE_H_
 
 #include <map>
+#include <memory>
 #include <string>
 
 #include "base/callback_forward.h"
@@ -37,6 +38,8 @@ class WebAppInstallableDelegate {
 
     const std::string& id() const { return id_; }
     const std::string& title() const { return title_; }
+    const std::string& version() const { return version_; }
+    void set_version(const std::string& version) { version_ = version; }
     const std::map<SquareSizePx, SkBitmap>& icons() const { return icons_; }
     const GURL& start_url() const { return start_url_; }
     const absl::optional<SkColor>& background_color() const {
@@ -49,6 +52,7 @@ class WebAppInstallableDelegate {
 
     std::string id_;
     std::string title_;
+    std::string version_;
     std::map<SquareSizePx, SkBitmap> icons_;
     GURL start_url_;
     absl::optional<SkColor> background_color_;
@@ -58,16 +62,19 @@ class WebAppInstallableDelegate {
   virtual ~WebAppInstallableDelegate();
 
   virtual bool SaveArtifacts(const WebAppInfo* app_info) = 0;
-  virtual bool IsWebAppForUrlInstalled(const GURL& app_start_url) = 0;
-
   using ResultCallback = base::OnceCallback<void(bool result)>;
+  virtual void IsWebAppForUrlInstalled(const GURL& app_start_url,
+                                       ResultCallback) = 0;
   // Call ShouldAppForURLBeUpdated before download resources, will return false
   // when update is in process already, or it was updated not so long ago
   virtual bool ShouldAppForURLBeUpdated(const GURL& app_start_url,
                                         ResultCallback) = 0;
-  virtual bool isInfoChanged(const WebAppInfo* app_info) = 0;
+  using ResultWithVersionCallback =
+      base::OnceCallback<void(bool result, const std::string& version)>;
+  virtual void IsInfoChanged(std::unique_ptr<WebAppInfo> app_info,
+                             ResultWithVersionCallback callback) = 0;
 
-  WebAppInfo GenerateAppInfo(
+  std::unique_ptr<WebAppInstallableDelegate::WebAppInfo> GenerateAppInfo(
       const std::string& title,
       const std::map<WebAppInfo::SquareSizePx, SkBitmap>& icons,
       const GURL& start_url,

@@ -58,21 +58,27 @@ void WebAppInstallableManager::OnCheckInstallability(
   VLOG(1) << std::boolalpha << __func__
           << "() valid_manifest_for_web_app=" << valid_manifest_for_web_app
           << " installable=" << is_installable;
-  bool installed = false;
+
   if (!opt_manifest)
-    return std::move(callback).Run(false, installed);
+    return std::move(callback).Run(false, false);
 
   if (valid_manifest_for_web_app) {
     WebAppInstallInfo web_app_info;
     web_app::UpdateWebAppInfoFromManifest(*opt_manifest, manifest_url,
                                           &web_app_info);
-    auto delegate_info = ConvertAppInfo(&web_app_info);
-    installed = pal_installable_delegate_->IsWebAppForUrlInstalled(
-        web_app_info.start_url);
-    VLOG(1) << std::boolalpha << __func__ << "() id='" << delegate_info.id()
-            << "' installed=" << installed;
+    pal_installable_delegate_->IsWebAppForUrlInstalled(
+        web_app_info.start_url,
+        base::BindOnce(
+            &WebAppInstallableManager::OnIsWebAppForUrlInstallability,
+            weak_factory_.GetWeakPtr(), is_installable, std::move(callback)));
   }
-  std::move(callback).Run(is_installable, installed);
+}
+
+void WebAppInstallableManager::OnIsWebAppForUrlInstallability(
+    bool is_installable,
+    CheckInstallabilityCallback callback,
+    bool is_installed) {
+  std::move(callback).Run(is_installable, is_installed);
 }
 
 void WebAppInstallableManager::InstallWebApp(content::WebContents* web_contents,
@@ -116,7 +122,7 @@ void WebAppInstallableManager::OnIconsDownloaded(
 
   auto delegate_info = ConvertAppInfo(web_app_info.get());
   bool install_result =
-      pal_installable_delegate_->SaveArtifacts(&delegate_info);
+      pal_installable_delegate_->SaveArtifacts(delegate_info.get());
 
   std::move(callback).Run(install_result);
 }
@@ -146,17 +152,26 @@ void WebAppInstallableManager::OnManifestForUpdate(
   web_app::UpdateWebAppInfoFromManifest(*manifest, manifest_url,
                                         web_app_info.get());
 
-  if (!pal_installable_delegate_->IsWebAppForUrlInstalled(
-          web_app_info->start_url)) {
-    VLOG(1) << "Do not update because the app is not installed";
-    return;
-  }
-
-  pal_installable_delegate_->ShouldAppForURLBeUpdated(
+  pal_installable_delegate_->IsWebAppForUrlInstalled(
       web_app_info->start_url,
-      base::BindOnce(&WebAppInstallableManager::OnShouldAppForURLBeUpdated,
+      base::BindOnce(&WebAppInstallableManager::OnWebAppForUrlisUpdate,
                      weak_factory_.GetWeakPtr(), web_contents,
                      std::move(web_app_info)));
+}
+
+void WebAppInstallableManager::OnWebAppForUrlisUpdate(
+    content::WebContents* web_contents,
+    std::unique_ptr<WebAppInstallInfo> web_app_info,
+    bool is_installed) {
+  if (is_installed) {
+    pal_installable_delegate_->ShouldAppForURLBeUpdated(
+        web_app_info->start_url,
+        base::BindOnce(&WebAppInstallableManager::OnShouldAppForURLBeUpdated,
+                       weak_factory_.GetWeakPtr(), web_contents,
+                       std::move(web_app_info)));
+  } else {
+    VLOG(1) << "Do not update because the app is not installed";
+  }
 }
 
 void WebAppInstallableManager::OnShouldAppForURLBeUpdated(
@@ -184,19 +199,30 @@ void WebAppInstallableManager::OnIconsDownloadedForUpdate(
   web_app::PopulateProductIcons(web_app_info.get(), &icons_map);
   web_app::PopulateOtherIcons(web_app_info.get(), icons_map);
 
-  auto const new_delegate_info = ConvertAppInfo(web_app_info.get());
+  pal_installable_delegate_->IsInfoChanged(
+      ConvertAppInfo(web_app_info.get()),
+      base::BindOnce(&WebAppInstallableManager::OnIsInfoChanged,
+                     weak_factory_.GetWeakPtr(),
+                     ConvertAppInfo(web_app_info.get())));
+}
 
-  if (pal_installable_delegate_->isInfoChanged(&new_delegate_info)) {
+void WebAppInstallableManager::OnIsInfoChanged(
+    std::unique_ptr<pal::WebAppInstallableDelegate::WebAppInfo>
+        new_delegate_info,
+    bool value,
+    const std::string& version) {
+  if (value) {
     VLOG(1) << "Proceed with updating the app";
+    new_delegate_info->set_version(version);
     bool install_result =
-        pal_installable_delegate_->SaveArtifacts(&new_delegate_info);
+        pal_installable_delegate_->SaveArtifacts(new_delegate_info.get());
     VLOG(1) << "The app update install_result: " << install_result;
   } else {
     VLOG(1) << "Do not update the app because resources are not changed";
   }
 }
 
-pal::WebAppInstallableDelegate::WebAppInfo
+std::unique_ptr<pal::WebAppInstallableDelegate::WebAppInfo>
 WebAppInstallableManager::ConvertAppInfo(
     const WebAppInstallInfo* web_app_info) {
   return pal_installable_delegate_->GenerateAppInfo(

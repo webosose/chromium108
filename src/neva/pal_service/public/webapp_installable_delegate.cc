@@ -18,6 +18,7 @@
 
 #include "base/time/time.h"
 #include "include/core/SkBitmap.h"
+#include "neva/app_runtime/public/app_runtime_constants.h"
 #include "ui/gfx/skia_util.h"
 
 namespace pal {
@@ -26,21 +27,22 @@ WebAppInstallableDelegate::WebAppInfo::~WebAppInfo() {}
 
 WebAppInstallableDelegate::~WebAppInstallableDelegate() {}
 
-WebAppInstallableDelegate::WebAppInfo
+std::unique_ptr<WebAppInstallableDelegate::WebAppInfo>
 WebAppInstallableDelegate::GenerateAppInfo(
     const std::string& title,
     const std::map<WebAppInfo::SquareSizePx, SkBitmap>& icons,
     const GURL& start_url,
     absl::optional<SkColor> background_color) {
-  WebAppInfo info;
-  info.timestamp_ = base::Time::Now().ToJavaTime();
-  info.title_ = title;
-  info.icons_ = icons;
-  info.start_url_ = start_url;
-  info.background_color_ = background_color;
+  std::unique_ptr<WebAppInfo> info = std::make_unique<WebAppInfo>();
+  info->timestamp_ = base::Time::Now().ToJavaTime();
+  info->title_ = title;
+  info->icons_ = icons;
+  info->start_url_ = start_url;
+  info->background_color_ = background_color;
 
-  info.id_ = GenerateAppId(info.start_url());
-  return info;
+  info->id_ = GenerateAppId(info->start_url());
+  info->version_ = neva_app_runtime::kPwaInitVersion;
+  return std::move(info);
 }
 
 }  // namespace pal

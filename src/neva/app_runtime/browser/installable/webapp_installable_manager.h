@@ -47,6 +47,12 @@ class WebAppInstallableManager {
                              const GURL& manifest_url,
                              bool valid_manifest_for_web_app,
                              bool is_installable);
+  void OnIsWebAppForUrlInstallability(bool is_installable,
+                                      CheckInstallabilityCallback callback,
+                                      bool is_installed);
+  void OnWebAppForUrlisUpdate(content::WebContents* web_contents,
+                              std::unique_ptr<WebAppInstallInfo> web_app_info,
+                              bool is_installed);
   void OnIconsDownloaded(InstallWebAppCallback callback,
                          std::unique_ptr<WebAppInstallInfo> web_app_info,
                          web_app::IconsDownloadedResult result,
@@ -56,7 +62,7 @@ class WebAppInstallableManager {
                         InstallWebAppCallback callback,
                         const GURL& manifest_url,
                         blink::mojom::ManifestPtr manifest);
-  pal::WebAppInstallableDelegate::WebAppInfo ConvertAppInfo(
+  std::unique_ptr<pal::WebAppInstallableDelegate::WebAppInfo> ConvertAppInfo(
       const WebAppInstallInfo* web_app_info);
   void OnManifestForUpdate(content::WebContents* web_contents,
                            blink::mojom::ManifestPtr opt_manifest,
@@ -72,6 +78,11 @@ class WebAppInstallableManager {
       web_app::IconsDownloadedResult result,
       IconsMap icons_map,
       DownloadedIconsHttpResults icons_http_results);
+  void OnIsInfoChanged(
+      std::unique_ptr<pal::WebAppInstallableDelegate::WebAppInfo>
+          new_delegate_info,
+      bool value,
+      const std::string& version);
 
   std::unique_ptr<web_app::WebAppDataRetriever> data_retriever_;
   std::unique_ptr<pal::WebAppInstallableDelegate> pal_installable_delegate_;

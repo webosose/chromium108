@@ -43,13 +43,16 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
       const WebAppInstallableDelegateWebOS&) = delete;
 
   bool SaveArtifacts(const WebAppInfo* app_info) override;
-  bool IsWebAppForUrlInstalled(const GURL& url) override;
+  void IsWebAppForUrlInstalled(const GURL& url,
+                               ResultCallback callback) override;
   bool ShouldAppForURLBeUpdated(const GURL& app_start_url,
                                 ResultCallback callback) override;
-  bool isInfoChanged(const WebAppInfo* app_info) override;
+  void IsInfoChanged(std::unique_ptr<WebAppInfo> app_info,
+                     ResultWithVersionCallback callback) override;
 
  protected:
   std::string GenerateAppId(const GURL& app_start_url) override;
+  std::string GenerateAppVersion(const std::string& app_start_url);
 
  private:
   struct Icon {
@@ -73,6 +76,15 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
   static std::unique_ptr<luna::Client> InitLunaClient();
 
   void CallAppUpdate(const std::string& id, const std::string& app_dir);
+  void OnGetAppInfoStatus(ResultCallback callback,
+                          pal::luna::Client::ResponseStatus status,
+                          unsigned token,
+                          const std::string& json);
+  void OnGetAppInfoPath(std::unique_ptr<WebAppInfo> fresh_app_info,
+                        ResultWithVersionCallback callback,
+                        pal::luna::Client::ResponseStatus status,
+                        unsigned token,
+                        const std::string& json);
   void OnInstallApp(pal::luna::Client::ResponseStatus status,
                     unsigned token,
                     const std::string& json);
@@ -83,7 +95,6 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
   bool AreWebosIconsDifferent(const std::vector<Icon>& new_icons,
                               const base::Value& appinfo_json,
                               const base::FilePath& app_dir);
-  base::FilePath GetAppDir(const std::string& app_id);
 
   std::unique_ptr<luna::Client> luna_client_;
   base::WeakPtrFactory<WebAppInstallableDelegateWebOS> weak_ptr_factory_;

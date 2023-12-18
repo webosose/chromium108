@@ -129,6 +129,8 @@ enum class DropPeerConnectionReason {
 
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
 constexpr char kPwaAppNamePrefix[] = "pwa.";
+constexpr char kPwaInitVersion[] = "1.0.0";
+constexpr int kPwaMaxVersionNumber = 999999999;
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
 
 }  // namespace neva_app_runtime

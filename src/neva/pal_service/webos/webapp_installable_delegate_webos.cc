@@ -23,18 +23,17 @@
 
 #include "base/bind.h"
 #include "base/callback_forward.h"
-#include "base/command_line.h"
 #include "base/files/dir_reader_posix.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
 #include "base/logging.h"
-#include "base/neva/base_switches.h"
 #include "base/path_service.h"
 #include "base/strings/string_split.h"
 #include "base/strings/stringprintf.h"
 #include "base/values.h"
+#include "base/version.h"
 #include "neva/pal_service/luna/luna_names.h"
 #include "third_party/blink/public/web/web_ax_enums.h"
 #include "ui/gfx/codec/png_codec.h"
@@ -93,14 +92,45 @@ std::unique_ptr<luna::Client> WebAppInstallableDelegateWebOS::InitLunaClient() {
   return luna::CreateClient(params);
 }
 
-bool WebAppInstallableDelegateWebOS::IsWebAppForUrlInstalled(
-    const GURL& app_start_url) {
-  std::string app_id = GenerateAppId(app_start_url);
-  base::FilePath app_dir = GetAppDir(app_id);
-  if (app_dir.empty()) {
-    return true;
+void WebAppInstallableDelegateWebOS::IsWebAppForUrlInstalled(
+    const GURL& app_start_url,
+    ResultCallback callback) {
+  base::Value::Dict call_params;
+  call_params.Set("id", GenerateAppId(app_start_url));
+  std::string call_params_str;
+  if (!base::JSONWriter::Write(call_params, &call_params_str)) {
+    LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
+    return;
   }
-  return base::DirectoryExists(app_dir);
+
+  if (luna_client_ && luna_client_->IsInitialized()) {
+    std::string service_uri = pal::luna::GetServiceURI(
+        pal::luna::service_uri::kApplicationManager, "getAppInfo");
+    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+            << service_uri << " " << call_params_str;
+    luna_client_->Call(
+        std::move(service_uri), std::move(call_params_str),
+        base::BindOnce(&WebAppInstallableDelegateWebOS::OnGetAppInfoStatus,
+                       weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
+  } else {
+    LOG(ERROR) << __func__ << "() Luna client not ready";
+  }
+}
+
+void WebAppInstallableDelegateWebOS::OnGetAppInfoStatus(
+    ResultCallback callback,
+    pal::luna::Client::ResponseStatus status,
+    unsigned token,
+    const std::string& json) {
+  if (status == pal::luna::Client::ResponseStatus::SUCCESS) {
+    absl::optional<base::Value> vals = base::JSONReader::Read(json);
+    if (vals && vals->is_dict()) {
+      absl::optional<bool> return_value = vals->FindBoolKey("returnValue");
+      std::move(callback).Run(return_value.has_value() && return_value.value());
+      return;
+    }
+  }
+  std::move(callback).Run(false);
 }
 
 bool WebAppInstallableDelegateWebOS::ShouldAppForURLBeUpdated(
@@ -126,20 +156,21 @@ bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
     return false;
   }
 
-  base::Value appinfo_content(base::Value::Type::DICTIONARY);
-  appinfo_content.SetStringKey("type", "web");
-  appinfo_content.SetStringKey("id", app_info->id());
-  appinfo_content.SetStringKey("title", app_info->title());
-  appinfo_content.SetStringKey("main", app_info->start_url().spec());
-  appinfo_content.SetStringKey("icon", "icon.png");
-  appinfo_content.SetBoolKey("disallowScrollingInMainFrame", false);
+  base::Value::Dict appinfo_content;
+  appinfo_content.Set("type", "web");
+  appinfo_content.Set("id", app_info->id());
+  appinfo_content.Set("version", app_info->version());
+  appinfo_content.Set("title", app_info->title());
+  appinfo_content.Set("main", app_info->start_url().spec());
+  appinfo_content.Set("icon", "icon.png");
+  appinfo_content.Set("trustLevel", "default");
+  appinfo_content.Set("disallowScrollingInMainFrame", false);
   for (const auto& icon : selected_icons) {
-    appinfo_content.SetStringKey(icon.appinfo_key_, icon.file_name_);
+    appinfo_content.Set(icon.appinfo_key_, icon.file_name_);
   }
   if (app_info->background_color().has_value()) {
-    appinfo_content.SetStringKey(
-        "bgColor",
-        BackgroundColorForWebosAppinfo(app_info->background_color().value()));
+    appinfo_content.Set("bgColor", BackgroundColorForWebosAppinfo(
+                                       app_info->background_color().value()));
   }
 
   std::string appinfo_str;
@@ -162,9 +193,9 @@ bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
 
 void WebAppInstallableDelegateWebOS::CallAppUpdate(const std::string& id,
                                                    const std::string& app_dir) {
-  base::Value call_params(base::Value::Type::DICTIONARY);
-  call_params.SetStringKey("id", id);
-  call_params.SetStringKey("ipkUrl", app_dir);
+  base::Value::Dict call_params;
+  call_params.Set("id", id);
+  call_params.Set("ipkUrl", app_dir);
   std::string call_params_str;
   if (!base::JSONWriter::Write(call_params, &call_params_str)) {
     LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
@@ -332,28 +363,81 @@ const std::map<WebAppInstallableDelegateWebOS::Icon::Type, std::string>
         {WebAppInstallableDelegateWebOS::Icon::Type::LARGE, "largeIcon"},
         {WebAppInstallableDelegateWebOS::Icon::Type::SPLASH, "splashicon"}};
 
-bool WebAppInstallableDelegateWebOS::isInfoChanged(
-    const WebAppInfo* fresh_app_info) {
+void WebAppInstallableDelegateWebOS::IsInfoChanged(
+    std::unique_ptr<WebAppInfo> fresh_app_info,
+    ResultWithVersionCallback callback) {
   VLOG(1) << "Start checking current WebOS appinfo for: "
           << fresh_app_info->start_url();
-  WebAppInfo info;
 
-  base::FilePath app_dir = GetAppDir(fresh_app_info->id());
-  if (app_dir.empty()) {
-    return false;
+  base::Value::Dict call_params;
+  call_params.Set("id", fresh_app_info->id());
+  std::string call_params_str;
+  // TODO(pwa): Need to use the new API when available
+  if (!base::JSONWriter::Write(call_params, &call_params_str)) {
+    LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
+    return;
   }
 
+  if (luna_client_ && luna_client_->IsInitialized()) {
+    std::string service_uri = pal::luna::GetServiceURI(
+        pal::luna::service_uri::kApplicationManager, "getAppInfo");
+    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+            << service_uri << " " << call_params_str;
+    luna_client_->Call(
+        std::move(service_uri), std::move(call_params_str),
+        base::BindOnce(&WebAppInstallableDelegateWebOS::OnGetAppInfoPath,
+                       weak_ptr_factory_.GetWeakPtr(),
+                       std::move(fresh_app_info), std::move(callback)));
+  } else {
+    LOG(ERROR) << __func__ << "() Luna client not ready";
+  }
+}
+
+void WebAppInstallableDelegateWebOS::OnGetAppInfoPath(
+    std::unique_ptr<WebAppInfo> fresh_app_info,
+    ResultWithVersionCallback callback,
+    pal::luna::Client::ResponseStatus status,
+    unsigned token,
+    const std::string& json) {
+  if (status != pal::luna::Client::ResponseStatus::SUCCESS) {
+    LOG(ERROR) << __func__ << "() No response from the service";
+    std::move(callback).Run(false, fresh_app_info->version());
+    return;
+  }
+
+  auto vals = base::JSONReader::Read(json);
+  if (!vals || !vals->is_dict()) {
+    LOG(ERROR) << __func__ << "() Invalid response format";
+    std::move(callback).Run(false, fresh_app_info->version());
+    return;
+  }
+
+  const std::string* folderPath = vals->FindStringPath("appInfo.folderPath");
+  if (!folderPath || folderPath->empty()) {
+    LOG(ERROR) << __func__ << "() Invalid appInfo.folderPath attribute";
+    std::move(callback).Run(false, fresh_app_info->version());
+    return;
+  }
+
+  base::FilePath app_dir(*folderPath);
   if (!base::DirectoryExists(app_dir)) {
-    return true;
+    return std::move(callback).Run(true, fresh_app_info->version());
   }
 
   std::string app_info_str;
-  if (!base::ReadFileToString(app_dir.Append("appinfo.json"), &app_info_str))
-    return true;
+  if (!base::ReadFileToString(app_dir.Append("appinfo.json"), &app_info_str)) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
 
   auto current_appinfo_json = base::JSONReader::Read(app_info_str);
-  if (!current_appinfo_json || !current_appinfo_json->is_dict())
-    return true;
+  if (!current_appinfo_json || !current_appinfo_json->is_dict()) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
+
+  const std::string* current_ver = vals->FindStringPath("appInfo.version");
+  if (current_ver)
+    fresh_app_info->set_version(GenerateAppVersion(*current_ver));
+
   // TODO: maybe return false up to this point
   VLOG(1) << "Found current WebOS appinfo for: " << fresh_app_info->start_url();
 
@@ -364,24 +448,28 @@ bool WebAppInstallableDelegateWebOS::isInfoChanged(
             << fresh_app_info->id();
   }
 
-  if (!current_id || *current_id != fresh_app_info->id())
-    return true;
+  if (!current_id || *current_id != fresh_app_info->id()) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
 
   std::string* current_title = current_appinfo_json->FindStringKey("title");
-
   if (current_title) {
     VLOG(1) << "Checking Title old/new: " << *current_title << "/"
             << fresh_app_info->title();
   }
 
-  if (!current_title || *current_title != fresh_app_info->title())
-    return true;
+  if (!current_title || *current_title != fresh_app_info->title()) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
 
   std::string* current_url = current_appinfo_json->FindStringKey("main");
-  if (!current_url)
-    return true;
-  if (GURL(*current_url) != fresh_app_info->start_url())
-    return true;
+  if (!current_url) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
+
+  if (GURL(*current_url) != fresh_app_info->start_url()) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
 
   // background_color is absl::optional<SkColor> in WebAppInfo
   std::string* background_color =
@@ -389,18 +477,21 @@ bool WebAppInstallableDelegateWebOS::isInfoChanged(
   bool has_bgcolor_in_current = !!background_color;
   bool has_bgcolor_in_fresh = fresh_app_info->background_color().has_value();
 
-  if (has_bgcolor_in_current != has_bgcolor_in_fresh)
-    return true;
+  if (has_bgcolor_in_current != has_bgcolor_in_fresh) {
+    return std::move(callback).Run(true, fresh_app_info->version());
+  }
 
   if (has_bgcolor_in_fresh) {
     if (BackgroundColorForWebosAppinfo(
-            fresh_app_info->background_color().value()) != *background_color)
-      return true;
+            fresh_app_info->background_color().value()) != *background_color) {
+      return std::move(callback).Run(true, fresh_app_info->version());
+    }
   }
   //  Lastly compare icons
-  auto new_icons = SelectIcons(fresh_app_info);
-  return AreWebosIconsDifferent(new_icons, current_appinfo_json.value(),
-                                app_dir);
+  auto new_icons = SelectIcons(fresh_app_info.get());
+  return std::move(callback).Run(
+      AreWebosIconsDifferent(new_icons, current_appinfo_json.value(), app_dir),
+      fresh_app_info->version());
 }
 
 std::string WebAppInstallableDelegateWebOS::GenerateAppId(
@@ -416,20 +507,16 @@ std::string WebAppInstallableDelegateWebOS::GenerateAppId(
   return id;
 }
 
-base::FilePath WebAppInstallableDelegateWebOS::GetAppDir(
-    const std::string& app_id) {
-  static const base::FilePath app_storage(
-      base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
-          ::switches::kPwaInstallPath));
+std::string WebAppInstallableDelegateWebOS::GenerateAppVersion(
+    const std::string& old_version) {
+  base::Version vers{old_version};
+  if (!vers.IsValid() || vers.components().size() != 3)
+    return neva_app_runtime::kPwaInitVersion;
 
-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-          ::switches::kPwaInstallPath)) {
-    LOG(ERROR) << __func__
-               << "() Installation path for pwa should be specified.";
-    return app_storage;
-  }
+  if ((vers.components()[2] + 1 >= neva_app_runtime::kPwaMaxVersionNumber))
+    return neva_app_runtime::kPwaInitVersion;
 
-  return app_storage.AppendASCII(app_id);
+  return base::Version{{1, 0, vers.components()[2] + 1}}.GetString();
 }
 
 }  // namespace webos

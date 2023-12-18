@@ -22,6 +22,7 @@
         "media"
     ],
     "com.webos.chromium.installablemanager.*": [
-        "applicationinstall.management"
+        "applicationinstall.management",
+        "application.operation"
     ]
 }
