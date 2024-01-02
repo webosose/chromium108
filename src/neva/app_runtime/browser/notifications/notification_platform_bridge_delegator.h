@@ -42,7 +42,7 @@ class NotificationPlatformBridgeDelegator {
 
   virtual void Display(NotificationHandler::Type notification_type,
                        const message_center::Notification& notification,
-                       std::unique_ptr<NotificationCommon::Metadata> metadata);
+                       std::unique_ptr<NotificationCommon::Metadata>);
 
   virtual void Close(NotificationHandler::Type notification_type,
                      const std::string& notification_id);

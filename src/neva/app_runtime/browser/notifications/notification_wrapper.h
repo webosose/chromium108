@@ -25,8 +25,7 @@ namespace neva_app_runtime {
 
 class NotificationWrapper : public Notification {
  public:
-  NotificationWrapper(const message_center::Notification& notification,
-                      std::unique_ptr<NotificationCommon::Metadata> metadata);
+  NotificationWrapper(const message_center::Notification& notification);
   ~NotificationWrapper() override {}
 
   // Notification implementation
@@ -39,7 +38,6 @@ class NotificationWrapper : public Notification {
 
  private:
   message_center::Notification notification_;
-  std::unique_ptr<NotificationCommon::Metadata> metadata_;
   std::vector<ButtonInfo> buttons_;
 };
 
