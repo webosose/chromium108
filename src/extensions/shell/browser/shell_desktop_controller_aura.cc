@@ -428,7 +428,10 @@ void ShellDesktopControllerAura::InitWindowManager() {
   cursor_manager_->SetDisplay(
       display::Screen::GetScreen()->GetPrimaryDisplay());
   cursor_manager_->SetCursor(ui::mojom::CursorType::kPointer);
-
+#if defined(USE_NEVA_APPRUNTIME)
+  tooltip_controller_ = std::make_unique<views::corewm::TooltipController>(
+      std::make_unique<views::corewm::TooltipAura>(), focus_controller_.get());
+#endif
 #if BUILDFLAG(IS_CHROMEOS_ASH)
   user_activity_detector_ = std::make_unique<ui::UserActivityDetector>();
   user_activity_notifier_ =
@@ -478,9 +481,6 @@ ShellDesktopControllerAura::CreateRootWindowControllerForDisplay(
   wm::SetActivationClient(root_window, focus_controller_.get());
   aura::client::SetCursorClient(root_window, cursor_manager_.get());
 #if defined(USE_NEVA_APPRUNTIME)
-  tooltip_controller_ = std::make_unique<views::corewm::TooltipController>(
-      std::make_unique<views::corewm::TooltipAura>(),
-      wm::GetActivationClient(root_window));
   root_window->AddPreTargetHandler(tooltip_controller_.get());
   wm::SetTooltipClient(root_window, tooltip_controller_.get());
 #endif
