@@ -179,16 +179,14 @@ void WaylandCursor::AttachAndCommit(wl_buffer* buffer,
 
 #if defined(OS_WEBOS)
 void WaylandCursor::SetLSMCursorAndCommit(const gfx::Point& hotspot_in_dips) {
+  uint32_t serial = 0;
   auto pointer_enter_serial =
       connection_->serial_tracker().GetSerial(wl::SerialType::kMouseEnter);
-  if (!pointer_enter_serial) {
-    LOG(ERROR) << __func__ << " No mouse enter serial found.";
-    return;
-  }
+  if (pointer_enter_serial.has_value())
+    serial = pointer_enter_serial->value;
 
-  wl_pointer_set_cursor(pointer_->wl_object(), pointer_enter_serial->value,
-                        pointer_surface_.get(), hotspot_in_dips.x(),
-                        hotspot_in_dips.y());
+  wl_pointer_set_cursor(pointer_->wl_object(), serial, pointer_surface_.get(),
+                        hotspot_in_dips.x(), hotspot_in_dips.y());
   wl_surface_commit(pointer_surface_.get());
 
   connection_->Flush();
