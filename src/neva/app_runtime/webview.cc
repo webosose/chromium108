@@ -1420,9 +1420,11 @@ void WebView::UpdateViewportScaleFactor() {
     return;
 
   const float width_scale = resolution.width() / float(viewport_size_.width());
-  const float height_scale = resolution.height() / float(viewport_size_.height());
+  const float height_scale =
+      resolution.height() / float(viewport_size_.height());
   const float scale = std::min(width_scale, height_scale);
-  if (web_preferences_->default_minimum_page_scale_factor != scale) {
+  if (std::abs(scale - web_preferences_->default_minimum_page_scale_factor) >=
+      std::numeric_limits<float>::epsilon()) {
     web_preferences_->default_minimum_page_scale_factor = scale;
     UpdatePreferences();
   }
