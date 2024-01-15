@@ -131,8 +131,9 @@ void Shell::SetQuitClosure(base::OnceClosure quit_main_message_loop) {
 
 // static
 void Shell::Shutdown() {
-  for (auto it = content::RenderProcessHost::AllHostsIterator();
-       !it.IsAtEnd(); it.Advance()) {
+  for (auto it = content::RenderProcessHost::AllHostsIterator(); !it.IsAtEnd();
+       it.Advance()) {
+    CHECK(it.GetCurrentValue());
     it.GetCurrentValue()->DisableRefCounts();
   }
 
