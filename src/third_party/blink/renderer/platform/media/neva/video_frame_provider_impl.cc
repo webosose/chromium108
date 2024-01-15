@@ -137,6 +137,7 @@ bool VideoFrameProviderImpl::HasCurrentFrame() {
 void VideoFrameProviderImpl::Repaint() {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
 
+  CHECK(GetClient());
   GetClient()->Repaint();
 }
 
