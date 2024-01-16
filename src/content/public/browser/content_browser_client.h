@@ -72,6 +72,10 @@
 #include "content/public/browser/posix_file_descriptor_info.h"
 #endif
 
+#if defined(USE_NEVA_APPRUNTIME)
+#include "content/public/common/neva/proxy_settings.h"
+#endif
+
 namespace net {
 class SiteForCookies;
 class IsolationInfo;
@@ -679,6 +683,10 @@ class CONTENT_EXPORT ContentBrowserClient {
   virtual bool IsFileSchemeNavigationAllowed(const GURL& url,
                                              int render_frame_id,
                                              bool browser_initiated);
+
+  // Called when setup proxy server for webos environment
+  virtual void SetProxyServer(const content::ProxySettings& proxy_settings);
+  virtual bool IsNevaDynamicProxyEnabled();
 #endif  // defined(USE_NEVA_APPRUNTIME)
 
   // Indicates whether to force the MIME sniffer to sniff file URLs for HTML.

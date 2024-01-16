@@ -19,13 +19,19 @@
 
 #include "content/public/browser/content_browser_client.h"
 #include "content/public/browser/web_contents.h"
+#include "mojo/public/cpp/bindings/remote_set.h"
 #include "neva/app_runtime/browser/app_runtime_browser_main_parts.h"
 #include "neva/app_runtime/browser/net/app_runtime_proxying_url_loader_factory.h"
 #include "neva/app_runtime/browser/net/app_runtime_web_request_handler.h"
+#include "neva/pal_service/public/proxy_setting_delegate.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/service_manager/public/cpp/binder_registry.h"
 #include "storage/browser/quota/quota_settings.h"
 #include "third_party/blink/public/mojom/badging/badging.mojom.h"
+
+namespace pal {
+class ProxySettingDelegate;
+}  // namespace pal
 
 namespace content {
 class LoginDelegate;
@@ -43,7 +49,6 @@ namespace neva_app_runtime {
 
 class AppRuntimeBrowserMainExtraParts;
 class AppRuntimeQuotaPermissionDelegate;
-struct ProxySettings;
 
 class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
  public:
@@ -214,7 +219,8 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
 
   AppRuntimeBrowserMainParts* GetMainParts() { return main_parts_; }
 
-  void SetProxyServer(const ProxySettings& proxy_settings);
+  void SetProxyServer(const content::ProxySettings& proxy_settings) override;
+  bool IsNevaDynamicProxyEnabled() override;
 
 #if defined(ENABLE_PLUGINS)
   bool PluginLoaded() const { return plugin_loaded_; }
@@ -251,6 +257,10 @@ class AppRuntimeContentBrowserClient : public content::ContentBrowserClient {
   AppRuntimeBrowserMainParts* main_parts_ = nullptr;
 
   AppRuntimeQuotaPermissionDelegate* quota_permission_delegate_ = nullptr;
+
+  // Used when need run proxy service.
+  scoped_refptr<pal::ProxySettingDelegate> proxy_setting_delegate_;
+
   mojo::Remote<network::mojom::CustomProxyConfigClient>
       custom_proxy_config_client_;
   mojo::Remote<network::mojom::ExtraHeaderNetworkDelegate> network_delegate_;

@@ -359,6 +359,7 @@ source_set("common_sources") {
   sources += [
     "content_neva_switches.cc",
     "content_neva_switches.h",
+    "neva/proxy_settings.h",
   ]
   #@}
 

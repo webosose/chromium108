@@ -30,6 +30,8 @@ source_set("pal_service_webos") {
     "pal_platform_factory_webos.cc",
     "platform_system_delegate_webos.cc",
     "platform_system_delegate_webos.h",
+    "proxy_setting_delegate_webos.h",
+    "proxy_setting_delegate_webos.cc",
     "system_servicebridge_delegate_webos.cc",
     "system_servicebridge_delegate_webos.h",
   ]

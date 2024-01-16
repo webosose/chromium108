@@ -22,6 +22,12 @@ const char kAppShellPreferredNetwork[] = "app-shell-preferred-network";
 
 #if defined(USE_NEVA_APPRUNTIME)
 const char kLaunchArgs[] = "launch-args";
+
+// Specifies a list of hosts for whom we bypass proxy settings and use direct
+// connections. Ignored if --proxy-auto-detect or --no-proxy-server are also
+// specified. This is a comma-separated list of bypass rules. See:
+// "net/proxy/proxy_bypass_rules.h" for the format of these rules.
+const char kProxyBypassList[] = "proxy-bypass-list";
 #endif
 
 }  // namespace switches

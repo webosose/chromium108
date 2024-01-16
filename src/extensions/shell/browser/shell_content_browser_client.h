@@ -17,10 +17,18 @@
 #include "services/metrics/public/cpp/ukm_source_id.h"
 
 #if defined(USE_NEVA_APPRUNTIME)
+#include "mojo/public/cpp/bindings/remote_set.h"
+#include "neva/pal_service/public/proxy_setting_delegate.h"
 #include "third_party/blink/public/mojom/badging/badging.mojom.h"
 #endif
 
 class GURL;
+
+#if defined(USE_NEVA_APPRUNTIME)
+namespace pal {
+class ProxySettingDelegate;
+}  // namespace pal
+#endif
 
 namespace base {
 class CommandLine;
@@ -170,6 +178,8 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
       scoped_refptr<net::HttpResponseHeaders> response_headers,
       bool first_auth_attempt,
       LoginAuthRequiredCallback auth_required_callback) override;
+  void SetProxyServer(const content::ProxySettings& proxy_settings) override;
+  bool IsNevaDynamicProxyEnabled() override;
 #endif
   bool HandleExternalProtocol(
       const GURL& url,
@@ -239,6 +249,12 @@ class ShellContentBrowserClient : public content::ContentBrowserClient {
 
   // Store the path of V8 snapshot blob for app_shell.
   std::pair<int, std::string> v8_snapshot_path_;
+
+  // Used when need run proxy service.
+  scoped_refptr<pal::ProxySettingDelegate> proxy_setting_delegate_;
+  mojo::RemoteSet<network::mojom::CustomProxyConfigClient>
+      custom_proxy_config_clients_;
+  net::AuthCredentials credentials_;
 #endif
 
   // Owned by content::BrowserMainLoop.

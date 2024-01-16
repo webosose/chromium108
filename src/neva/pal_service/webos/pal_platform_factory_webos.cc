@@ -23,6 +23,7 @@
 #include "neva/pal_service/webos/language_tracker_delegate_webos.h"
 #include "neva/pal_service/webos/memorymanager_delegate_webos.h"
 #include "neva/pal_service/webos/notification_manager_delegate_webos.h"
+#include "neva/pal_service/webos/proxy_setting_delegate_webos.h"
 #include "neva/pal_service/webos/system_servicebridge_delegate_webos.h"
 
 #include "neva/pal_service/webos/platform_system_delegate_webos.h"
@@ -44,6 +45,11 @@ PlatformFactory::CreateLanguageTrackerDelegate(
     LanguageTrackerDelegate::RepeatingResponse callback) {
   return std::make_unique<webos::LanguageTrackerDelegateWebOS>(
       application_name, std::move(callback));
+}
+
+scoped_refptr<ProxySettingDelegate>
+PlatformFactory::CreateProxySettingDelegate() {
+  return base::MakeRefCounted<webos::ProxySettingDelegateWebos>();
 }
 
 std::unique_ptr<MemoryManagerDelegate>

@@ -22,6 +22,7 @@ source_set("pal_service_delegates") {
     "notification_manager_delegate.h",
     "platform_application_delegate.h",
     "platform_system_delegate.h",
+    "proxy_setting_delegate.h",
     "system_servicebridge_delegate.h",
   ]
 

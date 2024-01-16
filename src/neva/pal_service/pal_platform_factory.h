@@ -24,6 +24,7 @@
 #include "neva/pal_service/public/application_registrator_delegate.h"
 #include "neva/pal_service/public/language_tracker_delegate.h"
 #include "neva/pal_service/public/notification_manager_delegate.h"
+#include "neva/pal_service/public/proxy_setting_delegate.h"
 #include "neva/pal_service/public/system_servicebridge_delegate.h"
 
 namespace pal {
@@ -45,6 +46,8 @@ class COMPONENT_EXPORT(PAL_SERVICE) PlatformFactory {
   std::unique_ptr<LanguageTrackerDelegate> CreateLanguageTrackerDelegate(
       const std::string& application_name,
       LanguageTrackerDelegate::RepeatingResponse callback);
+
+  scoped_refptr<ProxySettingDelegate> CreateProxySettingDelegate();
 
   std::unique_ptr<MemoryManagerDelegate> CreateMemoryManagerDelegate();
 

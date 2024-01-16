@@ -852,8 +852,18 @@ AppRuntimeContentBrowserClient::GetUserAgentMetadata() {
   return neva_user_agent::GetDefaultUserAgentMetadata();
 }
 
+bool AppRuntimeContentBrowserClient::IsNevaDynamicProxyEnabled() {
+  return false;
+}
+
 void AppRuntimeContentBrowserClient::OnNetworkServiceCreated(
     network::mojom::NetworkService* network_service) {
+  if (IsNevaDynamicProxyEnabled() && !proxy_setting_delegate_) {
+    proxy_setting_delegate_ =
+        pal::PlatformFactory::Get()->CreateProxySettingDelegate();
+    proxy_setting_delegate_->ObserveSystemProxySetting(this);
+  }
+
 #if defined(OS_WEBOS)
   network_service->DisableQuic();
 #endif
@@ -882,6 +892,9 @@ void AppRuntimeContentBrowserClient::ConfigureNetworkContextParams(
   network_context_params->enable_encrypted_cookies = true;
   network_context_params->custom_proxy_config_client_receiver =
       custom_proxy_config_client_.BindNewPipeAndPassReceiver();
+  if (IsNevaDynamicProxyEnabled())
+    SetProxyServer(proxy_setting_delegate_->GetProxySetting());
+
   network_context_params->network_delegate_receiver =
       network_delegate_.BindNewPipeAndPassReceiver();
 
@@ -913,7 +926,7 @@ void AppRuntimeContentBrowserClient::ConfigureNetworkContextParams(
 }
 
 void AppRuntimeContentBrowserClient::SetProxyServer(
-    const ProxySettings& proxy_settings) {
+    const content::ProxySettings& proxy_settings) {
   if (custom_proxy_config_client_) {
     network::mojom::CustomProxyConfigPtr proxy_config =
         network::mojom::CustomProxyConfig::New();
@@ -924,6 +937,8 @@ void AppRuntimeContentBrowserClient::SetProxyServer(
           net::AuthCredentials(base::UTF8ToUTF16(proxy_settings.username),
                                base::UTF8ToUTF16(proxy_settings.password));
       std::string proxy_string = proxy_settings.ip + ":" + proxy_settings.port;
+      if (!proxy_settings.scheme.empty())
+        proxy_string = proxy_settings.scheme + "://" + proxy_string;
       net::ProxyConfig::ProxyRules proxy_rules;
       proxy_rules.ParseFromString(proxy_string);
 

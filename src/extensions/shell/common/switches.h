@@ -21,6 +21,7 @@ extern const char kAppShellPreferredNetwork[];
 
 #if defined(USE_NEVA_APPRUNTIME)
 extern const char kLaunchArgs[];
+extern const char kProxyBypassList[];
 #endif
 
 }  // namespace switches

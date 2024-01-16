@@ -22,10 +22,10 @@
 #include "base/time/time.h"
 #include "browser/browsing_data/browsing_data_remover.h"
 #include "content/public/browser/browser_context.h"
+#include "content/public/common/neva/proxy_settings.h"
 #include "neva/app_runtime/app/app_runtime_main_delegate.h"
 #include "neva/app_runtime/browser/app_runtime_browser_context.h"
 #include "neva/app_runtime/public/notifier_settings_controller.h"
-#include "neva/app_runtime/public/proxy_settings.h"
 
 namespace neva_app_runtime {
 
@@ -48,7 +48,8 @@ WebViewProfile* WebViewProfile::GetAlternativeProfile() {
   return (*profile).get();
 }
 
-void WebViewProfile::SetProxyServer(const ProxySettings& proxy_settings) {
+void WebViewProfile::SetProxyServer(
+    const content::ProxySettings& proxy_settings) {
   GetAppRuntimeContentBrowserClient()->SetProxyServer(proxy_settings);
 }
 

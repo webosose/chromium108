@@ -71,9 +71,11 @@
 #include "content/shell/common/shell_neva_switches.h"
 #include "extensions/browser/extension_util.h"
 #include "extensions/common/manifest_handlers/app_isolation_info.h"
+#include "extensions/shell/common/switches.h"
 #include "neva/app_runtime/browser/app_runtime_webview_controller_impl.h"
 #include "neva/app_runtime/browser/app_runtime_webview_host_impl.h"
 #include "neva/browser_service/public/mojom/constants.mojom.h"
+#include "neva/pal_service/pal_platform_factory.h"
 #include "neva/user_agent/common/user_agent.h"
 #include "services/network/public/mojom/network_service.mojom.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -632,19 +634,15 @@ ShellContentBrowserClient::CreateLoginDelegate(
     scoped_refptr<net::HttpResponseHeaders> response_headers,
     bool first_auth_attempt,
     LoginAuthRequiredCallback auth_required_callback) {
-  BrowserContext* browser_context = GetBrowserContext();
-  extensions::WebRequestAPI* api =
-      extensions::BrowserContextKeyedAPIFactory<extensions::WebRequestAPI>::Get(
-          browser_context);
-  auto continuation =
-      base::BindOnce(&AuthRequestCallback, std::move(auth_required_callback));
-
-  if (api->MaybeProxyAuthRequest(
-          browser_context, auth_info, std::move(response_headers), request_id,
-          is_request_for_main_frame, std::move(continuation))) {
+  // Allows running proxy authentication directly without entering
+  // username and password into the popup
+  if (!auth_required_callback.is_null() && !credentials_.Empty()) {
+    content::GetUIThreadTaskRunner({})->PostTask(
+        FROM_HERE,
+        base::BindOnce(std::move(auth_required_callback), credentials_));
+    return std::make_unique<content::LoginDelegate>();
   }
-
-  return std::make_unique<content::LoginDelegate>();
+  return nullptr;
 }
 
 content::StoragePartitionConfig
@@ -670,6 +668,14 @@ ShellContentBrowserClient::GetStoragePartitionConfigForSite(
 
 void ShellContentBrowserClient::OnNetworkServiceCreated(
     network::mojom::NetworkService* network_service) {
+#if defined(USE_NEVA_APPRUNTIME)
+  if (!proxy_setting_delegate_) {
+    proxy_setting_delegate_ =
+        pal::PlatformFactory::Get()->CreateProxySettingDelegate();
+    proxy_setting_delegate_->ObserveSystemProxySetting(this);
+  }
+#endif
+
 #if defined(OS_WEBOS)
   network_service->DisableQuic();
 #endif
@@ -690,6 +696,14 @@ void ShellContentBrowserClient::ConfigureNetworkContextParams(
   network_context_params->file_paths->cookie_database_name =
       base::FilePath(kCookieStoreFile);
   network_context_params->enable_encrypted_cookies = false;
+#if defined(USE_NEVA_APPRUNTIME)
+  mojo::Remote<network::mojom::CustomProxyConfigClient>
+      custom_proxy_config_client;
+  network_context_params->custom_proxy_config_client_receiver =
+      custom_proxy_config_client.BindNewPipeAndPassReceiver();
+  custom_proxy_config_clients_.Add(std::move(custom_proxy_config_client));
+  SetProxyServer(proxy_setting_delegate_->GetProxySetting());
+#endif
 
   int disk_cache_size = kDefaultDiskCacheSize;
   base::CommandLine* cmd_line = base::CommandLine::ForCurrentProcess();
@@ -711,6 +725,53 @@ void ShellContentBrowserClient::ConfigureNetworkContextParams(
   network_context_params->http_cache_directory =
       context->GetPath().Append(kCacheStoreFile);
 }
+
+#if defined(USE_NEVA_APPRUNTIME)
+bool ShellContentBrowserClient::IsNevaDynamicProxyEnabled() {
+  return true;
+}
+
+void ShellContentBrowserClient::SetProxyServer(
+    const content::ProxySettings& proxy_settings) {
+  if (!custom_proxy_config_clients_.empty()) {
+    if (proxy_settings.enabled) {
+      credentials_ =
+          net::AuthCredentials(base::UTF8ToUTF16(proxy_settings.username),
+                               base::UTF8ToUTF16(proxy_settings.password));
+      std::string proxy_string = proxy_settings.ip + ":" + proxy_settings.port;
+      if (!proxy_settings.scheme.empty())
+        proxy_string = proxy_settings.scheme + "://" + proxy_string;
+      net::ProxyConfig::ProxyRules proxy_rules;
+      proxy_rules.ParseFromString(proxy_string);
+
+      std::string proxy_bypass_list = proxy_settings.bypass_list;
+      // Merge given settings bypass list with one from command line.
+      if (base::CommandLine::ForCurrentProcess()->HasSwitch(
+              switches::kProxyBypassList)) {
+        std::string cmd_line_proxy_bypass_list =
+            base::CommandLine::ForCurrentProcess()->GetSwitchValueASCII(
+                switches::kProxyBypassList);
+        if (!proxy_bypass_list.empty())
+          proxy_bypass_list += ',';
+        proxy_bypass_list += cmd_line_proxy_bypass_list;
+      }
+
+      if (!proxy_bypass_list.empty())
+        proxy_rules.bypass_rules.ParseFromString(proxy_bypass_list);
+
+      for (const auto& config_client : custom_proxy_config_clients_) {
+        network::mojom::CustomProxyConfigPtr proxy_config =
+            network::mojom::CustomProxyConfig::New();
+        proxy_config->rules = proxy_rules;
+        config_client->OnCustomProxyConfigUpdated(std::move(proxy_config),
+                                                  base::DoNothing());
+      }
+    } else {
+      credentials_ = net::AuthCredentials();
+    }
+  }
+}
+#endif
 
 // Implements a stub BadgeService. This implementation does nothing, but is
 // required because inbound Mojo messages which do not have a registered

@@ -43,6 +43,11 @@ while [[ "$1" != ""  &&  "$2" != "" ]]; do
     shift
 done
 
+# Set proxy configurations to system environments
+if [ -e "/etc/webos/webruntime/extra_conf.sh" ] ; then
+    . /etc/webos/webruntime/extra_conf.sh || :
+fi
+
 if [ -z ${APP_FOLDER_PATH} ]; then
     echo "ERROR: --folder info not provided \"$@\""
     exit 1

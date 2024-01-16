@@ -26,9 +26,9 @@
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "content/public/common/content_switches.h"
+#include "content/public/common/neva/proxy_settings.h"
 #include "net/http/http_util.h"
 #include "neva/app_runtime/public/app_runtime_event.h"
-#include "neva/app_runtime/public/proxy_settings.h"
 #include "neva/app_runtime/webview.h"
 #include "neva/app_runtime/webview_profile.h"
 #include "neva/user_agent/common/user_agent.h"
@@ -288,15 +288,15 @@ void WebViewBase::SetVisible(bool visible) {
 }
 
 void WebViewBase::SetProxyServer(const ProxySettings& proxy_settings) {
-  neva_app_runtime::ProxySettings app_runtime_proxy_settings;
-  app_runtime_proxy_settings.enabled = proxy_settings.enabled;
-  app_runtime_proxy_settings.mode = proxy_settings.mode;
-  app_runtime_proxy_settings.ip = proxy_settings.ip;
-  app_runtime_proxy_settings.port = proxy_settings.port;
-  app_runtime_proxy_settings.username = proxy_settings.username;
-  app_runtime_proxy_settings.password = proxy_settings.password;
-  app_runtime_proxy_settings.bypass_list = proxy_settings.bypass_list;
-  GetProfile()->SetProxyServer(app_runtime_proxy_settings);
+  content::ProxySettings content_proxy_settings;
+  content_proxy_settings.enabled = proxy_settings.enabled;
+  content_proxy_settings.mode = proxy_settings.mode;
+  content_proxy_settings.ip = proxy_settings.ip;
+  content_proxy_settings.port = proxy_settings.port;
+  content_proxy_settings.username = proxy_settings.username;
+  content_proxy_settings.password = proxy_settings.password;
+  content_proxy_settings.bypass_list = proxy_settings.bypass_list;
+  GetProfile()->SetProxyServer(content_proxy_settings);
 }
 
 neva_app_runtime::WebPageVisibilityState WebViewBase::FromNativeVisibilityState(

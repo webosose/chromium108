@@ -24,10 +24,13 @@
 
 class GURL;
 
+namespace content {
+struct ProxySettings;
+}
+
 namespace neva_app_runtime {
 
 class AppRuntimeBrowserContext;
-struct ProxySettings;
 
 class APP_RUNTIME_EXPORT WebViewProfile {
  public:
@@ -38,7 +41,7 @@ class APP_RUNTIME_EXPORT WebViewProfile {
   static WebViewProfile* GetDefaultProfile();
   static WebViewProfile* GetAlternativeProfile();
 
-  void SetProxyServer(const ProxySettings& proxy_settings);
+  void SetProxyServer(const content::ProxySettings& proxy_settings);
   void AppendExtraWebSocketHeader(const std::string& key,
                                   const std::string& value);
 

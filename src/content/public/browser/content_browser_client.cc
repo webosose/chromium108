@@ -358,6 +358,13 @@ bool ContentBrowserClient::IsFileSchemeNavigationAllowed(
     bool browser_initiated) {
   return true;
 }
+
+void ContentBrowserClient::SetProxyServer(
+    const content::ProxySettings& proxy_settings) {}
+
+bool ContentBrowserClient::IsNevaDynamicProxyEnabled() {
+  return false;
+}
 #endif  // defined(USE_NEVA_APPRUNTIME)
 
 bool ContentBrowserClient::ForceSniffingFileUrlsForHtml() {
