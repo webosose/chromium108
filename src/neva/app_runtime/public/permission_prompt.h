@@ -27,6 +27,8 @@ class PermissionRequest {
  public:
   enum class RequestType {
     kInvalid,
+    kCameraStream,
+    kMicStream,
     kNotifications,
     kMaxValue = kNotifications
   };

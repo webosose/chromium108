@@ -31,6 +31,13 @@ PermissionRequestImpl::PermissionRequestImpl(
     case permissions::RequestType::kNotifications:
       request_type_ = PermissionRequest::RequestType::kNotifications;
       break;
+    case permissions::RequestType::kCameraPanTiltZoom:
+    case permissions::RequestType::kCameraStream:
+      request_type_ = PermissionRequest::RequestType::kCameraStream;
+      break;
+    case permissions::RequestType::kMicStream:
+      request_type_ = PermissionRequest::RequestType::kMicStream;
+      break;
     default:
       request_type_ = PermissionRequest::RequestType::kInvalid;
       LOG(ERROR) << __func__ << " invalid request_type";
