@@ -855,7 +855,9 @@ void AppRuntimeProxyingURLLoaderFactory::OnLoaderCreated(
     return;
 
   auto request_it = requests_.find(it->second);
-  DCHECK(request_it != requests_.end());
+  if (request_it == requests_.end())
+    return;
+
   request_it->second->OnLoaderCreated(std::move(receiver));
 }
 
