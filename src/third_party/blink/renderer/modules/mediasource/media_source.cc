@@ -56,11 +56,6 @@
 #include "third_party/blink/renderer/platform/wtf/functional.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 
-#if defined(USE_NEVA_MEDIA)
-#include "third_party/abseil-cpp/absl/types/optional.h"
-#include "third_party/blink/public/platform/neva/web_media_codec_capability.h"
-#endif
-
 using blink::WebMediaSource;
 using blink::WebSourceBuffer;
 
@@ -643,34 +638,6 @@ bool MediaSource::IsTypeSupportedInternal(ExecutionContext* context,
   // specificity is and will be retained for isTypeSupported.
   // TODO(crbug.com/535738): Actually relax the codec-specifity for aSB() and
   // cT() (which is when |enforce_codec_specificity| is false).
-
-#if defined(USE_NEVA_MEDIA)
-  // Below lines depends on a thing that ToInt() will returns 0 if we try to
-  // do that using empty WTFString.
-  int width = content_type.Parameter("width").ToInt();
-  int height = content_type.Parameter("height").ToInt();
-  int frame_rate = content_type.Parameter("framerate").ToInt();
-  int64_t bit_rate = content_type.Parameter("bitrate").ToInt();
-  int channels = content_type.Parameter("channels").ToInt();
-  String features = content_type.Parameter("features");
-
-  if (RuntimeEnabledFeatures::MediaSourceIsSupportedExtensionEnabled()) {
-    absl::optional<WebMediaCodecCapability> capability;
-    if (width > 0 || height > 0 || frame_rate > 0 || bit_rate > 0 ||
-        channels > 0 || !features.empty()) {
-      WebMediaCodecCapability web_media_type_capability(
-          width, height, frame_rate, bit_rate, channels, features);
-      capability = web_media_type_capability;
-    }
-    bool result = MIMETypeRegistry::kSupported ==
-                  MIMETypeRegistry::IsSupportedMediaSourceMIMEType(
-                      content_type.GetType(), codecs, capability);
-    DVLOG(1) << __func__ << "(" << type << ") -> "
-             << (result ? "true" : "false");
-    return result;
-  }
-#endif
-
   MIMETypeRegistry::SupportsType supported =
       MIMETypeRegistry::SupportsMediaSourceMIMEType(mime_type, codecs);
 

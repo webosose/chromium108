@@ -20,7 +20,6 @@ neva = {
   configs = []
   public_configs = []
   deps = [
-    "//media/neva:media_platform_api",
     "//media/neva:media_player_neva",
     "//ui/platform_window:mojom",
   ]
@@ -33,11 +32,7 @@ neva = {
     "$_dir/media_info_loader.cc",
     "$_dir/media_info_loader.h",
     "$_dir/video_frame_provider_impl.cc",
-    "$_dir/web_media_player_mse.cc",
-    "$_dir/web_media_player_mse.h",
     "$_dir/web_media_player_neva.cc",
     "$_dir/web_media_player_neva.h",
-    "$_dir/web_media_player_neva_factory.cc",
-    "$_dir/web_media_player_neva_factory.h",
   ]
 }

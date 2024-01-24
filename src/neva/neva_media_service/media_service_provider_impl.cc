@@ -17,7 +17,6 @@
 #include "neva/neva_media_service/media_service_provider_impl.h"
 
 #include "mojo/public/cpp/bindings/self_owned_receiver.h"
-#include "neva/neva_media_service/services/mojo_media_platform_api_service.h"
 #include "neva/neva_media_service/services/mojo_media_player_service.h"
 
 namespace neva_media {
@@ -31,18 +30,6 @@ void MediaServiceProvider::CreateMediaPlayer(
     mojo::PendingReceiver<mojom::MediaPlayer> request) {
   mojo::MakeSelfOwnedReceiver(
       std::make_unique<MojoMediaPlayerService>(media_player_type, app_id),
-      std::move(request));
-}
-
-void MediaServiceProvider::CreateMediaPlatformAPI(
-    mojo::PendingRemote<mojom::MediaPlatformAPIListener>
-        media_platform_api_listener,
-    bool is_video,
-    const std::string& app_id,
-    mojo::PendingReceiver<mojom::MediaPlatformAPI> request) {
-  mojo::MakeSelfOwnedReceiver(
-      std::make_unique<MojoMediaPlatformAPIService>(
-          std::move(media_platform_api_listener), is_video, app_id),
       std::move(request));
 }
 

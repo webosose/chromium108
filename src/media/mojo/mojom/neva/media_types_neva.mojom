@@ -30,15 +30,7 @@ enum SuspendReason;
 
 [Native]
 // See media/neva/media_constants.h for descriptions.
-enum FeedType;
-
-[Native]
-// See media/neva/media_constants.h for descriptions.
 enum PlayerEvent;
-
-[Native]
-// See media/neva/media_constants.h for descriptions.
-enum RestorePlaybackMode;
 
 // This cannot be native, because this is defined in blink.
 enum Preload {

@@ -68,7 +68,6 @@ class PageContents : public AppRuntimeWebContentsDelegate,
     bool allow_file_access_from_file_urls = false;
     bool allow_universal_access_from_file_urls = false;
     std::string app_id;
-    std::string media_codec_capability;
     std::string storage_partition_name;
     bool storage_partition_off_the_record = false;
     std::string user_agent;

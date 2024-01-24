@@ -20,10 +20,6 @@
 #include "third_party/blink/public/platform/web_security_origin.h"
 #endif
 
-#if defined(USE_NEVA_MEDIA)
-#include "media/neva/media_preferences.h"
-#endif
-
 namespace blink {
 
 namespace {
@@ -73,17 +69,6 @@ void WebThemeEngineHelper::DidUpdateRendererPreferences(
   if (!renderer_prefs.file_security_origin.empty())
     url::Origin::SetFileOriginChanged(true);
   SetMutableLocalOrigin(renderer_prefs.file_security_origin);
-
-#if defined(USE_NEVA_MEDIA)
-  std::string media_codec_capability = renderer_prefs.media_codec_capability;
-  if (!media_codec_capability.empty())
-    media::MediaPreferences::Get()->SetMediaCodecCapabilities(
-        media_codec_capability);
-
-  std::string media_preferences = renderer_prefs.media_preferences;
-  if (!media_preferences.empty())
-    media::MediaPreferences::Get()->Update(media_preferences);
-#endif  // defined(USE_NEVA_MEDIA)
 #endif  // defined(USE_NEVA_APPRUNTIME)
 }
 

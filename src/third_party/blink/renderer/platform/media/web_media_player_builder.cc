@@ -30,7 +30,7 @@
 #include "base/command_line.h"
 #include "media/audio/null_audio_sink.h"
 #include "media/base/media_switches_neva.h"
-#include "third_party/blink/renderer/platform/media/neva/web_media_player_neva_factory.h"
+#include "third_party/blink/renderer/platform/media/neva/web_media_player_neva.h"
 #endif
 
 namespace blink {
@@ -73,32 +73,20 @@ WebMediaPlayer* WebMediaPlayerBuilder::Build(
     const WebString& application_id,
     bool use_unlimited_media_policy,
     bool use_neva_media,
-    media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
-    media::CreateMediaPlatformAPICB create_media_platform_api_cb) {
+    media::CreateMediaPlayerNevaCB create_media_player_neva_cb) {
 #else
     scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces) {
 #endif
+  VLOG(0) << __func__;
 #if defined(USE_NEVA_MEDIA)
-  if (use_neva_media && WebMediaPlayerNevaFactory::Playable(client)) {
-    return WebMediaPlayerNevaFactory::CreateWebMediaPlayerNeva(
-        frame, client, encrypted_client, delegate, std::move(factory_selector),
-        url_index, std::move(compositor), std::move(media_log), player_id,
-        std::move(defer_load_cb),
-        scoped_refptr(new media::NullAudioSink(media_task_runner)),
-        std::move(media_task_runner), std::move(worker_task_runner),
-        std::move(compositor_task_runner),
-        std::move(video_frame_compositor_task_runner),
-        std::move(adjust_allocated_memory_cb), initial_cdm,
-        std::move(request_routing_token_cb), std::move(media_observer),
-        enable_instant_source_buffer_gc, embedded_media_experience_enabled,
-        std::move(metrics_provider), std::move(create_bridge_callback),
-        std::move(raster_context_provider), use_surface_layer,
-        is_background_suspend_enabled, is_background_video_playback_enabled,
-        is_background_video_track_optimization_supported,
-        std::move(demuxer_override), std::move(remote_interfaces),
+  if (use_neva_media && client->LoadType() == WebMediaPlayer::kLoadTypeURL &&
+      WebMediaPlayerNeva::CanSupportMediaType(
+          client->ContentMIMEType().Latin1())) {
+    return WebMediaPlayerNeva::Create(
+        frame, client, delegate, std::move(media_log), std::move(defer_load_cb),
+        std::move(audio_renderer_sink), std::move(compositor_task_runner),
         std::move(create_video_window_callback), application_id,
-        use_unlimited_media_policy, std::move(create_media_player_neva_cb),
-        std::move(create_media_platform_api_cb));
+        use_unlimited_media_policy, std::move(create_media_player_neva_cb));
   }
 #endif
   return new WebMediaPlayerImpl(

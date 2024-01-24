@@ -18,10 +18,6 @@
 #include "third_party/blink/renderer/platform/wtf/assertions.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 
-#if defined(USE_NEVA_MEDIA)
-#include "media/neva/media_codec_capability.h"
-#endif
-
 namespace blink {
 
 namespace {
@@ -155,31 +151,6 @@ MIMETypeRegistry::SupportsType MIMETypeRegistry::SupportsMediaSourceMIMEType(
   return static_cast<SupportsType>(media::StreamParserFactory::IsTypeSupported(
       ascii_mime_type, parsed_codec_ids));
 }
-
-#if defined(USE_NEVA_MEDIA)
-MIMETypeRegistry::SupportsType MIMETypeRegistry::IsSupportedMediaSourceMIMEType(
-    const String& mime_type,
-    const String& codecs,
-    const absl::optional<WebMediaCodecCapability>& capability) {
-  const std::string ascii_mime_type = ToLowerASCIIOrEmpty(mime_type);
-  if (ascii_mime_type.empty())
-    return kNotSupported;
-  std::vector<std::string> parsed_codec_ids;
-  media::SplitCodecs(ToASCIIOrEmpty(codecs), &parsed_codec_ids);
-
-  absl::optional<media::MediaCodecCapability> casted_capability;
-  if (capability.has_value()) {
-    casted_capability = media::MediaCodecCapability(
-        capability->width, capability->height, capability->frame_rate,
-        capability->bit_rate, capability->channels,
-        ToASCIIOrEmpty(capability->features));
-  }
-
-  return static_cast<MIMETypeRegistry::SupportsType>(
-      media::StreamParserFactory::IsTypeSupported(
-          ascii_mime_type, parsed_codec_ids, casted_capability));
-}
-#endif
 
 bool MIMETypeRegistry::IsJavaAppletMIMEType(const String& mime_type) {
   // Since this set is very limited and is likely to remain so we won't bother

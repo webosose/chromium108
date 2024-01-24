@@ -43,7 +43,6 @@
 #if defined(USE_NEVA_MEDIA)
 #include "components/cdm/renderer/neva/key_systems_util.h"
 #include "content/renderer/render_thread_impl.h"
-#include "media/neva/media_preferences.h"
 #endif
 
 #if defined(USE_NEVA_CHROME_EXTENSIONS)
@@ -213,16 +212,6 @@ void AppRuntimeContentRendererClient::SetUseVideoDecodeAccelerator(bool use) {
 void AppRuntimeContentRendererClient::GetSupportedKeySystems(
     media::GetSupportedKeySystemsCB cb) {
   cdm::AddSupportedKeySystems(std::move(cb));
-}
-
-bool AppRuntimeContentRendererClient::IsSupportedAudioType(
-    const media::AudioType& type) {
-  return media::MediaPreferences::Get()->IsSupportedAudioType(type);
-}
-
-bool AppRuntimeContentRendererClient::IsSupportedVideoType(
-    const media::VideoType& type) {
-  return media::MediaPreferences::Get()->IsSupportedVideoType(type);
 }
 #endif
 

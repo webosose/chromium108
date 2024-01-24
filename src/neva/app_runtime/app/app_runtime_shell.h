@@ -57,11 +57,8 @@ class APP_RUNTIME_EXPORT Shell : public neva_app_runtime::ShellWindowDelegate {
   static void Shutdown();
 
  private:
-  void ReadMediaCodecCapability();
-
   const std::string app_id_;
   const std::string launch_params_;
-  std::string media_codec_capability_;
   base::ObserverList<ShellObserver> observers_;
   bool enable_dev_tools_;
   std::set<ShellWindow*> windows_;

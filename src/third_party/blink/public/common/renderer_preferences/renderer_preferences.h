@@ -73,8 +73,6 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
   ///@{
   std::string application_id;
   std::string display_id;
-  std::string media_codec_capability;
-  std::string media_preferences;
   std::string board_type;
   bool allow_fake_bold_text{true};
   std::string file_security_origin;

@@ -71,10 +71,6 @@ blink_platform_sources("network") {
     "//third_party/blink/renderer/platform/blob:blob",
     "//third_party/blink/renderer/platform/scheduler:scheduler",
   ]
-
-  if (use_neva_media) {
-    deps += [ "//media/neva:media_platform_api" ]
-  }
 }
 
 source_set("unit_tests") {

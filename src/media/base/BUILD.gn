@@ -391,9 +391,8 @@ source_set("base") {
   ]
 
   if (use_neva_media) {
-    # MediaPlayerNeva and MediaPlatformAPI use types in media/base.
+    # MediaPlayerNeva use types in media/base.
     visibility += [
-      "//media/neva:media_platform_api",
       "//media/neva:media_player_neva",
     ]
 

@@ -21,7 +21,6 @@
 #include "third_party/blink/public/platform/web_media_player.h"
 
 #if defined(USE_NEVA_MEDIA)
-#include "media/neva/media_platform_api.h"
 #include "media/neva/media_player_neva_factory.h"
 #include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
 #endif
@@ -109,8 +108,7 @@ class BLINK_PLATFORM_EXPORT WebMediaPlayerBuilder {
       const WebString& application_id,
       bool use_unlimited_media_policy,
       bool use_neva_media,
-      media::CreateMediaPlayerNevaCB create_media_player_neva_cb,
-      media::CreateMediaPlatformAPICB create_media_platform_api_cb);
+      media::CreateMediaPlayerNevaCB create_media_player_neva_cb);
 #else
       scoped_refptr<ThreadSafeBrowserInterfaceBrokerProxy> remote_interfaces);
 #endif

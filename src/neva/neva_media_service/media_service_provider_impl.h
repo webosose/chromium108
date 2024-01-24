@@ -38,13 +38,6 @@ class MediaServiceProvider : public mojom::MediaServiceProvider {
       const std::string& app_id,
       mojo::PendingReceiver<mojom::MediaPlayer> request) override;
 
-  void CreateMediaPlatformAPI(
-      mojo::PendingRemote<mojom::MediaPlatformAPIListener>
-          media_platform_api_listener,
-      bool is_video,
-      const std::string& app_id,
-      mojo::PendingReceiver<mojom::MediaPlatformAPI> request) override;
-
  private:
   mojo::ReceiverSet<mojom::MediaServiceProvider> receivers_;
   MediaServiceProvider(const MediaServiceProvider&) = delete;

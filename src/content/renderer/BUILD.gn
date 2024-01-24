@@ -334,14 +334,10 @@ target(link_target_type, "renderer") {
     deps += neva_media.deps
 
     # Added deps
-    # //media/neva:media_platform_api
-    #  . For media::MediaPlatformAPI::SetMediaCodecCapability
-    #    from content/renderer/render_view_impl.cc
     # //neva/neva_media_service
-    #  . For neva_media::MojoMediaPlayer and neva_media::MojoMediaPlatformAPI::Create
+    #  . For neva_media::MojoMediaPlayer
     #    from content/renderer/media/neva/mojo_media_player_factory.cc
     deps += [
-      "//media/neva:media_platform_api",
       "//neva/neva_media_service",
     ]
   }

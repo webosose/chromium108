@@ -936,18 +936,6 @@ function setScaleFactor() {
   createExpectation(kWAM_commandSet, JSON.stringify(command));
 }
 
-function setMediaCodecCapability() {
-  let command = {
-    app_id: getFocusedElementAppId(),
-    url: appsDescription[activeNode].url,
-    media_codec_capability: document.getElementById('media_codec_capability_json').value,
-    cmd: 'setMediaCodecCapability'
-  };
-
-  console.log('command = ', command);
-  createExpectation(kWAM_commandSet, JSON.stringify(command));
-}
-
 function setGroupKeyMask() {
   let selector = document.getElementById('group_key_mask_selector'), selector_option;
   let masks = 0;

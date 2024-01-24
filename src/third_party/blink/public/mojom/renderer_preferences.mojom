@@ -163,12 +163,6 @@ struct RendererPreferences {
   // Display affinity
   string display_id;
 
-  // Media Codec Capability
-  string media_codec_capability;
-
-  // Media preferences
-  string media_preferences;
-
   // Board type
   string board_type;
 

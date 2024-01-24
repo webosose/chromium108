@@ -147,8 +147,6 @@ class WebView : public AppRuntimeWebContentsDelegate,
   void SetBlockWriteDiskcache(bool blocked);
   void SetTransparentBackground(bool enable);
   void SetBoardType(const std::string& board_type);
-  void SetMediaCodecCapability(const std::string& capability);
-  void SetMediaPreferences(const std::string& preferences);
   void SetSearchKeywordForCustomPlayer(bool enabled);
   void SetUseUnlimitedMediaPolicy(bool enabled);
   void SetUseVideoDecodeAccelerator(bool enable);

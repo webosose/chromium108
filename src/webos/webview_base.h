@@ -200,8 +200,6 @@ class WEBOS_EXPORT WebViewBase
   void SetSecurityOrigin(const std::string& identifier);
   void SetAcceptLanguages(const std::string& lauguages);
   void SetBoardType(const std::string& board_type);
-  void SetMediaCodecCapability(const std::string& capability);
-  void SetMediaPreferences(const std::string& preferences);
   void SetSearchKeywordForCustomPlayer(bool enabled);
   void SetUseUnlimitedMediaPolicy(bool enabled);
 

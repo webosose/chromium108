@@ -67,9 +67,6 @@
 
 #if defined(OS_WEBOS)
 #include "base/command_line.h"
-#include "base/files/file_util.h"
-#include "base/neva/neva_paths.h"
-#include "base/path_service.h"
 #include "extensions/common/switches.h"
 #include "ui/aura/window.h"
 #include "ui/aura/window_tree_host.h"
@@ -275,10 +272,6 @@ void AppWindow::Init(const GURL& url,
         command_line->GetSwitchValueASCII(switches::kWebOSDisplayId);
     SetDisplayId(display_id);
   }
-
-  base::FilePath path;
-  base::PathService::Get(base::FILE_MEDIA_CODEC_CAPABILITIES, &path);
-  ReadMediaCapabilityFromPath(path);
 #endif
 
   // Initialize the render interface and web contents
@@ -503,20 +496,6 @@ void AppWindow::DidFirstVisuallyNonEmptyPaint() {
   ui::Compositor* compositor = GetNativeWindow()->GetHost()->compositor();
   if (compositor && !compositor->IsVisible())
     compositor->SetVisible(true);
-}
-
-void AppWindow::ReadMediaCapabilityFromPath(const base::FilePath& path) {
-  VLOG(1) << __func__ << " path: " << path.MaybeAsASCII();
-
-  if (!base::PathExists(path)) {
-    LOG(ERROR) << "File does not exist: " << path.MaybeAsASCII();
-    return;
-  }
-
-  if (!base::ReadFileToString(path, &media_codec_capability_)) {
-    LOG(ERROR) << "Error reading file: " << path.MaybeAsASCII();
-    media_codec_capability_.clear();
-  }
 }
 #endif
 

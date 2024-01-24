@@ -18,7 +18,6 @@
 
 #include "content/child/child_thread_impl.h"
 #include "mojo/public/cpp/bindings/pending_remote.h"
-#include "neva/neva_media_service/clients/mojo_media_platform_api.h"
 #include "neva/neva_media_service/clients/mojo_media_player.h"
 
 namespace media {
@@ -34,23 +33,6 @@ MediaPlayerNeva* CreateMojoMediaPlayer(
   return new neva_media::MojoMediaPlayer(std::move(pending_provider), client,
                                          media_player_type, main_task_runner,
                                          app_id);
-}
-
-scoped_refptr<media::MediaPlatformAPI> CreateMojoMediaPlatformAPI(
-    const scoped_refptr<base::SingleThreadTaskRunner>& media_task_runner,
-    bool video,
-    const std::string& app_id,
-    const MediaPlatformAPI::VideoSizeChangedCB& video_size_changed_cb,
-    const base::RepeatingClosure& resume_done_cb,
-    const base::RepeatingClosure& suspend_done_cb,
-    const MediaPlatformAPI::ActiveRegionCB& active_region_cb,
-    const PipelineStatusCB& error_cb) {
-  mojo::PendingRemote<neva_media::mojom::MediaServiceProvider> pending_provider;
-  content::ChildThread::Get()->BindHostReceiver(
-      pending_provider.InitWithNewPipeAndPassReceiver());
-  return neva_media::MojoMediaPlatformAPI::Create(
-      media_task_runner, video, app_id, video_size_changed_cb, resume_done_cb,
-      suspend_done_cb, active_region_cb, error_cb, std::move(pending_provider));
 }
 
 }  // namespace media

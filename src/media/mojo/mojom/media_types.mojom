@@ -524,9 +524,4 @@ enum RendererType {
   kRemoting = 8,         // RemotingRendererFactory for remoting::Receiver
   kCastStreaming = 9,    // CastStreamingRendererFactory
   kContentEmbedderDefined = 10,  // Defined by the content embedder
-  ///@name USE_NEVA_MEDIA
-  ///@{
-  [EnableIf=use_neva_media]
-  kNevaMediaPlayer = 11,  // NevaMediaPlayerRendererFactory
-  ///@}
 };

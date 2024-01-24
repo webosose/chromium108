@@ -31,11 +31,6 @@
 #include "third_party/blink/renderer/platform/wtf/text/string_hash.h"
 #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
 
-#if defined(USE_NEVA_MEDIA)
-#include "third_party/abseil-cpp/absl/types/optional.h"
-#include "third_party/blink/public/platform/neva/web_media_codec_capability.h"
-#endif
-
 namespace blink {
 
 // Note/reminder: MIME type and parameter names are per-RFC case
@@ -98,15 +93,6 @@ class PLATFORM_EXPORT MIMETypeRegistry {
   // requires a codecs parameter that is missing.
   static SupportsType SupportsMediaSourceMIMEType(const String& mime_type,
                                                   const String& codecs);
-
-#if defined(USE_NEVA_MEDIA)
-  // Checks to see if the mime type and codecs and additional capabilities are
-  // supported by the MediaSource implementation.
-  static SupportsType IsSupportedMediaSourceMIMEType(
-      const String& mime_type,
-      const String& codecs,
-      const absl::optional<WebMediaCodecCapability>& capability);
-#endif
 
   // Checks to see if a mime type is a valid Java applet mime type
   static bool IsJavaAppletMIMEType(const String& mime_type);

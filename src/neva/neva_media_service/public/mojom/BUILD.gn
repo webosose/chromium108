@@ -19,7 +19,6 @@ import("//mojo/public/tools/bindings/mojom.gni")
 mojom("mojom") {
   sources = [
     "constants.mojom",
-    "media_platform_api.mojom",
     "media_player.mojom",
     "neva_media_service.mojom",
   ]

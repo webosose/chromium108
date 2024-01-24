@@ -20,7 +20,6 @@ neva = {
   configs = []
   public_configs = []
   deps = [
-    "//media/neva:media_platform_api",
     "//media/neva:media_player_neva",
     "//ui/platform_window:mojom",
   ]

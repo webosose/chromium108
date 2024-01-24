@@ -314,7 +314,6 @@ static_library("app_runtime") {
     deps += [
       "//components/cdm/common",
       "//components/cdm/renderer",
-      "//media/neva:media_platform_api",
       "//neva/neva_media_service",
       "//neva/neva_media_service/public/mojom",
     ]

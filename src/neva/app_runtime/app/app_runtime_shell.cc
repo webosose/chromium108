@@ -44,7 +44,6 @@ Shell::Shell(const CreateParams& params)
     : app_id_(params.app_id),
       launch_params_(params.launch_params),
       enable_dev_tools_(params.enable_dev_tools) {
-  ReadMediaCodecCapability();
 }
 
 Shell::~Shell() = default;
@@ -71,7 +70,6 @@ ShellWindow* Shell::CreateMainWindow(std::string url,
   page_contents_params.inspectable = enable_dev_tools_;
   page_contents_params.active = true;
   page_contents_params.allow_universal_access_from_file_urls = true;
-  page_contents_params.media_codec_capability = media_codec_capability_;
   page_contents_params.default_access_to_media =
       base::JSONReader::Read(GetLaunchParams())
           ->GetDict()
@@ -112,7 +110,6 @@ PageContents::CreateParams Shell::GetDefaultContentsParams() {
   PageContents::CreateParams nested_params;
   nested_params.app_id = app_id_;
   nested_params.inspectable = enable_dev_tools_;
-  nested_params.media_codec_capability = media_codec_capability_;
   return nested_params;
 }
 
@@ -141,21 +138,6 @@ void Shell::Shutdown() {
     std::move(*g_quit_main_message_loop).Run();
   // Pump the message loop to allow window teardown tasks to run.
   base::RunLoop().RunUntilIdle();
-}
-
-void Shell::ReadMediaCodecCapability() {
-#if defined(OS_WEBOS)
-  // TODO(pikulik): move behind PAL
-  base::FilePath path;
-  std::string media_codec_capability;
-  if (base::PathService::Get(base::FILE_MEDIA_CODEC_CAPABILITIES, &path) &&
-      base::PathExists(path) &&
-      base::ReadFileToString(path, &media_codec_capability)) {
-    media_codec_capability_ = std::move(media_codec_capability);
-  }
-#else
-  NOTIMPLEMENTED();
-#endif
 }
 
 }  // namespace neva_app_runtime

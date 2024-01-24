@@ -31,12 +31,7 @@ enum class RendererType {
   kRemoting = 8,       // RemotingRendererFactory for remoting::Receiver
   kCastStreaming = 9,  // PlaybackCommandForwardingRendererFactory
   kContentEmbedderDefined = 10,  // Defined by the content embedder
-#if !defined(USE_NEVA_MEDIA)
   kMaxValue = kContentEmbedderDefined,
-#else
-  kNevaMediaPlayer = 11,  // NevaMediaPlayerRendererFactory
-  kMaxValue = kNevaMediaPlayer,
-#endif
 };
 
 // Get the name of the Renderer for `renderer_type`. The returned name could be

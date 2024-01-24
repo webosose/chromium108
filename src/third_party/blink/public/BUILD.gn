@@ -411,7 +411,6 @@ source_set("blink_headers") {
 
   if (use_neva_media) {
     sources += [
-      "platform/neva/web_media_codec_capability.h",
       "platform/neva/web_media_player.h",
       "platform/neva/web_media_player_client.h",
     ]

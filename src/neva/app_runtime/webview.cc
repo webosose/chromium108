@@ -669,34 +669,6 @@ void WebView::SetBoardType(const std::string& board_type) {
   web_contents_->SyncRendererPrefs();
 }
 
-void WebView::SetMediaCodecCapability(const std::string& capability) {
-  TRACE_EVENT1("neva", "WebView::SetMediaCodecCapability", "capability",
-               capability);
-
-  blink::RendererPreferences* renderer_prefs =
-      web_contents_->GetMutableRendererPrefs();
-  if (!renderer_prefs->media_codec_capability.compare(capability))
-    return;
-
-  renderer_prefs->media_codec_capability = capability;
-
-  web_contents_->SyncRendererPrefs();
-}
-
-void WebView::SetMediaPreferences(const std::string& preferences) {
-  TRACE_EVENT1("neva", "WebView::SetMediaPreferences", "preferences",
-               preferences);
-
-  blink::RendererPreferences* renderer_prefs =
-      web_contents_->GetMutableRendererPrefs();
-  if (!renderer_prefs->media_preferences.compare(preferences))
-    return;
-
-  renderer_prefs->media_preferences = preferences;
-
-  web_contents_->SyncRendererPrefs();
-}
-
 void WebView::SetSearchKeywordForCustomPlayer(bool enabled) {
   NOTIMPLEMENTED();
   // TODO(jose.dapena): patch not ported

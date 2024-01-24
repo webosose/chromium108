@@ -17,7 +17,6 @@
 #ifndef CONTENT_RENDERER_MEDIA_NEVA_MOJO_MEDIA_PLAYER_FACTORY_H_
 #define CONTENT_RENDERER_MEDIA_NEVA_MOJO_MEDIA_PLAYER_FACTORY_H_
 
-#include "media/neva/media_platform_api.h"
 #include "media/neva/media_player_neva_factory.h"
 
 namespace media {
@@ -27,16 +26,6 @@ MediaPlayerNeva* CreateMojoMediaPlayer(
     MediaPlayerType,
     const scoped_refptr<base::SingleThreadTaskRunner>&,
     const std::string& app_id);
-
-scoped_refptr<media::MediaPlatformAPI> CreateMojoMediaPlatformAPI(
-    const scoped_refptr<base::SingleThreadTaskRunner>& media_task_runner,
-    bool video,
-    const std::string& app_id,
-    const MediaPlatformAPI::VideoSizeChangedCB& video_size_changed_cb,
-    const base::RepeatingClosure& resume_done_cb,
-    const base::RepeatingClosure& suspend_done_cb,
-    const MediaPlatformAPI::ActiveRegionCB& active_region_cb,
-    const PipelineStatusCB& error_cb);
 
 }  // namespace media
 

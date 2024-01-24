@@ -17,15 +17,11 @@
 module neva_media.mojom;
 
 import "media/mojo/mojom/neva/media_types_neva.mojom";
-import "neva/neva_media_service/public/mojom/media_platform_api.mojom";
 import "neva/neva_media_service/public/mojom/media_player.mojom";
 
 interface MediaServiceProvider {
   CreateMediaPlayer(media.mojom.MediaPlayerType type, string app_id,
                     pending_receiver<MediaPlayer> request);
-  CreateMediaPlatformAPI(
-      pending_remote<MediaPlatformAPIListener> media_platform_api_listener,
-      bool is_video, string app_id, pending_receiver<MediaPlatformAPI> request);
 };
 
 interface NevaMediaService {

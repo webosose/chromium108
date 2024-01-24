@@ -19,16 +19,12 @@ import("//services/service_manager/public/cpp/service_executable.gni")
 
 component("neva_media_service") {
   sources = [
-    "clients/mojo_media_platform_api.cc",
-    "clients/mojo_media_platform_api.h",
     "clients/mojo_media_player.cc",
     "clients/mojo_media_player.h",
     "media_service_provider_impl.cc",
     "media_service_provider_impl.h",
     "neva_media_service.cc",
     "neva_media_service.h",
-    "services/mojo_media_platform_api_service.cc",
-    "services/mojo_media_platform_api_service.h",
     "services/mojo_media_player_service.cc",
     "services/mojo_media_player_service.h",
   ]
@@ -37,7 +33,6 @@ component("neva_media_service") {
     "//base",
     "//media/mojo/common",
     "//media/mojo/mojom",
-    "//media/neva:media_platform_api",
     "//media/neva:media_player_neva",
   ]
 

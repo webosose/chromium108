@@ -105,10 +105,6 @@ bool StructTraits<blink::mojom::RendererPreferencesDataView,
     return false;
   if (!data.ReadDisplayId(&out->display_id))
     return false;
-  if (!data.ReadMediaCodecCapability(&out->media_codec_capability))
-    return false;
-  if (!data.ReadMediaPreferences(&out->media_preferences))
-    return false;
   if (!data.ReadBoardType(&out->board_type))
     return false;
   out->allow_fake_bold_text = data.allow_fake_bold_text();

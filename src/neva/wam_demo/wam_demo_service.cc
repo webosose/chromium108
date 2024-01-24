@@ -456,13 +456,6 @@ void WamDemoService::DataUpdated(const std::string& url,
       app->GetWebView()->SetXFrameOptionsCrossOriginAllowed(true);
     } else if (cmd == command::kSetHTMLSystemKeyboardEnabled) {
       app->GetWebView()->SetEnableHtmlSystemKeyboardAttr(true);
-    } else if (cmd == command::kSetMediaCodecCapability) {
-      std::string media_codec_capability;
-      if (UnpackString(value, argument::kMediaCodecCapability, media_codec_capability)) {
-        LOG(INFO) << __func__ << "(): media_codec_capability: " << media_codec_capability;
-        app->GetWebView()->SetMediaCodecCapability(media_codec_capability);
-      } else
-        LOG(INFO) << __func__ << "(): Invalid media codec capability";
     } else if (cmd == command::kAllowUniversalAccessFromFileUrls) {
       app->GetWebView()->SetAllowUniversalAccessFromFileUrls(true);
     } else if (cmd == command::kAllowLocalResourceLoad) {

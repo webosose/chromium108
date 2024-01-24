@@ -399,10 +399,6 @@ class AppWindow : public content::WebContentsDelegate,
   // used by neva project
   std::string GetDisplayId() const { return display_id_; }
   void SetDisplayId(const std::string& id) { display_id_ = id; }
-
-  std::string GetMediaCodecCapability() const {
-    return media_codec_capability_;
-  }
 #endif
 
   bool DidFinishFirstNavigation() { return did_finish_first_navigation_; }
@@ -472,7 +468,6 @@ class AppWindow : public content::WebContentsDelegate,
   void RenderFrameCreated(content::RenderFrameHost* frame_host) override;
 #if defined(OS_WEBOS)
   void DidFirstVisuallyNonEmptyPaint() override;
-  void ReadMediaCapabilityFromPath(const base::FilePath& path);
 #endif
 
   // ExtensionFunctionDispatcher::Delegate implementation.
@@ -619,9 +614,6 @@ class AppWindow : public content::WebContentsDelegate,
 
   // display affinity sent to backend
   std::string display_id_;
-
-  // Platform media codec capability sent to backend.
-  std::string media_codec_capability_;
 #endif
 
   base::WeakPtrFactory<AppWindow> image_loader_ptr_factory_{this};

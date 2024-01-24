@@ -47,8 +47,6 @@ void AppWindowContentsImpl::Initialize(content::BrowserContext* context,
   web_contents_->GetMutableRendererPrefs()->application_id =
       host_->GetApplicationId();
   web_contents_->GetMutableRendererPrefs()->display_id = host_->GetDisplayId();
-  web_contents_->GetMutableRendererPrefs()->media_codec_capability =
-      host_->GetMediaCodecCapability();
 #endif
 #if defined(USE_NEVA_APPRUNTIME)
   web_contents_->GetMutableRendererPrefs()->is_enact_browser = true;

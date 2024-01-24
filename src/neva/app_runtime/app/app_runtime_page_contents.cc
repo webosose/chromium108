@@ -891,11 +891,6 @@ void PageContents::SetRendererPreferences(
   if (!renderer_prefs)
     return;
 
-  if (!params.media_codec_capability.empty() &&
-      renderer_prefs->media_codec_capability.compare(
-          params.media_codec_capability) != 0)
-    renderer_prefs->media_codec_capability = params.media_codec_capability;
-
   if (!params.app_id.empty() &&
       renderer_prefs->application_id.compare(params.app_id) != 0)
     renderer_prefs->application_id = params.app_id;

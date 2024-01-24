@@ -43,11 +43,6 @@
 #include "ui/ozone/public/ozone_platform.h"
 #endif  // defined(USE_OZONE)
 
-#if defined(OS_WEBOS)
-#include "base/files/file_util.h"
-#include "base/path_service.h"
-#endif
-
 namespace wam_demo {
 
 namespace {
@@ -73,19 +68,6 @@ bool IsWaylandExternal() {
   return false;
 #endif  // !defined(USE_OZONE)
 }
-
-#if defined(OS_WEBOS)
-std::string GetMediaCodecCapability() {
-  base::FilePath path;
-  std::string media_codec_capability;
-  if (base::PathService::Get(base::FILE_MEDIA_CODEC_CAPABILITIES, &path) &&
-      base::PathExists(path) &&
-      base::ReadFileToString(path, &media_codec_capability)) {
-    return media_codec_capability;
-  }
-  return std::string();
-}
-#endif
 
 }  // namespace
 
@@ -142,12 +124,6 @@ void WamDemoManager::LaunchApplicationFromCLI(const std::string& appid,
     window->Show();
   else if (IsWayland() || IsWaylandExternal())
     window->Minimize();
-
-#if defined(OS_WEBOS)
-  std::string media_codec_capability = GetMediaCodecCapability();
-  if (!media_codec_capability.empty())
-    webview->SetMediaCodecCapability(media_codec_capability);
-#endif
 
   if (base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kRemoteDebuggingPort)) {
@@ -246,12 +222,6 @@ void WamDemoManager::LaunchApplication(const AppLaunchParams& launch_params) {
   webview->LoadUrl(launch_params.appurl.c_str());
   window->AttachWebContents(webview->GetWebContents());
   window->Show();
-
-#if defined(OS_WEBOS)
-  std::string media_codec_capability = GetMediaCodecCapability();
-  if (!media_codec_capability.empty())
-    webview->SetMediaCodecCapability(media_codec_capability);
-#endif
 
   if (base::CommandLine::ForCurrentProcess()->
       GetSwitchValueASCII(switches::kTestType) == "webdriver") {

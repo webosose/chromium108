@@ -242,14 +242,6 @@ void WebViewBase::SetBoardType(const std::string& board_type) {
   webview_->SetBoardType(board_type);
 }
 
-void WebViewBase::SetMediaCodecCapability(const std::string& capability) {
-  webview_->SetMediaCodecCapability(capability);
-}
-
-void WebViewBase::SetMediaPreferences(const std::string& preferences) {
-  webview_->SetMediaPreferences(preferences);
-}
-
 void WebViewBase::SetSearchKeywordForCustomPlayer(bool enabled) {
   webview_->SetSearchKeywordForCustomPlayer(enabled);
 }

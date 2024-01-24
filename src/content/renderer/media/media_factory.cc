@@ -121,7 +121,6 @@
 #include "content/renderer/media/neva/mojo_media_player_factory.h"
 #include "media/audio/null_audio_sink.h"
 #include "media/base/media_switches_neva.h"
-#include "media/renderers/neva/neva_media_player_renderer_factory.h"
 #include "net/base/mime_util.h"
 #include "third_party/blink/public/platform/media/neva/create_video_window_callback.h"
 #include "third_party/blink/public/platform/web_media_player_client.h"
@@ -521,9 +520,6 @@ blink::WebMediaPlayer* MediaFactory::CreateMediaPlayer(
       render_frame_->GetRenderFrameMediaPlaybackOptions(),
       decoder_factory_.get(),
       std::make_unique<blink::RemotePlaybackClientWrapperImpl>(client),
-#if defined(USE_NEVA_MEDIA)
-      use_neva_media,
-#endif
       &media_observer);
 
 #if BUILDFLAG(ENABLE_MEDIA_REMOTING)
@@ -577,14 +573,10 @@ blink::WebMediaPlayer* MediaFactory::CreateMediaPlayer(
       render_frame_->GetRendererPreferences();
 
   media::CreateMediaPlayerNevaCB create_media_player_neva_cb;
-  media::CreateMediaPlatformAPICB create_media_platform_api_cb;
-
   if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
           switches::kDisableNevaMediaService)) {
     create_media_player_neva_cb =
         base::BindRepeating(&media::CreateMojoMediaPlayer);
-    create_media_platform_api_cb =
-        base::BindRepeating(&media::CreateMojoMediaPlatformAPI);
   }
 #endif
 
@@ -630,8 +622,7 @@ blink::WebMediaPlayer* MediaFactory::CreateMediaPlayer(
       blink::WebString::FromUTF8(renderer_prefs.application_id +
                                  renderer_prefs.display_id),
       renderer_prefs.use_unlimited_media_policy, use_neva_media,
-      std::move(create_media_player_neva_cb),
-      std::move(create_media_platform_api_cb));
+      std::move(create_media_player_neva_cb));
 #else
       blink::Platform::Current()->GetBrowserInterfaceBroker());
 #endif
@@ -656,9 +647,6 @@ MediaFactory::CreateRendererFactorySelector(
     const RenderFrameMediaPlaybackOptions& renderer_media_playback_options,
     media::DecoderFactory* decoder_factory,
     std::unique_ptr<media::RemotePlaybackClientWrapper> client_wrapper,
-#if defined(USE_NEVA_MEDIA)
-    bool use_neva_media,
-#endif
     base::WeakPtr<media::MediaObserver>* out_media_observer) {
   using media::RendererType;
 
@@ -780,19 +768,6 @@ MediaFactory::CreateRendererFactorySelector(
       base::Unretained(courier_factory.get()));
   factory_selector->AddConditionalFactory(
       RendererType::kCourier, std::move(courier_factory), is_remoting_cb);
-#endif
-
-#if defined(USE_NEVA_MEDIA)
-  if (use_neva_media && media::NevaMediaPlayerRendererFactory::Enabled()) {
-    is_base_renderer_factory_set = true;
-    factory_selector->AddFactory(
-        RendererType::kNevaMediaPlayer,
-        std::make_unique<media::NevaMediaPlayerRendererFactory>(
-            media_log, decoder_factory,
-            base::BindRepeating(&RenderThreadImpl::GetGpuFactories,
-                                base::Unretained(render_thread))));
-    factory_selector->SetBaseRendererType(RendererType::kNevaMediaPlayer);
-  }
 #endif
 
 #if BUILDFLAG(IS_WIN)

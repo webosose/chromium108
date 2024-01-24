@@ -58,8 +58,6 @@ class AppRuntimeContentRendererClient : public content::ContentRendererClient {
 #if defined(USE_NEVA_MEDIA)
   void SetUseVideoDecodeAccelerator(bool use);
   void GetSupportedKeySystems(media::GetSupportedKeySystemsCB cb) override;
-  bool IsSupportedAudioType(const media::AudioType& type) override;
-  bool IsSupportedVideoType(const media::VideoType& type) override;
 #endif
 
 #if defined(USE_NEVA_CHROME_EXTENSIONS)

@@ -32,7 +32,6 @@
 #include "neva/neva_media_service/media_service_provider_impl.h"
 #include "neva/neva_media_service/public/mojom/media_player.mojom.h"
 #include "neva/neva_media_service/public/mojom/neva_media_service.mojom.h"
-#include "neva/neva_media_service/services/mojo_media_platform_api_service.h"
 #include "neva/neva_media_service/services/mojo_media_player_service.h"
 
 namespace neva_media {

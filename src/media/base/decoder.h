@@ -26,15 +26,8 @@ enum class AudioDecoderType : int {
   kAudioToolbox = 7,     // AudioToolbox (macOS)
   kMediaFoundation = 8,  // MediaFoundationAudioDecoder
   kPassthroughDTS = 9,   // Passthrough DTS audio
-
-#if defined(USE_NEVA_MEDIA)
-  kNeva = 50,
-  // Keep this at the end and equal to the last entry.
-  kMaxValue = kNeva
-#else
   // Keep this at the end and equal to the last entry.
   kMaxValue = kPassthroughDTS,
-#endif  // defined(USE_NEVA_MEDIA)
 };
 
 // List of known VideoDecoder implementations; recorded to UKM, always add new
@@ -60,14 +53,8 @@ enum class VideoDecoderType : int {
 
   kTesting = 17,  // Never send this to UKM, for tests only.
 
-#if defined(USE_NEVA_MEDIA)
-  kNeva = 50,
-  // Keep this at the end and equal to the last entry.
-  kMaxValue = kNeva
-#else
   // Keep this at the end and equal to the last entry.
   kMaxValue = kTesting
-#endif  // defined(USE_NEVA_MEDIA)
 };
 
 MEDIA_EXPORT std::string GetDecoderName(AudioDecoderType type);

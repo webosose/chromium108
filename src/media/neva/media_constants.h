@@ -19,12 +19,6 @@
 
 namespace media {
 
-enum class FeedType : int32_t {
-  kVideo = 1,
-  kAudio,
-  kMaxValue = kAudio,
-};
-
 enum class PlayerEvent : int32_t {
   kLoadCompleted = 0,
   kSeekDone,
@@ -33,12 +27,6 @@ enum class PlayerEvent : int32_t {
   kBufferFull,
   kSuspendDone,
   kMaxValue = kSuspendDone,
-};
-
-enum class RestorePlaybackMode : int32_t {
-  kPaused,
-  kPlaying,
-  kMaxValue = kPlaying,
 };
 
 enum class SuspendReason : int32_t {
