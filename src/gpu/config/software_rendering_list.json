@@ -1666,18 +1666,6 @@
       ]
     },
     {
-      "id": 176,
-      "description": "VMware is buggy on Linux",
-      "cr_bugs": [1327939],
-      "os": {
-        "type": "linux"
-      },
-      "vendor_id": "0x15ad",
-      "features": [
-        "all"
-      ]
-    },
-    {
       "id": 177,
       "description": "Apple Software Renderer used under VMWare experiences synchronization issues with GPU Raster",
       "cr_bugs": [607829, 1342540],
