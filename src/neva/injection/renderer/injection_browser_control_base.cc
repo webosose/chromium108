@@ -18,6 +18,7 @@
 
 #include <string>
 
+#include "base/check.h"
 #include "content/public/renderer/render_frame.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
@@ -27,10 +28,11 @@
 namespace injections {
 
 InjectionBrowserControlBase::InjectionBrowserControlBase(
-    blink::WebLocalFrame* web_local_frame) {
-  content::RenderFrame::FromWebFrame(web_local_frame)->
-      GetRemoteAssociatedInterfaces()->GetInterface(
-          &webview_controller_interface_);
+    blink::WebLocalFrame* frame) {
+  auto* render_frame = content::RenderFrame::FromWebFrame(frame);
+  CHECK(render_frame);
+  render_frame->GetRemoteAssociatedInterfaces()->GetInterface(
+      &webview_controller_interface_);
 }
 
 void InjectionBrowserControlBase::SendCommand(const std::string& command_name) {
