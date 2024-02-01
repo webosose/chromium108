@@ -38,9 +38,11 @@ const char WebOSGAVInjection::kWillDestroyMediaLayer[] =
 
 WebOSGAVInjection::WebOSGAVInjection(blink::WebLocalFrame* frame)
     : InjectionBrowserControlBase(frame),
-      data_manager_(CallFunction("initialize")),
-      video_window_factory_(content::RenderFrame::FromWebFrame(frame)
-                                ->GetFrameVideoWindowFactory()) {}
+      data_manager_(CallFunction("initialize")) {
+  auto* render_frame = content::RenderFrame::FromWebFrame(frame);
+  CHECK(render_frame);
+  video_window_factory_ = render_frame->GetFrameVideoWindowFactory();
+}
 
 void WebOSGAVInjection::OnVideoWindowCreated(const std::string& id,
                                              const std::string& video_window_id,
