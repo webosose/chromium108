@@ -163,6 +163,9 @@ WebView::WebView(int width, int height, WebViewProfile* profile)
 WebView::~WebView() {
   SetCorsCorbDisabled(false);
 #if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  if (is_pwa_)
+    installable_manager_->UpdateApp();
+
   GetAppRuntimeContentBrowserClient()->RemovePwaAppOrigin(
       web_contents_->GetPrimaryMainFrame()->GetProcess()->GetID());
 #endif  // ENABLE_PWA_MANAGER_WEBAPI

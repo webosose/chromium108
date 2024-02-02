@@ -43,6 +43,7 @@ class WebViewGuestInstallableManager
   void InstallApp(InstallAppCallback callback) override;
 
   void MaybeUpdate();
+  void UpdateApp();
 
  private:
   void OnGetInfo(GetInfoCallback callback, bool installable, bool installed);

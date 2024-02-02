@@ -34,6 +34,7 @@
 #include "base/strings/stringprintf.h"
 #include "base/values.h"
 #include "base/version.h"
+#include "content/public/browser/browser_task_traits.h"
 #include "neva/pal_service/luna/luna_names.h"
 #include "third_party/blink/public/web/web_ax_enums.h"
 #include "ui/gfx/codec/png_codec.h"
@@ -53,6 +54,66 @@ bool CreateTempAppDir(const std::string& app_id, base::FilePath* out_dir) {
 std::string BackgroundColorForWebosAppinfo(int webappinfo_color) {
   return base::StringPrintf("#%06X", webappinfo_color & 0xFFFFFF);
 }
+
+/*
+ * The LunaUpdatePostpone class is needed to implement the deferred command for
+ * appinstallService. When the application is closed, the
+ * WebAppInstallableDelegateWebOS is destroyed along with it. We need to execute
+ * the luna command after the application is closed, for this we create a luna
+ * client wrapper class that executes the command, waits for a response from
+ * appinstallService about updating the application to then delete the class
+ * instance from memory.
+ */
+class LunaUpdatePostpone {
+ public:
+  LunaUpdatePostpone(std::unique_ptr<pal::luna::Client>& luna_client_);
+  ~LunaUpdatePostpone() = default;
+
+  void WrapperCall(std::string&& service_uri, std::string&& call_params_str);
+
+ private:
+  void OnWrapperCall(pal::luna::Client::ResponseStatus status,
+                     unsigned,
+                     const std::string& json);
+
+  std::unique_ptr<pal::luna::Client> luna_client_;
+};
+
+LunaUpdatePostpone::LunaUpdatePostpone(
+    std::unique_ptr<pal::luna::Client>& luna_client)
+    : luna_client_{std::move(luna_client)} {}
+
+void LunaUpdatePostpone::WrapperCall(std::string&& service_uri,
+                                     std::string&& call_params_str) {
+  if (luna_client_ && luna_client_->IsInitialized()) {
+    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+            << service_uri << " " << call_params_str;
+
+    luna_client_->Subscribe(
+        std::move(service_uri), std::move(call_params_str),
+        base::BindRepeating(&LunaUpdatePostpone::OnWrapperCall,
+                            base::Unretained(this)));
+
+  } else {
+    LOG(ERROR) << __func__ << "() Luna client not ready";
+  }
+}
+
+void LunaUpdatePostpone::OnWrapperCall(pal::luna::Client::ResponseStatus status,
+                                       unsigned,
+                                       const std::string& json) {
+  VLOG(1) << __func__ << "() status=" << static_cast<int>(status)
+          << ", response='" << json << "'";
+
+  auto vals(base::JSONReader::Read(json));
+  if (vals && vals->is_dict()) {
+    int progress = vals->FindIntPath("details.progress").value_or(0);
+    int error = vals->FindIntPath("details.errorCode").value_or(0);
+    if (progress == 100 || error != 0)
+      delete this;
+  }
+}
+
 }  // namespace
 
 namespace pal {
@@ -82,7 +143,9 @@ WebAppInstallableDelegateWebOS::Icon::Icon(Type type,
 }
 
 WebAppInstallableDelegateWebOS::WebAppInstallableDelegateWebOS()
-    : luna_client_(InitLunaClient()), weak_ptr_factory_(this) {}
+    : luna_client_(InitLunaClient()),
+      haveUpdate{false},
+      weak_ptr_factory_(this) {}
 
 // static
 std::unique_ptr<luna::Client> WebAppInstallableDelegateWebOS::InitLunaClient() {
@@ -142,7 +205,8 @@ bool WebAppInstallableDelegateWebOS::ShouldAppForURLBeUpdated(
 }
 
 // Put app contents in a temporary directory and ask appinstall to update
-bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
+bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info,
+                                                   bool isUpdate) {
   base::FilePath app_dir;
   if (!CreateTempAppDir(app_info->id(), &app_dir)) {
     LOG(ERROR) << __func__ << "() Failed to create temporary webapp directory";
@@ -186,16 +250,49 @@ bool WebAppInstallableDelegateWebOS::SaveArtifacts(const WebAppInfo* app_info) {
     LOG(ERROR) << __func__ << "() Failed to write " << appinfo_path;
     return false;
   }
+  app_id_ = app_info->id();
+  app_dir_ = app_dir.value();
+  haveUpdate = isUpdate;
 
-  CallAppUpdate(app_info->id(), app_dir.value());
+  if (!isUpdate)
+    CallAppInstall();
+
   return true;
 }
 
-void WebAppInstallableDelegateWebOS::CallAppUpdate(const std::string& id,
-                                                   const std::string& app_dir) {
+void WebAppInstallableDelegateWebOS::UpdateApp() {
+  if (!haveUpdate)
+    return;
+
+  if (app_id_.empty() || app_dir_.empty())
+    return;
+
   base::Value::Dict call_params;
-  call_params.Set("id", id);
-  call_params.Set("ipkUrl", app_dir);
+  call_params.Set("id", app_id_);
+  call_params.Set("ipkUrl", neva_app_runtime::kPwaSchemaName + app_dir_);
+  call_params.Set("subscribe", true);
+  std::string call_params_str;
+  if (!base::JSONWriter::Write(call_params, &call_params_str)) {
+    LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
+    return;
+  }
+
+  std::string service_uri = pal::luna::GetServiceURI(
+      pal::luna::service_uri::kAppInstallService, "install");
+
+  auto l = InitLunaClient();
+  LunaUpdatePostpone* lw = new LunaUpdatePostpone(l);
+  content::GetUIThreadTaskRunner({})->PostDelayedTask(
+      FROM_HERE,
+      base::BindOnce(&LunaUpdatePostpone::WrapperCall, base::Unretained(lw),
+                     std::move(service_uri), std::move(call_params_str)),
+      base::Milliseconds(neva_app_runtime::kPwaUpdateTimeout));
+}
+
+void WebAppInstallableDelegateWebOS::CallAppInstall() {
+  base::Value::Dict call_params;
+  call_params.Set("id", app_id_);
+  call_params.Set("ipkUrl", neva_app_runtime::kPwaSchemaName + app_dir_);
   std::string call_params_str;
   if (!base::JSONWriter::Write(call_params, &call_params_str)) {
     LOG(ERROR) << __func__ << "() Failed to serialize luna call params";

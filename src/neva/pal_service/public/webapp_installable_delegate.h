@@ -61,7 +61,9 @@ class WebAppInstallableDelegate {
 
   virtual ~WebAppInstallableDelegate();
 
-  virtual bool SaveArtifacts(const WebAppInfo* app_info) = 0;
+  virtual void UpdateApp() = 0;
+  virtual bool SaveArtifacts(const WebAppInfo* app_info,
+                             bool isUpdate = false) = 0;
   using ResultCallback = base::OnceCallback<void(bool result)>;
   virtual void IsWebAppForUrlInstalled(const GURL& app_start_url,
                                        ResultCallback) = 0;

@@ -74,6 +74,10 @@ void WebViewGuestInstallableManager::OnInstallApp(InstallAppCallback callback,
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(WebViewGuestInstallableManager);
 
+void WebViewGuestInstallableManager::UpdateApp() {
+  installable_manager_.UpdateApp();
+}
+
 void WebViewGuestInstallableManager::MaybeUpdate() {
   installable_manager_.MaybeUpdate(web_contents_);
 }

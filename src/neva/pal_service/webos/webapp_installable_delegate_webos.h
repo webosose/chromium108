@@ -42,13 +42,15 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
   WebAppInstallableDelegateWebOS& operator=(
       const WebAppInstallableDelegateWebOS&) = delete;
 
-  bool SaveArtifacts(const WebAppInfo* app_info) override;
+  bool SaveArtifacts(const WebAppInfo* app_info,
+                     bool isUpdate = false) override;
   void IsWebAppForUrlInstalled(const GURL& url,
                                ResultCallback callback) override;
   bool ShouldAppForURLBeUpdated(const GURL& app_start_url,
                                 ResultCallback callback) override;
   void IsInfoChanged(std::unique_ptr<WebAppInfo> app_info,
                      ResultWithVersionCallback callback) override;
+  void UpdateApp() override;
 
  protected:
   std::string GenerateAppId(const GURL& app_start_url) override;
@@ -75,7 +77,7 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
 
   static std::unique_ptr<luna::Client> InitLunaClient();
 
-  void CallAppUpdate(const std::string& id, const std::string& app_dir);
+  void CallAppInstall();
   void OnGetAppInfoStatus(ResultCallback callback,
                           pal::luna::Client::ResponseStatus status,
                           unsigned token,
@@ -97,6 +99,9 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
                               const base::FilePath& app_dir);
 
   std::unique_ptr<luna::Client> luna_client_;
+  std::string app_id_;
+  std::string app_dir_;
+  bool haveUpdate;
   base::WeakPtrFactory<WebAppInstallableDelegateWebOS> weak_ptr_factory_;
 };
 

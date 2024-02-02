@@ -40,6 +40,7 @@ class WebAppInstallableManager {
   void InstallWebApp(content::WebContents* web_contents,
                      InstallWebAppCallback callback);
   void MaybeUpdate(content::WebContents* web_contents);
+  void UpdateApp();
 
  private:
   void OnCheckInstallability(CheckInstallabilityCallback callback,

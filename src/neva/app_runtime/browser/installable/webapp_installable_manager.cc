@@ -127,6 +127,10 @@ void WebAppInstallableManager::OnIconsDownloaded(
   std::move(callback).Run(install_result);
 }
 
+void WebAppInstallableManager::UpdateApp() {
+  pal_installable_delegate_->UpdateApp();
+}
+
 // Update
 void WebAppInstallableManager::MaybeUpdate(content::WebContents* web_contents) {
   VLOG(1) << "Begin update steps of PWA app";
@@ -215,7 +219,7 @@ void WebAppInstallableManager::OnIsInfoChanged(
     VLOG(1) << "Proceed with updating the app";
     new_delegate_info->set_version(version);
     bool install_result =
-        pal_installable_delegate_->SaveArtifacts(new_delegate_info.get());
+        pal_installable_delegate_->SaveArtifacts(new_delegate_info.get(), true);
     VLOG(1) << "The app update install_result: " << install_result;
   } else {
     VLOG(1) << "Do not update the app because resources are not changed";
