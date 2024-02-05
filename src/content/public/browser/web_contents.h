@@ -378,10 +378,10 @@ class WebContents : public PageNavigator,
   virtual void SetInspectablePage(bool inspectable) = 0;
   virtual void DropAllPeerConnections(
       blink::mojom::DropPeerConnectionReason reason) = 0;
-  virtual bool DecidePolicyForResponse(bool is_main_frame,
-                                       int status_code,
-                                       const std::string& url,
-                                       const std::string& status_text) = 0;
+  virtual bool DecidePolicyForErrorPage(bool is_main_frame,
+                                        int error_code,
+                                        const std::string& url,
+                                        const std::string& error_text) = 0;
 #endif
 
   // Returns the primary main frame for the currently active page. Always

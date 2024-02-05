@@ -398,8 +398,8 @@ void WamDemoService::DataUpdated(const std::string& url,
       }
     } else if (cmd == command::kClearInjections) {
       app->GetWebView()->RequestClearInjections();
-    } else if (cmd == command::kDecidePolicyForResponse) {
-      app->GetWebView()->SetDecidePolicyForResponse();
+    } else if (cmd == command::kDecidePolicyForErrorPage) {
+      app->GetWebView()->SetDecidePolicyForErrorPage();
     } else if (cmd == command::kDeleteWebStorages) {
       app->GetWebView()->DeleteWebStorages(system_appid);
     } else if (cmd == command::kClearBrowsingData) {

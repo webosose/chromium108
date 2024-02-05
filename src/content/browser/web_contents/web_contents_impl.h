@@ -353,10 +353,10 @@ class CONTENT_EXPORT WebContentsImpl : public WebContents,
   void SetInspectablePage(bool inspectable) override;
   void DropAllPeerConnections(
       blink::mojom::DropPeerConnectionReason reason) override;
-  bool DecidePolicyForResponse(bool is_main_frame,
-                               int status_code,
-                               const std::string& url,
-                               const std::string& status_text) override;
+  bool DecidePolicyForErrorPage(bool is_main_frame,
+                                int error_code,
+                                const std::string& url,
+                                const std::string& error_text) override;
 #endif
 
   BrowserContext* GetBrowserContext() override;

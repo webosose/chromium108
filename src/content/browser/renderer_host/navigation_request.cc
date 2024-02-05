@@ -3699,7 +3699,7 @@ void NavigationRequest::OnResponseStarted(
     WebContents* web_contents = WebContents::FromRenderFrameHost(
         frame_tree_node_->current_frame_host());
     if (web_contents) {
-      const bool has_policy = web_contents->DecidePolicyForResponse(
+      const bool has_policy = web_contents->DecidePolicyForErrorPage(
           frame_tree_node_->IsMainFrame(),
           response_head_->headers->response_code(), common_params_->url.spec(),
           response_head_->headers->GetStatusText());
@@ -8028,7 +8028,7 @@ bool NavigationRequest::MaybeCancelFailedNavigation() {
   WebContents* web_contents =
       WebContents::FromRenderFrameHost(frame_tree_node_->current_frame_host());
   if (web_contents &&
-      web_contents->DecidePolicyForResponse(
+      web_contents->DecidePolicyForErrorPage(
           IsInMainFrame(), net_error_, common_params_->url.spec(),
           net::ErrorToShortString(net_error_))) {
     return true;

@@ -647,10 +647,10 @@ class CONTENT_EXPORT WebContentsDelegate {
   virtual void DidFrameFocused() {}
   virtual bool GetAllowLocalResourceLoad() const;
   virtual void OverrideWebkitPrefs(blink::web_pref::WebPreferences* prefs) {}
-  virtual bool DecidePolicyForResponse(bool is_main_frame,
-                                       int status_code,
-                                       const std::string& url,
-                                       const std::string& status_text);
+  virtual bool DecidePolicyForErrorPage(bool is_main_frame,
+                                        int error_code,
+                                        const std::string& url,
+                                        const std::string& error_text);
   virtual bool AudioCaptureAllowed() { return false; }
   virtual bool VideoCaptureAllowed() { return false; }
 #endif

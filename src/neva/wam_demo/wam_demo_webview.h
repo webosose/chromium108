@@ -59,10 +59,10 @@ class WamDemoWebView : public neva_app_runtime::WebViewBase {
   void TitleChanged(const std::string& title) override;
   void NavigationHistoryChanged() override;
   void Close() override;
-  bool DecidePolicyForResponse(bool is_main_frame,
-                               int status_code,
-                               const std::string& url,
-                               const std::string& status_text) override;
+  bool DecidePolicyForErrorPage(bool is_main_frame,
+                                int error_code,
+                                const std::string& url,
+                                const std::string& error_text) override;
   bool AcceptsVideoCapture() override;
   bool AcceptsAudioCapture() override;
   void LoadStarted() override;
@@ -96,9 +96,9 @@ class WamDemoWebView : public neva_app_runtime::WebViewBase {
   // Additional methods for testing
   void SetMediaCapturePermission();
   void ClearMediaCapturePermission();
-  void SetDecidePolicyForResponse();
+  void SetDecidePolicyForErrorPage();
 
-private:
+ private:
   WamDemoWebViewObserver* observer_;
   std::string title_;
   std::string progress_;

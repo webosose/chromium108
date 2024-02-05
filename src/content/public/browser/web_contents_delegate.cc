@@ -309,11 +309,11 @@ bool WebContentsDelegate::ShouldAllowRunningInsecureContent(
 }
 
 #if defined(USE_NEVA_APPRUNTIME)
-bool WebContentsDelegate::DecidePolicyForResponse(
+bool WebContentsDelegate::DecidePolicyForErrorPage(
     bool is_main_frame,
-    int status_code,
+    int error_code,
     const std::string& url,
-    const std::string& status_text) {
+    const std::string& error_text) {
   return false;
 }
 

@@ -1533,17 +1533,17 @@ void WebView::OverrideWebkitPrefs(blink::web_pref::WebPreferences* prefs) {
       web_preferences_->third_party_cookies_policy;
 }
 
-bool WebView::DecidePolicyForResponse(bool is_main_frame,
-                                      int status_code,
-                                      const std::string& url,
-                                      const std::string& status_text) {
-  TRACE_EVENT2("neva", "WebView::DecidePolicyForResponse", "is_main_frame",
-               is_main_frame, "status_code", status_code);
+bool WebView::DecidePolicyForErrorPage(bool is_main_frame,
+                                       int error_code,
+                                       const std::string& url,
+                                       const std::string& error_text) {
+  TRACE_EVENT2("neva", "WebView::DecidePolicyForErrorPage", "is_main_frame",
+               is_main_frame, "error_code", error_code);
 
   if (!webview_delegate_)
     return false;
-  return webview_delegate_->DecidePolicyForResponse(is_main_frame, status_code,
-                                                    url, status_text);
+  return webview_delegate_->DecidePolicyForErrorPage(is_main_frame, error_code,
+                                                     url, error_text);
 }
 
 void WebView::SetV8SnapshotPath(const std::string& v8_snapshot_path) {

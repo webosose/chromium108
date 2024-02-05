@@ -30,7 +30,7 @@ extern const char kChangeUrl[];
 extern const char kClearBrowsingData[];
 extern const char kClearInjections[];
 extern const char kClearMediaCapturePermission[];
-extern const char kDecidePolicyForResponse[];
+extern const char kDecidePolicyForErrorPage[];
 extern const char kDeleteWebStorages[];
 extern const char kDetachGroup[];
 extern const char kDisableBackButton[];

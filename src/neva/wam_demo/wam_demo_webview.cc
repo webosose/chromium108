@@ -126,14 +126,14 @@ void WamDemoWebView::Close() {
     observer_->OnClose(this);
 }
 
-bool WamDemoWebView::DecidePolicyForResponse(bool is_main_frame,
-                                        int status_code,
-                                        const std::string& url,
-                                        const std::string& status_text) {
+bool WamDemoWebView::DecidePolicyForErrorPage(bool is_main_frame,
+                                              int error_code,
+                                              const std::string& url,
+                                              const std::string& error_text) {
   return policy_;
 }
 
-void WamDemoWebView::SetDecidePolicyForResponse() {
+void WamDemoWebView::SetDecidePolicyForErrorPage() {
   policy_ = true;
 }
 
