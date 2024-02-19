@@ -75,8 +75,6 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
     static const std::map<Icon::Type, std::string> icon_types;
   };
 
-  static std::unique_ptr<luna::Client> InitLunaClient();
-
   void CallAppInstall();
   void OnGetAppInfoStatus(ResultCallback callback,
                           pal::luna::Client::ResponseStatus status,
@@ -98,7 +96,6 @@ class WebAppInstallableDelegateWebOS : public WebAppInstallableDelegate {
                               const base::Value& appinfo_json,
                               const base::FilePath& app_dir);
 
-  std::unique_ptr<luna::Client> luna_client_;
   std::string app_id_;
   std::string app_dir_;
   bool haveUpdate;

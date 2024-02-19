@@ -29,6 +29,7 @@
 #include "base/json/json_reader.h"
 #include "base/json/json_writer.h"
 #include "base/logging.h"
+#include "base/memory/singleton.h"
 #include "base/path_service.h"
 #include "base/strings/string_split.h"
 #include "base/strings/stringprintf.h"
@@ -55,63 +56,52 @@ std::string BackgroundColorForWebosAppinfo(int webappinfo_color) {
   return base::StringPrintf("#%06X", webappinfo_color & 0xFFFFFF);
 }
 
-/*
- * The LunaUpdatePostpone class is needed to implement the deferred command for
- * appinstallService. When the application is closed, the
- * WebAppInstallableDelegateWebOS is destroyed along with it. We need to execute
- * the luna command after the application is closed, for this we create a luna
- * client wrapper class that executes the command, waits for a response from
- * appinstallService about updating the application to then delete the class
- * instance from memory.
- */
-class LunaUpdatePostpone {
+class LunaClient {
  public:
-  LunaUpdatePostpone(std::unique_ptr<pal::luna::Client>& luna_client_);
-  ~LunaUpdatePostpone() = default;
-
-  void WrapperCall(std::string&& service_uri, std::string&& call_params_str);
+  static LunaClient* GetInstance();
+  LunaClient(const LunaClient&) = delete;
+  LunaClient& operator=(const LunaClient&) = delete;
+  bool Call(std::string uri,
+            std::string param,
+            pal::luna::Client::OnceResponse callback = base::DoNothing());
+  std::string GetName() const;
+  bool IsInitialized() const;
 
  private:
-  void OnWrapperCall(pal::luna::Client::ResponseStatus status,
-                     unsigned,
-                     const std::string& json);
+  friend struct base::DefaultSingletonTraits<LunaClient>;
 
+  LunaClient();
+  ~LunaClient() = default;
   std::unique_ptr<pal::luna::Client> luna_client_;
 };
 
-LunaUpdatePostpone::LunaUpdatePostpone(
-    std::unique_ptr<pal::luna::Client>& luna_client)
-    : luna_client_{std::move(luna_client)} {}
-
-void LunaUpdatePostpone::WrapperCall(std::string&& service_uri,
-                                     std::string&& call_params_str) {
-  if (luna_client_ && luna_client_->IsInitialized()) {
-    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
-            << service_uri << " " << call_params_str;
-
-    luna_client_->Subscribe(
-        std::move(service_uri), std::move(call_params_str),
-        base::BindRepeating(&LunaUpdatePostpone::OnWrapperCall,
-                            base::Unretained(this)));
-
-  } else {
-    LOG(ERROR) << __func__ << "() Luna client not ready";
-  }
+// static
+LunaClient* LunaClient::GetInstance() {
+  return base::Singleton<LunaClient>::get();
 }
 
-void LunaUpdatePostpone::OnWrapperCall(pal::luna::Client::ResponseStatus status,
-                                       unsigned,
-                                       const std::string& json) {
-  VLOG(1) << __func__ << "() status=" << static_cast<int>(status)
-          << ", response='" << json << "'";
+LunaClient::LunaClient() {
+  pal::luna::Client::Params params;
+  params.name = pal::luna::GetServiceNameWithRandSuffix(
+      pal::luna::service_name::kChromiumInstallableManager);
+  luna_client_ = pal::luna::CreateClient(params);
+}
 
-  auto vals(base::JSONReader::Read(json));
-  if (vals && vals->is_dict()) {
-    int progress = vals->FindIntPath("details.progress").value_or(0);
-    int error = vals->FindIntPath("details.errorCode").value_or(0);
-    if (progress == 100 || error != 0)
-      delete this;
-  }
+bool LunaClient::Call(std::string uri,
+                      std::string param,
+                      pal::luna::Client::OnceResponse callback) {
+  if (!IsInitialized())
+    return false;
+
+  return luna_client_->Call(uri, param, std::move(callback));
+}
+
+std::string LunaClient::GetName() const {
+  return IsInitialized() ? luna_client_->GetName() : std::string();
+}
+
+bool LunaClient::IsInitialized() const {
+  return luna_client_ && luna_client_->IsInitialized();
 }
 
 }  // namespace
@@ -143,17 +133,7 @@ WebAppInstallableDelegateWebOS::Icon::Icon(Type type,
 }
 
 WebAppInstallableDelegateWebOS::WebAppInstallableDelegateWebOS()
-    : luna_client_(InitLunaClient()),
-      haveUpdate{false},
-      weak_ptr_factory_(this) {}
-
-// static
-std::unique_ptr<luna::Client> WebAppInstallableDelegateWebOS::InitLunaClient() {
-  luna::Client::Params params;
-  params.name = luna::GetServiceNameWithRandSuffix(
-      luna::service_name::kChromiumInstallableManager);
-  return luna::CreateClient(params);
-}
+    : weak_ptr_factory_(this) {}
 
 void WebAppInstallableDelegateWebOS::IsWebAppForUrlInstalled(
     const GURL& app_start_url,
@@ -166,12 +146,12 @@ void WebAppInstallableDelegateWebOS::IsWebAppForUrlInstalled(
     return;
   }
 
-  if (luna_client_ && luna_client_->IsInitialized()) {
-    std::string service_uri = pal::luna::GetServiceURI(
-        pal::luna::service_uri::kApplicationManager, "getAppInfo");
-    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+  if (LunaClient::GetInstance()->IsInitialized()) {
+    std::string service_uri = luna::GetServiceURI(
+        luna::service_uri::kApplicationManager, "getAppInfo");
+    VLOG(1) << __func__ << "() " << LunaClient::GetInstance()->GetName() << " "
             << service_uri << " " << call_params_str;
-    luna_client_->Call(
+    LunaClient::GetInstance()->Call(
         std::move(service_uri), std::move(call_params_str),
         base::BindOnce(&WebAppInstallableDelegateWebOS::OnGetAppInfoStatus,
                        weak_ptr_factory_.GetWeakPtr(), std::move(callback)));
@@ -270,23 +250,17 @@ void WebAppInstallableDelegateWebOS::UpdateApp() {
   base::Value::Dict call_params;
   call_params.Set("id", app_id_);
   call_params.Set("ipkUrl", neva_app_runtime::kPwaSchemaName + app_dir_);
-  call_params.Set("subscribe", true);
+  call_params.Set("subscribe", false);
   std::string call_params_str;
   if (!base::JSONWriter::Write(call_params, &call_params_str)) {
     LOG(ERROR) << __func__ << "() Failed to serialize luna call params";
     return;
   }
 
-  std::string service_uri = pal::luna::GetServiceURI(
-      pal::luna::service_uri::kAppInstallService, "install");
+  std::string service_uri =
+      luna::GetServiceURI(luna::service_uri::kAppInstallService, "install");
 
-  auto l = InitLunaClient();
-  LunaUpdatePostpone* lw = new LunaUpdatePostpone(l);
-  content::GetUIThreadTaskRunner({})->PostDelayedTask(
-      FROM_HERE,
-      base::BindOnce(&LunaUpdatePostpone::WrapperCall, base::Unretained(lw),
-                     std::move(service_uri), std::move(call_params_str)),
-      base::Milliseconds(neva_app_runtime::kPwaUpdateTimeout));
+  LunaClient::GetInstance()->Call(service_uri, call_params_str);
 }
 
 void WebAppInstallableDelegateWebOS::CallAppInstall() {
@@ -299,12 +273,12 @@ void WebAppInstallableDelegateWebOS::CallAppInstall() {
     return;
   }
 
-  if (luna_client_ && luna_client_->IsInitialized()) {
-    std::string service_uri = pal::luna::GetServiceURI(
-        pal::luna::service_uri::kAppInstallService, "install");
-    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+  if (LunaClient::GetInstance()->IsInitialized()) {
+    std::string service_uri =
+        luna::GetServiceURI(luna::service_uri::kAppInstallService, "install");
+    VLOG(1) << __func__ << "() " << LunaClient::GetInstance()->GetName() << " "
             << service_uri << " " << call_params_str;
-    luna_client_->Call(
+    LunaClient::GetInstance()->Call(
         std::move(service_uri), std::move(call_params_str),
         base::BindOnce(&WebAppInstallableDelegateWebOS::OnInstallApp,
                        weak_ptr_factory_.GetWeakPtr()));
@@ -475,12 +449,12 @@ void WebAppInstallableDelegateWebOS::IsInfoChanged(
     return;
   }
 
-  if (luna_client_ && luna_client_->IsInitialized()) {
-    std::string service_uri = pal::luna::GetServiceURI(
-        pal::luna::service_uri::kApplicationManager, "getAppInfo");
-    VLOG(1) << __func__ << "() " << luna_client_->GetName() << " "
+  if (LunaClient::GetInstance()->IsInitialized()) {
+    std::string service_uri = luna::GetServiceURI(
+        luna::service_uri::kApplicationManager, "getAppInfo");
+    VLOG(1) << __func__ << "() " << LunaClient::GetInstance()->GetName() << " "
             << service_uri << " " << call_params_str;
-    luna_client_->Call(
+    LunaClient::GetInstance()->Call(
         std::move(service_uri), std::move(call_params_str),
         base::BindOnce(&WebAppInstallableDelegateWebOS::OnGetAppInfoPath,
                        weak_ptr_factory_.GetWeakPtr(),
