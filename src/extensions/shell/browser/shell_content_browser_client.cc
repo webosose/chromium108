@@ -634,15 +634,31 @@ ShellContentBrowserClient::CreateLoginDelegate(
     scoped_refptr<net::HttpResponseHeaders> response_headers,
     bool first_auth_attempt,
     LoginAuthRequiredCallback auth_required_callback) {
-  // Allows running proxy authentication directly without entering
-  // username and password into the popup
-  if (!auth_required_callback.is_null() && !credentials_.Empty()) {
-    content::GetUIThreadTaskRunner({})->PostTask(
-        FROM_HERE,
-        base::BindOnce(std::move(auth_required_callback), credentials_));
-    return std::make_unique<content::LoginDelegate>();
+  if (auth_info.is_proxy) {
+    // Allows running proxy authentication directly without entering
+    // username and password into the popup
+    if (!auth_required_callback.is_null() && !credentials_.Empty()) {
+      content::GetUIThreadTaskRunner({})->PostTask(
+          FROM_HERE,
+          base::BindOnce(std::move(auth_required_callback), credentials_));
+      return std::make_unique<content::LoginDelegate>();
+    }
+    return nullptr;
   }
-  return nullptr;
+
+  BrowserContext* browser_context = GetBrowserContext();
+  extensions::WebRequestAPI* api =
+      extensions::BrowserContextKeyedAPIFactory<extensions::WebRequestAPI>::Get(
+          browser_context);
+  auto continuation =
+      base::BindOnce(&AuthRequestCallback, std::move(auth_required_callback));
+
+  if (api->MaybeProxyAuthRequest(
+          browser_context, auth_info, std::move(response_headers), request_id,
+          is_request_for_main_frame, std::move(continuation))) {
+  }
+
+  return std::make_unique<content::LoginDelegate>();
 }
 
 content::StoragePartitionConfig
