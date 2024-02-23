@@ -215,6 +215,7 @@ WebMediaPlayerNeva::WebMediaPlayerNeva(
       is_loading_(false),
       create_video_window_callback_(std::move(create_video_window_callback)) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
 
   weak_this_ = weak_factory_.GetWeakPtr();
 
@@ -256,6 +257,7 @@ WebMediaPlayerNeva::WebMediaPlayerNeva(
 
 WebMediaPlayerNeva::~WebMediaPlayerNeva() {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   GetClient()->SetCcLayer(nullptr);
 
   if (video_layer_.get()) {
@@ -278,6 +280,7 @@ WebMediaPlayer::LoadTiming WebMediaPlayerNeva::Load(
     CorsMode cors_mode,
     bool is_cache_disabled) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   NEVA_VLOGTF(1);
 
   NEVA_DCHECK(src.IsURL());
@@ -384,6 +387,7 @@ void WebMediaPlayerNeva::DidLoadMediaInfo(bool ok, const GURL& url) {
 
 void WebMediaPlayerNeva::LoadMedia() {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   NEVA_VLOGTF(1);
 
 #if defined(USE_GAV)
@@ -1005,6 +1009,7 @@ void WebMediaPlayerNeva::OnVideoSizeChanged(const gfx::Size& coded_size,
 void WebMediaPlayerNeva::OnAudioTracksUpdated(
     const std::vector<media::MediaTrackInfo>& audio_track_info) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   for (auto& audio_track : audio_track_info) {
     // Check current id is already added or not.
     auto it = std::find_if(audio_track_ids_.begin(), audio_track_ids_.end(),
@@ -1067,6 +1072,7 @@ void WebMediaPlayerNeva::OnMediaPlayerPause() {
 void WebMediaPlayerNeva::UpdateNetworkState(
     WebMediaPlayer::NetworkState state) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   NEVA_VLOGTF(1) << "(" << NetworkStateToString(state) << ")";
   if (ready_state_ == WebMediaPlayer::kReadyStateHaveNothing &&
       (state == WebMediaPlayer::kNetworkStateNetworkError ||
@@ -1083,6 +1089,7 @@ void WebMediaPlayerNeva::UpdateNetworkState(
 
 void WebMediaPlayerNeva::UpdateReadyState(WebMediaPlayer::ReadyState state) {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
+  NEVA_DCHECK(GetClient());
   NEVA_VLOGTF(1) << "(" << ReadyStateToString(state) << ")";
 
   if (state == WebMediaPlayer::kReadyStateHaveEnoughData &&
@@ -1107,7 +1114,7 @@ WebMediaPlayerNeva::GetAudioSourceProvider() {
 
 void WebMediaPlayerNeva::Repaint() {
   NEVA_DCHECK(main_task_runner_->BelongsToCurrentThread());
-
+  NEVA_DCHECK(GetClient());
   GetClient()->Repaint();
 }
 

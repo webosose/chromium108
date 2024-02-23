@@ -40,8 +40,8 @@ WebOSGAVInjection::WebOSGAVInjection(blink::WebLocalFrame* frame)
     : InjectionBrowserControlBase(frame),
       data_manager_(CallFunction("initialize")) {
   auto* render_frame = content::RenderFrame::FromWebFrame(frame);
-  CHECK(render_frame);
-  video_window_factory_ = render_frame->GetFrameVideoWindowFactory();
+  if (render_frame)
+    video_window_factory_ = render_frame->GetFrameVideoWindowFactory();
 }
 
 void WebOSGAVInjection::OnVideoWindowCreated(const std::string& id,
@@ -102,6 +102,11 @@ std::string WebOSGAVInjection::gavGetMediaId() {
 
 bool WebOSGAVInjection::gavRequestMediaLayer(const std::string& id, int type) {
   VLOG(1) << __func__ << " id=" << id << " type=" << type;
+  if (!video_window_factory_) {
+    LOG(ERROR) << __func__ << " No video window factory";
+    return false;
+  }
+
   if (id_to_window_.find(id) != id_to_window_.end()) {
     LOG(ERROR) << __func__ << " already requested";
     return false;

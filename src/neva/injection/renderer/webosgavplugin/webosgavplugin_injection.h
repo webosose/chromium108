@@ -92,7 +92,7 @@ class WebOSGAVInjection : public VideoWindowClientOwner,
 
   std::string GetInjectionData(const std::string& name);
   WebOSGAVDataManager data_manager_;
-  content::mojom::FrameVideoWindowFactory* video_window_factory_;
+  content::mojom::FrameVideoWindowFactory* video_window_factory_ = nullptr;
   unsigned int next_plugin_media_id_ = 0;
   std::map<std::string, VideoWindowImpl> id_to_window_;
 };
