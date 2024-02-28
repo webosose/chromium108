@@ -256,7 +256,7 @@ void MediaStreamCaptureIndicator::WebContentsDeviceUsage::AddDevice(
 
   if (web_contents() && stream_count == 1) {
     ObserverMethod obs_func = GetObserverMethodToCall(device);
-    DCHECK(obs_func);
+    CHECK(obs_func);
     for (Observer& obs : indicator_->observers_)
       (obs.*obs_func)(web_contents(), true);
   }
@@ -270,7 +270,7 @@ void MediaStreamCaptureIndicator::WebContentsDeviceUsage::RemoveDevice(
 
   if (web_contents() && stream_count == 0) {
     ObserverMethod obs_func = GetObserverMethodToCall(device);
-    DCHECK(obs_func);
+    CHECK(obs_func);
     for (Observer& obs : indicator_->observers_)
       (obs.*obs_func)(web_contents(), false);
   }
@@ -371,7 +371,7 @@ void MediaStreamCaptureIndicator::NotifyStopped(
   DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 
   auto it = usage_map_.find(web_contents);
-  DCHECK(it != usage_map_.end());
+  CHECK(it != usage_map_.end());
   it->second->NotifyStopped();
 
   for (auto* inner_contents : web_contents->GetInnerWebContents())
