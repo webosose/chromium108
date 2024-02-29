@@ -138,13 +138,15 @@ const gfx::Rect HTMLMediaElement<original_t>::WidgetViewRect() const {
   if (!frame)
     return gfx::Rect();
 
-  WebFrameWidgetImpl* frame_widget =
-      WebLocalFrameImpl::FromFrame(frame)->LocalRootFrameWidget();
+  WebLocalFrameImpl* web_frame = WebLocalFrameImpl::FromFrame(frame);
+  if (web_frame) {
+    WebFrameWidgetImpl* frame_widget = web_frame->LocalRootFrameWidget();
+    if (frame_widget) {
+      return frame_widget->ViewRect();
+    }
+  }
 
-  if (!frame_widget)
-    return gfx::Rect();
-
-  return frame_widget->ViewRect();
+  return gfx::Rect();
 }
 
 template <typename original_t>
