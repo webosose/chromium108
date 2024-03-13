@@ -219,7 +219,6 @@ int AppRuntimeBrowserMainParts::PreMainMessageLoopRun() {
 #if defined(USE_AURA)
   if (!display::Screen::GetScreen()) {
     screen_ = views::CreateDesktopScreen();
-    display::Screen::SetScreenInstance(screen_.get());
   }
 
   aura::Env::GetInstance();
