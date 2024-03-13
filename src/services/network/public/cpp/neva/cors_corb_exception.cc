@@ -49,8 +49,7 @@ void CorsCorbException::AddForProcess(int process_id) {
 // static
 void CorsCorbException::RemoveForProcess(int process_id) {
   std::set<int>& processes = GetExceptionProcesses();
-  size_t number_of_elements_removed = processes.erase(process_id);
-  DCHECK_EQ(1u, number_of_elements_removed);
+  processes.erase(process_id);
 }
 
 // static
