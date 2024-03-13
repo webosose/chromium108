@@ -2253,25 +2253,31 @@ void NavigationRequest::BeginNavigationImpl() {
 #endif
 
 #if defined(USE_NEVA_APPRUNTIME)
-  bool navigation_denied =
-      GetURL().SchemeIsFile() &&
-      !GetContentClient()->browser()->IsFileSchemeNavigationAllowed(
-          GetURL(), frame_tree_node_->frame_tree_node_id(),
-          commit_params_->is_browser_initiated);
-  // Some applications use wrong paths when manipulating history with
-  // history.pushState() or history.replaceState() APIs. Such navigation
-  // does not lead to loading of the actual resource, because it is done
-  // in the context of same document navigation and we do not block it.
-  base::FilePath path;
-  base::File::Info file_info;
-  bool allow_for_history =
-      net::FileURLToFilePath(GetURL(), &path) &&
-      (!base::GetFileInfo(path, &file_info) || file_info.is_directory);
+  bool navigation_denied = false;
+  {
+    // Here we use file access APIs that could block the thread. Ideally
+    // these should be moved to be done asynchronously.
+    base::ScopedAllowBlocking allow_blocking;
+    navigation_denied =
+        GetURL().SchemeIsFile() &&
+        !GetContentClient()->browser()->IsFileSchemeNavigationAllowed(
+            GetURL(), frame_tree_node_->frame_tree_node_id(),
+            commit_params_->is_browser_initiated);
+    // Some applications use wrong paths when manipulating history with
+    // history.pushState() or history.replaceState() APIs. Such navigation
+    // does not lead to loading of the actual resource, because it is done
+    // in the context of same document navigation and we do not block it.
+    base::FilePath path;
+    base::File::Info file_info;
+    bool allow_for_history =
+        net::FileURLToFilePath(GetURL(), &path) &&
+        (!base::GetFileInfo(path, &file_info) || file_info.is_directory);
 
-  if (common_params_->navigation_type ==
-          blink::mojom::NavigationType::HISTORY_SAME_DOCUMENT &&
-      allow_for_history) {
-    navigation_denied = false;
+    if (common_params_->navigation_type ==
+            blink::mojom::NavigationType::HISTORY_SAME_DOCUMENT &&
+        allow_for_history) {
+      navigation_denied = false;
+    }
   }
 
   if (navigation_denied) {

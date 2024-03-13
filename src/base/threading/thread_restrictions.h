@@ -176,6 +176,7 @@ class DWriteFontCollectionProxy;
 class DWriteFontProxyImpl;
 class EmergencyTraceFinalisationCoordinator;
 class InProcessUtilityThread;
+class NavigationRequest;
 class NestedMessagePumpAndroid;
 class NetworkServiceInstancePrivate;
 class PepperPrintSettingsManagerImpl;
@@ -473,6 +474,9 @@ class BASE_EXPORT ScopedAllowBlocking {
 #if BUILDFLAG(IS_WIN)
   friend class base::win::OSInfo;
   friend class content::WebContentsImpl;  // http://crbug.com/1262162
+#endif
+#if defined(USE_NEVA_APPRUNTIME)
+  friend class content::NavigationRequest;
 #endif
   friend class content::WebContentsViewMac;
   friend class cronet::CronetPrefsManager;
