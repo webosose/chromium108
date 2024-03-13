@@ -9345,7 +9345,9 @@ void WebContentsImpl::DropAllPeerConnections(
                                 weak_factory_.GetWeakPtr(), reason,
                                 drop_peer_connection_request_id_);
   ForEachRenderFrameHost([cb](RenderFrameHost* render_frame_host) {
-    render_frame_host->DropAllPeerConnections(cb);
+    if (render_frame_host->IsRenderFrameLive()) {
+      render_frame_host->DropAllPeerConnections(cb);
+    }
   });
 }
 
