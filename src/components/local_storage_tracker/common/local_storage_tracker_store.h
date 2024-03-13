@@ -28,7 +28,7 @@ class LocalStorageTrackerStore {
  public:
   LocalStorageTrackerStore(
       scoped_refptr<base::SingleThreadTaskRunner> main_thread_runner,
-      scoped_refptr<base::SingleThreadTaskRunner> db_thread_runner);
+      scoped_refptr<base::SequencedTaskRunner> db_thread_runner);
   void Initialize(const base::FilePath& data_file_path,
                   base::OnceCallback<void(bool)> callback);
   void AddAccess(const AccessData& access,
@@ -67,7 +67,7 @@ class LocalStorageTrackerStore {
 
   std::unique_ptr<LocalStorageTrackerDatabase> db_;
   scoped_refptr<base::SingleThreadTaskRunner> main_thread_runner_;
-  scoped_refptr<base::SingleThreadTaskRunner> db_thread_runner_;
+  scoped_refptr<base::SequencedTaskRunner> db_thread_runner_;
   bool db_initialized_;
   static const std::string db_name_;
 };

@@ -23,7 +23,7 @@ namespace content {
 
 LocalStorageTrackerStore::LocalStorageTrackerStore(
     scoped_refptr<base::SingleThreadTaskRunner> main_thread_runner,
-    scoped_refptr<base::SingleThreadTaskRunner> db_thread_runner)
+    scoped_refptr<base::SequencedTaskRunner> db_thread_runner)
     : main_thread_runner_(main_thread_runner),
       db_thread_runner_(db_thread_runner),
       db_initialized_(false) {

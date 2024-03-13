@@ -21,6 +21,7 @@
 #include "base/lazy_instance.h"
 #include "base/run_loop.h"
 #include "base/task/single_thread_task_runner.h"
+#include "base/task/thread_pool.h"
 #include "base/threading/thread_task_runner_handle.h"
 #include "components/local_storage_tracker/common/local_storage_tracker_types.h"
 #include "content/public/browser/browser_task_traits.h"
@@ -41,8 +42,8 @@ void LocalStorageTrackerImpl::Initialize(const base::FilePath& data_file_path) {
   init_status_ = InitializationStatus::kPending;
   scoped_refptr<base::SingleThreadTaskRunner> main_thread_runner(
       base::ThreadTaskRunnerHandle::Get());
-  scoped_refptr<base::SingleThreadTaskRunner> db_thread_runner =
-      content::GetIOThreadTaskRunner({});
+  scoped_refptr<base::SequencedTaskRunner> db_thread_runner =
+      base::ThreadPool::CreateSequencedTaskRunner({base::MayBlock()});
   store_.reset(
       new LocalStorageTrackerStore(main_thread_runner, db_thread_runner));
   store_->Initialize(
