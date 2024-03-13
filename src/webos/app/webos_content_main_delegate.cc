@@ -46,6 +46,10 @@ WebOSContentMainDelegate::WebOSContentMainDelegate() {}
 
 absl::optional<int> WebOSContentMainDelegate::BasicStartupComplete() {
   base::CommandLine* parsedCommandLine = base::CommandLine::ForCurrentProcess();
+
+  if (basic_startup_callback_) {
+    std::move(basic_startup_callback_).Run();
+  }
   // TODO(pikulik): should be revised
   // parsedCommandLine->AppendSwitch(switches::kNoSandbox);
 

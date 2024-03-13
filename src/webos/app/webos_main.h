@@ -23,6 +23,7 @@ namespace webos {
 
 class WEBOS_EXPORT WebOSMainDelegate {
  public:
+  virtual void BasicStartupComplete() = 0;
   virtual void AboutToCreateContentBrowserClient() = 0;
 };
 

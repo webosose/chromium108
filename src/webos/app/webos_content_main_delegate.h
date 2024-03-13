@@ -33,6 +33,9 @@ class WebOSContentMainDelegate
   // content::ContentMainDelegate implementation:
   absl::optional<int> BasicStartupComplete() override;
   void PreSandboxStartup() override;
+  void SetBasicStartupCallback(base::OnceClosure basic_startup_callback) {
+    basic_startup_callback_ = std::move(basic_startup_callback);
+  }
   void SetBrowserStartupCallback(base::OnceClosure startup_callback) {
     startup_callback_ = std::move(startup_callback);
   }
@@ -43,6 +46,7 @@ class WebOSContentMainDelegate
  protected:
   std::unique_ptr<WebOSContentClient> content_client_;
   std::unique_ptr<content::ContentRendererClient> content_renderer_client_;
+  base::OnceClosure basic_startup_callback_;
   base::OnceClosure startup_callback_;
 };
 

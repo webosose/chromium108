@@ -31,6 +31,8 @@ WebOSMain::WebOSMain(WebOSMainDelegate* delegate) : delegate_(delegate) {}
 int WebOSMain::Run(int argc, const char** argv) {
   webos::WebOSContentMainDelegate main_delegate;
   neva_app_runtime::SetFileAccessController(new WebOSFileAccessController());
+  main_delegate.SetBasicStartupCallback(base::BindOnce(
+      &WebOSMainDelegate::BasicStartupComplete, base::Unretained(delegate_)));
   main_delegate.SetBrowserStartupCallback(
       base::BindOnce(&WebOSMainDelegate::AboutToCreateContentBrowserClient,
                      base::Unretained(delegate_)));
