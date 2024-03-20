@@ -731,12 +731,7 @@ void WebView::SetUseUnlimitedMediaPolicy(bool enabled) {
 }
 
 void WebView::SetEnableBackgroundRun(bool enabled) {
-#if defined(USE_NEVA_MEDIA)
-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kDisableWebMediaPlayerNeva)) {
-    return;
-  }
-#endif
+  VLOG(1) << __func__ << " enabled=" << enabled;
   auto* webview_controller_impl =
       AppRuntimeWebViewControllerImpl::FromWebContents(web_contents_.get());
   if (webview_controller_impl)
