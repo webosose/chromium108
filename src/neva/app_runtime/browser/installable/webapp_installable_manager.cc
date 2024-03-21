@@ -99,6 +99,7 @@ void WebAppInstallableManager::OnDidGetManifest(
   if (!manifest || manifest_url.is_empty() ||
       blink::IsEmptyManifest(manifest)) {
     std::move(callback).Run(false);
+    return;
   }
 
   auto web_app_info = std::make_unique<WebAppInstallInfo>();
