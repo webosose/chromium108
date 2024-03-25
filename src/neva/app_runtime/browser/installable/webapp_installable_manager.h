@@ -84,7 +84,10 @@ class WebAppInstallableManager {
           new_delegate_info,
       bool value,
       const std::string& version);
-
+  // TODO This flag is necessary to prevent the plant
+  // from being called again when the first one has not yet
+  // finished its work
+  bool is_processing_install_ = false;
   std::unique_ptr<web_app::WebAppDataRetriever> data_retriever_;
   std::unique_ptr<pal::WebAppInstallableDelegate> pal_installable_delegate_;
   base::WeakPtrFactory<WebAppInstallableManager> weak_factory_;

@@ -102,6 +102,12 @@ void WebAppInstallableManager::OnDidGetManifest(
     return;
   }
 
+  if (is_processing_install_) {
+    std::move(callback).Run(false);
+    return;
+  }
+  is_processing_install_ = true;
+
   auto web_app_info = std::make_unique<WebAppInstallInfo>();
   web_app::UpdateWebAppInfoFromManifest(*manifest, manifest_url,
                                         web_app_info.get());
@@ -126,6 +132,7 @@ void WebAppInstallableManager::OnIconsDownloaded(
       pal_installable_delegate_->SaveArtifacts(delegate_info.get());
 
   std::move(callback).Run(install_result);
+  is_processing_install_ = false;
 }
 
 void WebAppInstallableManager::UpdateApp() {
