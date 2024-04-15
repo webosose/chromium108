@@ -1137,7 +1137,10 @@ void WebView::SetEnableHtmlSystemKeyboardAttr(bool enable) {
 void WebView::RequestInjectionLoading(const std::string& injection_name) {
   TRACE_EVENT1("neva", "WebView::RequestInjectionLoading", "injection_name",
                injection_name);
-
+#if defined(ENABLE_PWA_MANAGER_WEBAPI)
+  if (is_pwa_)
+    return;
+#endif  // ENABLE_PWA_MANAGER_WEBAPI
   injection_manager_->RequestLoadInjection(web_contents_->GetPrimaryMainFrame(),
                                            injection_name);
 }
@@ -1218,9 +1221,10 @@ void WebView::DidFinishLoad(content::RenderFrameHost* render_frame_host,
   // In original Chromium the update scheduled in PrimaryPageChanged, but in our
   // case in PrimaryPageChanged WebContents did not navigate to the correct URL.
   // So for now use Finish.
-  if (validated_url.SchemeIsHTTPOrHTTPS() && pwa_is_starting_)
+  if (validated_url.SchemeIsHTTPOrHTTPS() && pwa_is_starting_) {
     installable_manager_->MaybeUpdate();
-  pwa_is_starting_ = false;
+    pwa_is_starting_ = false;
+  }
 #endif  // ENABLE_PWA_MANAGER_WEBAPI
   // Async notification is required for webOS WAM app exit logic which
   // depends on loading about:blank page
